@@ -95,6 +95,57 @@ body{overflow:auto;min-height:100%}
 .toggles{display:flex;flex-wrap:wrap;gap:8px}
 .tog{border:2px solid var(--line);background:var(--surface-2);border-radius:999px;padding:8px 14px;font-weight:800;cursor:pointer;color:var(--ink-soft);min-height:38px}
 .tog[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+/* math typesetting */
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.85em;line-height:1.05;margin:0 .12em}
+.fr-n{border-bottom:2px solid currentColor;padding:0 .15em}
+.fr-d{padding:0 .15em}
+.rt{border-top:2px solid currentColor;padding:0 .1em}
+.rt-k{font-size:.6em;margin-right:-.35em;vertical-align:.9em}
+sup{font-size:.62em;line-height:0}
+/* figures from core.js */
+.fig{width:100%;height:auto}
+.fig-shape{fill:color-mix(in srgb,var(--sky) 16%,transparent);stroke:var(--ink);stroke-width:3;stroke-linejoin:round}
+.fig-thin{fill:none;stroke:var(--ink-soft);stroke-width:2}
+.fig-cell{fill:var(--surface);stroke:var(--ink-soft);stroke-width:1.2}
+.fig-on{fill:var(--accent);stroke:var(--ink-soft);stroke-width:1.2}
+.fig-grid{stroke:var(--line);stroke-width:1}
+.fig-bar{fill:var(--accent)}.fig-bar.alt{fill:var(--sky)}
+.fig-dot{fill:var(--accent)}
+.fig-lab{font:800 17px Nunito,sans-serif;fill:var(--ink)}
+.fig-small{font:800 13px Nunito,sans-serif;fill:var(--ink-soft)}
+.fig text:not([text-anchor]){text-anchor:middle}
+.stack{border-collapse:collapse;font:700 1.7rem var(--display),sans-serif;font-variant-numeric:tabular-nums;margin:4px auto}
+.stack td{width:.8em;text-align:center;padding:0 .06em;height:1.25em}
+.stack .sk-carry td{font-size:.6em;color:var(--sky);height:1em;vertical-align:bottom}
+.stack .sk-last td{border-bottom:3px solid var(--ink)}
+.stack .sk-op{color:var(--ink-soft)}
+.sk-q{color:var(--line)}
+.q-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.q-mode{justify-self:start;font-weight:800;font-size:.8rem;padding:3px 10px;border-radius:99px;border:2px dashed var(--line);color:var(--ink-soft);background:var(--surface)}
+.q-mode.paper{border-style:solid;border-color:var(--ink-soft);color:var(--ink)}
+.q-mode:empty{display:none}
+.paper-note{margin:6px 0 0;font-weight:800;font-size:.85rem;color:var(--ink-soft)}
+/* the concept map, one card per grade */
+.grade{background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:10px 14px;box-shadow:var(--shadow)}
+.grade>summary{cursor:pointer;display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;list-style:none}
+.grade>summary::-webkit-details-marker{display:none}
+.grade>summary .st-count{margin-left:auto}
+.gbar{height:8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;flex:0 0 90px}
+.gbar i{display:block;height:100%;background:var(--good)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);background:var(--surface-2);border-radius:99px;padding:5px 10px 5px 6px;font:700 .85rem Nunito,sans-serif;color:var(--ink);cursor:pointer;max-width:100%}
+.chip .ci{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:2px solid var(--line);font:700 .72rem var(--display),sans-serif;flex:0 0 auto}
+.chip.done{border-color:var(--good)}.chip.done .ci{background:var(--good);border-color:var(--good);color:#fff}
+.chip.prog .ci{background:var(--sky);border-color:var(--sky);color:#fff}
+.chip.now{outline:3px solid var(--accent);outline-offset:1px}
+.chip.locked{opacity:.5}
+.chip-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.map{grid-template-columns:1fr !important}
+.pips{display:inline-flex;gap:4px;vertical-align:middle}
+.pips i{width:12px;height:12px;border-radius:4px;background:var(--line);display:inline-block}
+.pips i.on{background:var(--good)}
+.ls-status{font-weight:800;color:var(--ink-soft)}
+.kp-keys.x4{grid-template-columns:repeat(4,1fr)}
 /* lesson intro */
 .lesson-card{display:grid;gap:14px}
 .lesson-head{display:flex;gap:14px;align-items:center}
@@ -316,6 +367,7 @@ body{overflow:auto;min-height:100%}
         <button id="nextBtn" class="btn btn-good btn-big next-btn" type="button"><b id="nextTitle">Lesson</b><small id="nextSub"></small></button>
         <button id="reviewBtn" class="btn btn-sky btn-big btn-col" type="button"><b>Review mix</b><small id="reviewSub">10 problems from what you know, with extra practice on tricky spots</small></button>
         <p id="sumLine" class="sum-line"></p>
+        <p class="paper-note">✎ Keep a pencil and paper next to you. Work each problem out, then type the answer.</p>
       </div>
     </div>
     <div class="card" style="margin-bottom:14px">
@@ -342,16 +394,16 @@ body{overflow:auto;min-height:100%}
     <div class="topbar2"><button id="lessonBack" class="btn btn-ghost btn-sm" type="button">Map</button><div id="lessonStrand" class="brand"></div></div>
     <div class="card lesson-card">
       <div class="lesson-head"><div id="lsHero" class="axo-box"></div><div><div id="lsKicker" class="ls-kicker"></div><h2 id="lsTitle" class="ls-title"></h2><div id="lsStars"></div></div></div>
+      <div id="lsMode" class="q-mode"></div>
       <div class="trick"><div class="trick-h">The trick</div><p id="lsTip"></p></div>
       <div class="example"><div class="trick-h">Watch one</div><div id="lsExQ" class="ex-q"></div><div id="lsExVis" class="vis-wrap"></div><ol id="lsExSteps" class="steps"></ol>
         <button id="lsStepBtn" class="btn btn-ghost btn-sm" type="button" style="margin-top:8px">Next step</button></div>
       <div id="lsLocked" class="locked-note" hidden></div>
-      <div class="mode-row" id="lsModes">
-        <button id="pickBtn" class="btn btn-sky mode-card" type="button"><b>Pick It</b><small>Choose from answers · up to 1 star</small></button>
-        <button id="solveBtn" class="btn btn-good mode-card" type="button"><b>Solve It</b><small>Work it out yourself · up to 3 stars</small></button>
-      </div>
+      <div id="lsStatus" class="ls-status"></div>
+      <button id="startBtn" class="btn btn-good btn-big" type="button">Start</button>
+      <button id="printBtn" class="btn btn-ghost" type="button">Print a practice sheet (with answer key)</button>
       <button id="testOutBtn" class="btn btn-big" type="button" hidden>Test out</button>
-      <p class="star-rules" id="starRules">★ 7 of 10 right · ★★ 8 right in Solve It · ★★★ all 10 right in Solve It with no hints. Two stars unlock the next lesson.</p>
+      <p class="star-rules" id="starRules">Each concept has 3 levels: easy, medium and hard. Get 3 right in a row (first try, no hint) to go up a level. Finish the hard level to master it, then the game moves on to the next concept.</p>
     </div>
   </section>
 
@@ -359,7 +411,7 @@ body{overflow:auto;min-height:100%}
     <div class="play-top"><button id="quitBtn" class="btn btn-ghost btn-sm" type="button">Stop</button><div id="playTitle" class="play-title"></div><div id="dots" class="dots"></div><span class="stat" id="playCur"></span></div>
     <div class="play-grid">
       <div class="card qcard">
-        <div id="qBadge" class="q-badge" hidden></div>
+        <div class="q-tags"><div id="qBadge" class="q-badge" hidden></div><div id="qMode" class="q-mode"></div></div>
         <div class="q-row"><div id="qText" class="q-text"></div><button id="readBtn" class="icon-btn" type="button" aria-label="Read it to me"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button></div>
         <div id="qVis" class="q-vis"></div>
         <div id="answerArea" class="answer-area"></div>

@@ -2,29 +2,31 @@
 const assert = require('assert');
 (async () => {
   const { mergeState, lowersProgress } = await import('../worker/src/logic.mjs');
-  const base = { cur: 10, games: 1, stars: { make10: 1 }, best: { make10: 7 }, sk: { make10: { r: 7, w: 3, t: 100 } }, mist: { bridge10: { n: 1, ok: 0, t: 100 } }, owned: [], char: {}, pre: { done: false, t: 50, st: {} } };
-  const mine = { cur: 40, games: 2, stars: { make10: 2 }, best: { make10: 9 }, sk: { make10: { r: 16, w: 4, t: 300 }, doubles: { r: 2, w: 0, t: 300 } }, mist: { bridge10: { n: 2, ok: 1, t: 300 }, regroupAdd: { n: 1, ok: 0, t: 300 } }, owned: ['lagoon:frog'], char: { lagoon: 'frog' }, look: 'candy', pre: { done: true, t: 280, st: {} } };
-  const theirs = { cur: 25, games: 3, stars: { make10: 1, coins: 3 }, best: { make10: 8 }, sk: { make10: { r: 9, w: 5, t: 200 } }, mist: { bridge10: { n: 3, ok: 0, t: 200 }, coinValues: { n: 1, ok: 0, t: 200 } }, owned: ['lagoon:seal'], char: { lagoon: 'seal' }, look: 'lagoon', pre: { done: false, t: 60, st: {} } };
+  let n = 0; const ok = (c, m) => { n++; assert.ok(c, m); }, eq = (a, b, m) => { n++; assert.deepStrictEqual(a, b, m); };
+  const base = { cur: 10, games: 1, cs: { a_ten: { lv: 1, st: 1, ml: 0, r: 7, w: 3, t: 100, m: 0, due: 0, iv: 0 } }, mist: { a_make10: { n: 1, ok: 0, t: 100 } }, owned: [], char: {}, pre: { v: 2, done: false, t: 50, st: {} } };
+  const mine = { cur: 40, games: 2, cs: { a_ten: { lv: 2, st: 0, ml: 0, r: 16, w: 4, t: 300, m: 300, due: 9e9, iv: 1 }, a_fives: { lv: 0, st: 2, ml: 0, r: 2, w: 0, t: 300, m: 0, due: 0, iv: 0 } }, mist: { a_make10: { n: 2, ok: 1, t: 300 }, a_regroup: { n: 1, ok: 0, t: 300 } }, owned: ['lagoon:frog'], char: { lagoon: 'frog' }, look: 'candy', now: 'a_fives', pre: { v: 2, done: true, t: 280, st: {} } };
+  const theirs = { cur: 25, games: 3, stars: { old: 3 }, cs: { a_ten: { lv: 1, st: 2, ml: 1, r: 9, w: 5, t: 200, m: 0, due: 0, iv: 0 }, c_coins: { lv: 2, st: 0, r: 9, w: 0, t: 200, m: 200, due: 5, iv: 1 } }, mist: { a_make10: { n: 3, ok: 0, t: 200 }, c_coins: { n: 1, ok: 0, t: 200 } }, owned: ['lagoon:seal'], char: { lagoon: 'seal' }, look: 'lagoon', pre: { v: 2, done: false, t: 60, st: {} } };
   const out = mergeState(mine, theirs, base);
-  assert.strictEqual(out.cur, 55, 'treats move by this page\'s delta');
-  assert.strictEqual(out.games, 4);
-  assert.deepStrictEqual(out.stars, { make10: 2, coins: 3 });
-  assert.deepStrictEqual(out.best, { make10: 9 });
-  assert.deepStrictEqual(out.sk.make10, { r: 18, w: 6, t: 300 }, 'right/wrong counts add up from both devices');
-  assert.deepStrictEqual(out.sk.doubles, { r: 2, w: 0, t: 300 });
-  assert.strictEqual(out.mist.bridge10.ok, 1, 'the newer tricky-spot record wins');
-  assert.strictEqual(out.mist.bridge10.n, 3, 'miss count keeps the higher number');
-  assert.ok(out.mist.regroupAdd && out.mist.coinValues, 'tricky spots from both devices are kept');
-  assert.strictEqual(out.pre.done, true, 'the newer placement check wins');
-  assert.deepStrictEqual(out.owned.sort(), ['lagoon:frog', 'lagoon:seal']);
-  assert.strictEqual(out.char.lagoon, 'frog'); assert.strictEqual(out.look, 'candy');
-  /* a redone placement check (newer) replaces a finished older one */
-  const redo = mergeState({ pre: { done: false, t: 900, st: {} } }, { pre: { done: true, t: 500, st: {} } }, {});
-  assert.strictEqual(redo.pre.done, false);
+  eq(out.cur, 55, 'treats move by this page\'s difference'); eq(out.games, 4);
+  eq([out.cs.a_ten.r, out.cs.a_ten.w], [18, 6], 'right/wrong counts add up from both devices');
+  ok(out.cs.a_ten.m === 300 && out.cs.a_ten.lv === 2, 'the newer copy\'s mastery and level win');
+  ok(out.cs.c_coins.m === 200, 'a concept mastered only on the other device stays mastered');
+  ok(out.cs.a_fives && out.cs.a_fives.st === 2, 'a concept only this page has is kept');
+  ok(!('stars' in out), 'old lesson stars are dropped');
+  eq(out.mist.a_make10.ok, 1, 'the newer tricky-spot record wins'); eq(out.mist.a_make10.n, 3, 'miss count keeps the higher number');
+  ok(out.mist.a_regroup && out.mist.c_coins, 'tricky spots from both devices are kept');
+  eq(out.pre.done, true, 'the newer placement check wins');
+  eq(out.owned.sort(), ['lagoon:frog', 'lagoon:seal']); eq(out.char.lagoon, 'frog'); eq(out.look, 'candy'); eq(out.now, 'a_fives');
+  /* mastered on one device, an older unmastered record on the other: still mastered */
+  const m2 = mergeState({ cs: { x: { lv: 0, r: 1, w: 0, t: 900, m: 0 } } }, { cs: { x: { lv: 2, r: 9, w: 0, t: 500, m: 400, due: 7 } } }, {});
+  ok(m2.cs.x.m === 400 && m2.cs.x.lv === 2, 'mastery is never lost in a merge');
+  const redo = mergeState({ pre: { v: 2, done: false, t: 900, st: {} } }, { pre: { v: 2, done: true, t: 500, st: {} } }, {});
+  eq(redo.pre.done, false, 'a redone placement check (newer) replaces a finished older one');
   /* progress never drops */
-  assert.strictEqual(lowersProgress({ stars: { make10: 1 } }, { stars: { make10: 2 } }), true);
-  assert.strictEqual(lowersProgress({ stars: { make10: 2 }, owned: [] }, { stars: { make10: 2 }, owned: ['lagoon:frog'] }), true);
-  assert.strictEqual(lowersProgress({ stars: { make10: 2 }, cur: 0 }, { stars: { make10: 2 }, cur: 500 }), false, 'spending is allowed');
-  assert.strictEqual(lowersProgress(out, theirs), false);
-  console.log('logic: 18 checks ok');
+  eq(lowersProgress({ cs: {} }, { cs: { a_ten: { m: 5 } } }), true, 'losing a mastered concept is refused');
+  eq(lowersProgress({ cs: { a_ten: { m: 5 } }, owned: [] }, { cs: { a_ten: { m: 5 } }, owned: ['lagoon:frog'] }), true, 'losing a character is refused');
+  eq(lowersProgress({ cs: { a_ten: { m: 5 } }, cur: 0 }, { cs: { a_ten: { m: 5 } }, cur: 500 }), false, 'spending is allowed');
+  eq(lowersProgress({ cs: {} }, { stars: { split: 3 } }), false, 'a first-version save with stars can move to concepts');
+  eq(lowersProgress(out, theirs), false);
+  console.log('logic: ' + n + ' checks ok');
 })().catch(e => { console.error(e); process.exit(1); });

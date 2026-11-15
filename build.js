@@ -14,8 +14,11 @@ const css = '/* from Spelling Worlds: world palettes, ambient bubbles, scenes, c
 const parts = [[/^var RAINBOW=/, /^SLOTS\.feet=/, true], [/^function lagoonTop\(/, /^function buildScene\(/], [/^var axoCount=0/, /^function axoSVG\(/], [/^DRAW\.axolotl=/, /^function lagoonPieces\(/], [/^function bwBow\(/, /^function bowsPieces\(/], [/^function bbPearls\(/, /^function bobaPieces\(/], [/^function birdSVG\(/, /^function birdsPieces\(/], [/^DRAW\.pompom=/, /^function cheerPieces\(/]];
 const js = '/* from Spelling Worlds: worlds, scenes and characters */\nvar CUR_WORLD=\'lagoon\';function world(){return CUR_WORLD;}\n' + parts.map(p => { const s = span(p[0], p[1], p[2]); new Function(s); return s; }).join('\n');
 const read = f => fs.readFileSync(path.join(D, 'src', f), 'utf8');
+/* the curriculum: core helpers, then every concept file in name order, then the engine */
+const conceptFiles = fs.readdirSync(path.join(D, 'src', 'concepts')).filter(f => /\.js$/.test(f)).sort();
+const curriculum = [read('core.js')].concat(conceptFiles.map(f => read(path.join('concepts', f)))).join(String.fromCharCode(10));
 let body = read('template.html');
-body = body.replace('/*@@SW_CSS@@*/', () => css).replace('/*@@SW_JS@@*/', () => js).replace('/*@@CURRICULUM_JS@@*/', () => read('curriculum.js')).replace('/*@@COACH_JS@@*/', () => read('coach.js')).replace('/*@@GAME_JS@@*/', () => read('game.js'));
+body = body.replace('/*@@SW_CSS@@*/', () => css).replace('/*@@SW_JS@@*/', () => js).replace('/*@@CURRICULUM_JS@@*/', () => curriculum).replace('/*@@COACH_JS@@*/', () => read('engine.js')).replace('/*@@GAME_JS@@*/', () => read('game.js'));
 for (const m of body.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);
 if (/localStorage|sessionStorage|indexedDB/.test(body)) throw new Error('browser storage must never be used: progress lives only on the save service');
 const title = (body.match(/<title>.*?<\/title>/) || [''])[0];
