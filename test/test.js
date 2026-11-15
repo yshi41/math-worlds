@@ -219,8 +219,12 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   p = await newPage(mock, { width: 360, height: 760, isMobile: true, hasTouch: true });
   await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
   await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(200);
-  const wide = () => ev(p, () => document.documentElement.scrollWidth > window.innerWidth + 1);
-  check(!(await wide()), 'hub fits 360px');
+  /* too wide: the page scrolls sideways, or anything on the visible screen runs past the edge (the page hides overflow,
+     so clipped content would not make it scroll). Pictures inside their own scroll boxes are allowed. */
+  const wide = () => ev(p, () => { if (document.documentElement.scrollWidth > window.innerWidth + 1) return true;
+    const scr = [...document.querySelectorAll('.screen')].find(x => !x.hidden); if (!scr) return false;
+    for (const el of scr.querySelectorAll('*')) { if (el.closest('.q-vis,.vis-wrap,details:not([open]) .chips')) continue; const r = el.getBoundingClientRect(); if (r.width && r.right > window.innerWidth + 1) { window.__wideEl = el.className || el.tagName; return true; } } return false; });
+  check(!(await wide()), 'hub fits 360px (' + (await ev(p, () => window.__wideEl || '')) + ')');
   await ev(p, () => document.querySelectorAll('#map details').forEach(d => d.open = true)); await wait(100); check(!(await wide()), 'the full map fits 360px');
   const sample = await ev(p, () => { const out = []; for (const s of window.COACH.STR) { out.push(s.list[0], s.list[Math.floor(s.list.length / 2)], s.list[s.list.length - 1]); } return out; });
   await ev(p, id => window.__mw.openLesson(id), sample[0]); await wait(120); check(!(await wide()), 'lesson fits 360px');

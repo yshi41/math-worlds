@@ -128,7 +128,7 @@ function recordFix(id){const m=P().mist[id];if(!m||m.ok>=3)return;m.ok++;m.t=Dat
 /* every concept is either a pencil-and-paper concept (written methods, word problems, most algebra and up) or a
    shortcut done in your head; the game says which on every problem */
 const isPaper=id=>!!(S[id]&&(S[id].paper||S[id].s==='story'));
-const MODE_PAPER='✎ Pencil and paper: write it out, then type the answer',MODE_HEAD='In your head (jot notes if you like)';
+const MODE_PAPER='✎ Pencil and paper: show your work',MODE_HEAD='In your head';
 const pips=n=>`<span class="pips" aria-label="${n} of 3 levels">${[0,1,2].map(i=>`<i class="${i<n?'on':''}"></i>`).join('')}</span>`;
 
 /* ---------- screens ---------- */
@@ -304,10 +304,10 @@ function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m
 /* the keypad: digits plus only the extra keys this problem's grade calls for (. / − r) */
 function buildKeypad(area,p){const kind=p.type==='money'?(p.fmt==='d'?'dollars':'cents'):p.type;KP={p,kind,raw:''};ANS={kind:'keypad'};
   const extra=MW.keysFor(p),one=extra.length===1?extra[0]:'',top=extra.length>1?extra:[];
-  const key=k=>`<button type="button" class="key${k?'':' blank'}" data-k="${k}" ${k?'':'tabindex="-1" aria-hidden="true"'}${k===' '?' aria-label="space, for mixed numbers"':''}>${k===' '?'␣':k}</button>`;
-  const hint=kind==='time'?(p.dur?'Type hours, then minutes: 1 4 5 for 1 hour 45 minutes':'Type the time: 3 1 5 for 3:15'):kind==='rem'?'Tap r between the answer and the leftovers: 3 r 2':kind==='frac'?'Type a fraction with /, like 3/4'+(p.low?' (lowest terms)':extra.includes(' ')?'. For a mixed number tap ␣: 1 ␣ 2/3':''):'';
+  const key=k=>`<button type="button" class="key${k?'':' blank'}${k===' '?' key-sm':''}" data-k="${k}" ${k?'':'tabindex="-1" aria-hidden="true"'}${k===' '?' aria-label="space, for mixed numbers"':''}>${k===' '?'space':k}</button>`;
+  const hint=kind==='time'?(p.dur?'Type hours, then minutes: 1 4 5 for 1 hour 45 minutes':'Type the time: 3 1 5 for 3:15'):kind==='rem'?'Tap r between the answer and the leftovers: 3 r 2':kind==='frac'?'Fractions: 3/4'+(p.low?', in lowest terms':extra.includes(' ')?' · mixed numbers: 1 space 2/3':''):'';
   const wrap=document.createElement('div');wrap.className='kp';
-  wrap.innerHTML=`<div class="kp-display" id="kpDisp" aria-live="polite"></div>${hint?`<div class="kp-hint">${hint}</div>`:''}${top.length?`<div class="kp-keys">${top.map(key).join('')}</div>`:''}<div class="kp-keys">${['1','2','3','4','5','6','7','8','9',one,'0','⌫'].map(key).join('')}</div>`;
+  wrap.innerHTML=`<div class="kp-display" id="kpDisp" aria-live="polite"></div>${hint?`<div class="kp-hint">${hint}</div>`:''}${top.length?`<div class="kp-keys" style="grid-template-columns:repeat(${top.length},1fr)">${top.map(key).join('')}</div>`:''}<div class="kp-keys">${['1','2','3','4','5','6','7','8','9',one,'0','⌫'].map(key).join('')}</div>`;
   area.append(wrap);wrap.querySelectorAll('.key').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();kpPress(b.dataset.k)}));kpRender()}
 function kpRender(){if(!KP)return;const r=KP.raw,el=$('#kpDisp');if(!el)return;let h;
   if(KP.kind==='time')h=!r?'<span class="ph">_:__</span>':r.length<=2&&!KP.p.dur?`${r}<span class="ph">:__</span>`:r.length<=2?`<span class="ph">0:</span>${r.padStart(2,'0')}`:`${r.slice(0,-2)}:${r.slice(-2)}`;

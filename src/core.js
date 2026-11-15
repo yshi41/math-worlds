@@ -316,6 +316,14 @@ const STRANDS = [
   { id: 'calc', name: 'Calculus', short: 'Calculus', icon: '∫' }
 ];
 const S = {}, LIST = [];
+/* Common Core alignment. STD holds the standards: { code: {code, g, text, game} } where game is false for standards a
+   typed-answer game can't practise (drawing, constructing, explaining, collecting data); its reason is in game.why.
+   A concept's cc lists the standards it practises; a concept with no cc is an extra that goes beyond Common Core.
+   regrade moves a concept to the grade where Common Core puts it. */
+const STD = {};
+function standards(list) { list.forEach(x => { if (!x || !x.code) throw new Error('standard without a code'); STD[x.code] = Object.assign({ game: true }, x); }); }
+function align(map) { for (const id in map) { if (!S[id]) throw new Error('align: no concept ' + id); S[id].cc = [...new Set((S[id].cc || []).concat(map[id]))]; } }
+function regrade(map) { for (const id in map) { if (!S[id]) throw new Error('regrade: no concept ' + id); const g = map[id]; if (!Number.isInteger(g) || g < 2 || g > 12) throw new Error('regrade: bad grade for ' + id); S[id].was = S[id].g; S[id].g = g; } }
 function defs(arr) {
   arr.forEach(c => {
     if (!c || !c.id) throw new Error('concept without an id');
@@ -445,6 +453,6 @@ const API = { makeR, n, num, B, MINUS, pad2, fmtT, fmtM, fmtD, plural, sum, sign
   frac, mixed, pw, rt, PI, DEG, ord, term, poly, NAMES, ITEMS, par, T, minHops, compHow, mulHow, breakHow, seqProblem, constSeq, skipGen,
   seqHTML, hopsSVG, tenFrame, dotsSVG, rowDots, groupsSVG, blocksSVG, chartSVG, roundLine, ioTable, clockSVG, COIN, COIN_ORDER, coinSVG, coinsRow,
   greedy, coinNames, countOn, tagsHTML, rectSVG, triSVG, barSVG, fracBarSVG, numLineSVG, plotSVG, angleSVG, table, stackHTML,
-  STRANDS, S, LIST, defs, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
+  STRANDS, S, LIST, defs, STD, standards, align, regrade, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.MWC = API;
 })(typeof window !== 'undefined' ? window : this);

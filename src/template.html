@@ -31,7 +31,13 @@ body{overflow:auto;min-height:100%}
 .card h3{font-size:1.2rem;margin:0 0 10px}
 .hub-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:14px;margin-bottom:14px;align-items:start}
 .hub-grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin:14px 0;align-items:start}
-@media (max-width:780px){.hub-grid,.hub-grid2{grid-template-columns:1fr}}
+@media (max-width:780px){.hub-grid,.hub-grid2{grid-template-columns:minmax(0,1fr)}}
+/* buttons that carry sentences wrap on small screens (the shared button style never wraps) */
+.next-btn,.btn-col,.mode-card,#printBtn,#preBtn,.action-row .btn,.res .btn{white-space:normal}
+.hero-card,.next-card,.card{min-width:0}
+.hero-card .bubble{max-width:100%;overflow-wrap:anywhere}
+.axo-name{overflow-wrap:anywhere}
+.key.key-sm{font-size:1rem}
 .hero-card{display:grid;justify-items:center;gap:8px;text-align:center}
 .hero-card .axo-box{max-width:200px}
 .lv{width:100%;text-align:left}
@@ -335,7 +341,7 @@ sup{font-size:.62em;line-height:0}
   <section id="menu" class="screen">
     <div class="card">
       <h1 class="brand-big">Math Worlds</h1>
-      <p class="lede">Learn the shortcuts that make math fast: patterns, adding and taking away in your head, times tricks, telling time and money. Every mistake shows you the trick, then builds it up step by step.</p>
+      <p class="lede">Math from 2nd to 12th grade, one idea at a time: patterns, shortcuts you do in your head, and methods you write out. Keep a pencil and paper handy. Every mistake shows you the trick, then builds it up step by step.</p>
     </div>
     <h2 class="who">Who's playing?</h2>
     <div id="kids" class="profile-grid"></div>

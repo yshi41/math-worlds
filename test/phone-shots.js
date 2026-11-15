@@ -1,0 +1,22 @@
+const puppeteer = require('puppeteer-core'), path = require('path');
+const { create } = require('./mockcloud.js');
+const out = process.argv[2];
+const w = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const b = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, args: ['--mute-audio', '--disable-speech-api'] });
+  const p = await b.newPage(); await p.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 }); const m = create(); await m.attach(p);
+  await p.goto('file:///' + path.resolve(process.argv[3] + '/../index.html').split(String.fromCharCode(92)).join('/'));
+  await w(1200); const shot = async n => { await w(250); await p.screenshot({ path: out + '/' + n + '.png', fullPage: true }); };
+  await shot('1-menu');
+  await p.evaluate(() => document.querySelectorAll('.profile-card')[1].click()); await shot('2-hub-pre');
+  await p.evaluate(() => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.done = true; });
+  await p.evaluate(() => window.__mw.openLesson('a_plus9')); await p.evaluate(() => { document.querySelector('#hubBtn'); }); 
+  await p.evaluate(() => { document.querySelector('#lessonBack').click(); }); await shot('3-hub');
+  await p.evaluate(() => window.__mw.openLesson('m_longdiv')); await shot('4-lesson');
+  const prob = async (id, d, n, wrong) => { await p.evaluate((id, d) => { window.__mw.startTest(id); const R = window.__mw.RD; R.queue.unshift({ p: window.MWC.gen(id, d), kind: 'main' }); window.__mw.answerRight(); document.querySelector('#nextQBtn').click(); }, id, d); await shot(n); if (wrong) { await p.evaluate(() => { window.__mw.answerWrong(); window.__mw.answerWrong(); }); await shot(n + '-w'); } };
+  await prob('a_coladd', 1, '5-coladd'); await prob('m_longdiv', 1, '6-longdiv', true); await prob('f_mixedops', 1, '7-frac'); await prob('s_ratio', 2, '8-story', true); await prob('x_quadform', 2, '9-alg');
+  await p.evaluate(() => { const R = window.__mw.RD; window.__mw.startLearn('a_plus9'); }); await w(100);
+  await p.evaluate(() => document.querySelector('#quitBtn').click()); await w(200);
+  await p.evaluate(() => { window.__mw.startLearn('a_plus9'); for (let i = 0; i < 3; i++) { window.__mw.answerRight(); document.querySelector('#nextQBtn').click(); } document.querySelector('#quitBtn').click(); }); await shot('10-results');
+  await b.close();
+})().catch(e => { console.error(e); process.exit(1); });
