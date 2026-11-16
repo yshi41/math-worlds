@@ -46,6 +46,11 @@ down. The search starts near the kid's grade (Riley is in 3rd grade, Charlie in 
 strand settles are marked mastered, with their reviews spread over the next week. A concept whose medium problem was
 right but whose hard problem was missed starts at level 2. The check saves as it goes and can be redone from Settings.
 
+The placement check and the assessments a parent starts never say right or wrong as they go. Every answer gets the
+same tick, the same "Answer saved." note and the same short pause, the character stays neutral, and the treat counter is
+hidden so it can't give the answer away. How many were right, and the treats earned, show on the results at the end of
+each block. (Test-outs are practice, not assessments: they answer right away.)
+
 ## The coach
 
 Every problem carries its worked shortcut (`how`), a break-down into smaller questions with the same numbers
@@ -59,6 +64,15 @@ Every problem carries its worked shortcut (`how`), a break-down into smaller que
 - On the hub, tricky spots keep a Practice button until 3 in a row are right. Missing a tricky spot's practice adds
   the concept one step back.
 - General checks also catch answers 10 times too big or small, reversed digits, sign flips and carrying slips.
+
+## A right answer
+
+In practice a right answer is seen and heard at once: two bell notes that climb as the streak grows (one gentler bell
+when it took a second try), the answer box turns green with a check mark, stars burst from it, the keys fold away so
+the praise sits right under the answer with the streak and the treats earned, the character jumps (it rides in the
+praise box on a phone, where the side card is hidden), and the new progress dot pops. A miss buzzes and shakes the
+answer box red. Sounds are made in the page (no recordings); on iPhones and iPads they play even with the mute switch
+on, and the Sounds setting turns them off.
 
 ## Look
 

@@ -34,18 +34,29 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 
 /* ---------- sound and voice ---------- */
 const Snd={ctx:null,on:true,
-  init(){try{if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;this.ctx=new AC();this.out=this.ctx.createGain();this.out.gain.value=.5;this.out.connect(this.ctx.destination)}if(this.ctx.state!=='running')this.ctx.resume()}catch(e){}},
+  /* iPhones and iPads treat page sounds like a ringtone and drop them when the mute switch is on; asking for the
+     "playback" kind keeps the game's sounds audible (the Sounds setting in the game still turns them off) */
+  init(){try{if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+      this.ctx=new AC();this.out=this.ctx.createGain();this.out.gain.value=.85;this.out.connect(this.ctx.destination)}if(this.ctx.state!=='running')this.ctx.resume()}catch(e){}},
   f(m){return 440*Math.pow(2,(m-69)/12)},
   tone(freq,dur,o={}){const c=this.ctx;if(!c||!this.on)return;const when=c.currentTime+(o.delay||0),osc=c.createOscillator(),g=c.createGain();osc.type=o.type||'sine';osc.frequency.setValueAtTime(freq,when);if(o.slide)osc.frequency.exponentialRampToValueAtTime(Math.max(30,o.slide),when+dur);
     const v=o.vol!=null?o.vol:.2;g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(v,when+.01);g.gain.exponentialRampToValueAtTime(.0001,when+dur);osc.connect(g);g.connect(this.out);osc.start(when);osc.stop(when+dur+.05)},
   click(){this.tone(660,.06,{type:'triangle',vol:.08})},
-  pop(k){const sc=[0,2,4,7,9,12,14,16];const r=67+sc[Math.min(Math.max(k,1)-1,7)];[0,4,7,12].forEach((d,i)=>this.tone(this.f(r+d),.16,{type:'triangle',vol:.15,delay:i*.05}))},
-  soft(){this.tone(this.f(76),.12,{type:'triangle',vol:.1});this.tone(this.f(81),.16,{type:'triangle',vol:.08,delay:.07})},
+  /* a bell: a sine with two quieter overtones that ring off faster */
+  bell(m,dur,o={}){const f=this.f(m),v=o.vol!=null?o.vol:.22,d=o.delay||0;this.tone(f,dur,{vol:v,delay:d});this.tone(f*2,dur*.7,{vol:v*.35,delay:d});this.tone(f*3,dur*.45,{vol:v*.12,delay:d})},
+  /* a right answer: two bright bell notes, "ding-ding!", that climb the scale as the streak grows; every third in a
+     row adds a sparkle on top */
+  right(k){k=Math.max(k|0,1);const sc=[0,2,4,5,7,9,11,12],r=72+sc[Math.min(k,8)-1];this.bell(r,.24,{vol:.2});this.bell(r+7,.6,{vol:.24,delay:.11});
+    if(k%3===0)[12,16,19,24].forEach((d,i)=>this.tone(this.f(r+d),.12,{type:'triangle',vol:.07,delay:.3+i*.06}))},
+  /* right on the second try: one gentler bell */
+  again(){this.bell(76,.45,{vol:.17})},
+  /* an answer taken in an assessment: the same plain tick whether it was right or wrong */
+  tick(){this.tone(520,.07,{type:'triangle',vol:.1})},
   wrong(){this.tone(220,.25,{type:'triangle',vol:.12,slide:150})},
   coin(){this.tone(988,.08,{type:'square',vol:.05});this.tone(1319,.25,{type:'square',vol:.05,delay:.07})},
   key(){this.tone(880,.03,{type:'triangle',vol:.05})},
   star(i){this.tone(this.f(79+i*5),.35,{type:'triangle',vol:.18})},
-  win(){[[72,0,.14],[76,.12,.14],[79,.24,.14],[84,.36,.4]].forEach(([m,d,l])=>this.tone(this.f(m),l,{type:'triangle',vol:.17,delay:d}))}};
+  win(at){[[72,0,.14],[76,.12,.14],[79,.24,.14],[84,.36,.4]].forEach(([m,d,l])=>this.tone(this.f(m),l,{type:'triangle',vol:.17,delay:d+(at||0)}))}};
 const Voice={on:false,v:null,
   pick(){const s=window.speechSynthesis;if(!s)return null;const L=s.getVoices().filter(v=>/^en/i.test(v.lang));const score=v=>(/female|aria|jenny|samantha|zira|ava|allison|google us english/i.test(v.name)?5:0)+(/en-US/i.test(v.lang)?2:0)+(/natural|online/i.test(v.name)?2:0);L.sort((a,b)=>score(b)-score(a));return L[0]||null},
   say(t){const s=window.speechSynthesis;if(!s||!t)return;try{s.cancel();const u=new SpeechSynthesisUtterance(t);this.v=this.v||this.pick();if(this.v)u.voice=this.v;u.rate=.92;u.pitch=1.1;s.speak(u)}catch(e){}}};
@@ -187,7 +198,7 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
   const pc=$('#preCard'),done=preDone(p);pc.hidden=done;
   if(!done){const pre=p.pre,order=pre?pre.order:CO.pretestStart(gradeOf(kid(player))).order,started=pre&&pre.order.some(s=>pre.st[s].log.length);const prog=pre?CO.pretestProgress(pre):{done:0,total:order.length};
     const nm=checkName(pre),pg=pre?CO.pretestProgress(pre):null;$('#preTitle').textContent=started?'Keep going with the '+nm.toLowerCase():nm;
-    $('#preText').textContent=`${pre&&pre.by==='parent'?'A check-up your parent started. ':''}A check of everything up to ${ord(pre&&pre.cap?pre.cap:gradeOf(kid(player))+1)} grade, in ${pg?pg.blocks:3} blocks of about 20 minutes each. It finds which concepts you already know and where to start. Have a pencil and paper ready. You can skip what you haven't learned, and take a break between blocks.`;
+    $('#preText').textContent=`${pre&&pre.by==='parent'?'A check-up your parent started. ':''}A check of everything up to ${ord(pre&&pre.cap?pre.cap:gradeOf(kid(player))+1)} grade, in ${pg?pg.blocks:3} blocks of about 20 minutes each. It finds which concepts you already know and where to start. Have a pencil and paper ready. You can skip what you haven't learned, and take a break between blocks. The game won't say right or wrong as you go: you see how you did at the end of each block.`;
     const nx=pre&&CO.pretestNext(JSON.parse(JSON.stringify(pre)));
     $('#preParts').innerHTML=order.map(sid=>{const s=CO.STR.find(x=>x.id===sid);return `<span class="pre-part${pre&&pre.st[sid].done?' done':nx&&nx.strand===sid?' now':''}">${s.short}</span>`}).join('');
     $('#preBtn').textContent=pg&&(started||pg.block>1)?`Start block ${pg.block} of ${pg.blocks} (about ${clamp(pg.estMin,5,25)} minutes)`:'Start the '+nm.toLowerCase()}
@@ -301,8 +312,10 @@ function newCheck(p,id,by){const pace=p.apace||1;return Object.assign(CO.pretest
 const checkName=pre=>pre&&pre.by==='parent'?'Assessment':'Placement check';
 function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done)p.pre=newCheck(p,player);newRound({kind:'pre'});beginPlay()}
 function beginPlay(){const p=P(),k=lookOf(player);applyWorld(k,sceneLevel(p));show('play');$('#playHero').innerHTML=charSVG(charOf(p,k),'neutral');
-  $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):'Placement check';
-  bubble($('#playBubble'),RD.kind==='pre'?'Do your best! It is fine to skip what you have not learned.':'You can do it!');nextQ()}
+  $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):checkName(p.pre);
+  /* an assessment keeps the treat counter out of sight, because a counter that ticks up gives the answer away */
+  $('#playCur').hidden=RD.kind==='pre';$('#playHero').classList.remove('jump','shake');
+  bubble($('#playBubble'),RD.kind==='pre'?'Do your best! You will see how you did at the end.':'You can do it!');nextQ()}
 function pickWeighted(list,wf){const w=list.map(wf);let r=Math.random()*w.reduce((a,b)=>a+b,0);for(let i=0;i<list.length;i++){r-=w[i];if(r<=0)return list[i]}return list[list.length-1]}
 function reviewProblem(){const p=P(),ml=mistList(p),dl=CO.due(p);
   if(ml.length&&Math.random()<.35){const [cid]=pickOne(ml.slice(0,3));const q=mk(cid,ri(2),cid);RD.keys.add(q.key);return {p:q,kind:'main',concept:cid}}
@@ -328,7 +341,7 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   RD.cur=it;RD.tries=0;RD.usedHint=false;RD.phase='ask';RD.t0=Date.now();KP=null;
   const p=it.p,cid=it.concept||p.concept;
   const bd=$('#qBadge');bd.hidden=false;bd.className='q-badge'+(it.kind==='step'?' build':it.kind==='fix'||it.kind==='prac'||cid?' fix':'');
-  bd.textContent=it.kind==='step'?'Step by step':cid?'Tricky spot: '+conceptName(cid):it.kind==='rev'?'Review: '+conceptName(p.skill):it.kind==='pre'?`Placement · ${CO.STR.find(s=>s.id===it.nx.strand).name}`:RD.kind==='test'?'Test out · hard':['Easy','Medium','Hard'][p.d]+` · level ${p.d+1} of 3`;
+  bd.textContent=it.kind==='step'?'Step by step':cid?'Tricky spot: '+conceptName(cid):it.kind==='rev'?'Review: '+conceptName(p.skill):it.kind==='pre'?`${P().pre&&P().pre.by==='parent'?'Assessment':'Placement'} · ${CO.STR.find(s=>s.id===it.nx.strand).name}`:RD.kind==='test'?'Test out · hard':['Easy','Medium','Hard'][p.d]+` · level ${p.d+1} of 3`;
   const pp=isPaper(p.skill),qm=$('#qMode');qm.className='q-mode'+(pp||it.kind==='step'?' paper':'');qm.textContent=it.kind==='step'?(pp?'✎ Write this step on your paper':'One small step'):pp?MODE_PAPER:MODE_HEAD;
   $('#qText').innerHTML=p.text;$('#qVis').innerHTML=p.vis||'';
   const fb=$('#feedback');fb.hidden=true;fb.className='feedback';fb.innerHTML='';
@@ -338,8 +351,8 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   $('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
   if(Voice.on)Voice.say(p.say);
   setMood('neutral');persist()}
-function renderDots(){const d=$('#dots');if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
-  let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}"></i>`}d.innerHTML=h}
+function renderDots(pop){const d=$('#dots');if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
+  let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}${pop&&i===RD.results.length-1?' pop':''}"></i>`}d.innerHTML=h}
 function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m)}
 
 /* the keypad: digits plus only the extra keys this problem's grade calls for (. / − r) */
@@ -372,7 +385,7 @@ $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=c
   if(v==null){const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
-$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0);P().pre.t=Date.now();persist();afterPre(false,true)};
+$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0);P().pre.t=Date.now();persist();afterPre(true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
 $('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
@@ -381,10 +394,21 @@ function showFb(cls,html){const fb=$('#feedback');fb.hidden=false;fb.className='
 /* ---------- checking an answer ---------- */
 function submit(v,el){if(!RD||RD.phase!=='ask')return;const it=RD.cur,p=it.p;if(MW.eqAns(p,v))onRight(el);else onWrong(v,el)}
 function award(n){if(n<=0)return;const p=P();p.cur+=n;RD.earned+=n;$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${p.cur}`}
-function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P();RD.phase='done';
+/* a right answer, seen and heard: the answer box turns green with a check mark and the keys fold away so the praise
+   sits right under it, with the streak and the treats earned; stars burst from the box; the counter bumps; the character
+   jumps; two bell notes ring, higher as the streak grows. (An assessment shows and plays none of this.) */
+const CHECK_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg>';
+function markAnswer(ok,fold){const d=$('#kpDisp');if(!d)return;d.classList.remove('bad','ok');void d.offsetWidth;d.classList.add(ok?'ok':'bad');
+  if(ok){d.insertAdjacentHTML('beforeend',`<span class="kp-ok">${CHECK_SVG}</span>`);if(fold&&d.parentNode)d.parentNode.classList.add('done')}}
+function bumpCur(){const c=$('#playCur');c.classList.remove('bump');void c.offsetWidth;c.classList.add('bump')}
+function heroDo(cls){const h=$('#playHero');h.classList.remove('jump','shake');void h.offsetWidth;h.classList.add(cls)}
+function cheer(first,gain,fold){markAnswer(true,fold);const from=$('#kpDisp')||$('#answerArea');fxStars(from,first?26:12);if(gain>0&&screen==='play')bumpCur();if(screen==='play')heroDo('jump')}
+const fbTop=(word,streak,gain)=>`<div class="fb-top"><span class="fb-hero axo-box" aria-hidden="true">${charSVG(charOf(P(),lookOf(player)),'happy')}</span><div class="fb-h"><span class="fb-ck">${CHECK_SVG}</span><span>${word}</span></div>${streak>=2||gain>0?`<div class="fb-chips">${streak>=2?`<span class="fb-streak">${streak} in a row!</span>`:''}${gain>0?`<span class="fb-gain">+${gain} ${CUR_ICON[lookOf(player)]}</span>`:''}</div>`:''}</div>`;
+function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P(),cur0=pl.cur;RD.phase='done';
   logAns(it.kind==='pre'?'pre':it.kind==='step'?'step':'q',first,true);
-  if(it.kind==='pre'){CO.pretestRecord(pl.pre,true,Date.now()-RD.t0);pl.pre.t=Date.now();award(2);Snd.soft();persist();afterPre(true);return}
-  let extra='';
+  /* an assessment says nothing about right or wrong as it goes; the treats for it show up with the results */
+  if(it.kind==='pre'){CO.pretestRecord(pl.pre,true,Date.now()-RD.t0);pl.pre.t=Date.now();award(2);persist();afterPre(false);return}
+  let extra='',fanfare=false;
   if(it.kind!=='step'){
     if(first){RD.streak++;RD.bestStreak=Math.max(RD.bestStreak,RD.streak)}
     if(counted(it)){RD.results.push(first);if(it.kind!=='prac'){RD.mainDone++;if(first)RD.right++}else if(first)RD.fixRight++}
@@ -392,24 +416,30 @@ function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),
     if(first){award(it.kind==='prac'||it.kind==='fix'||cid?6:10);if(cid)recordFix(cid)}
     if(first&&it.kind==='rev'){CO.reviewResult(pl,p.skill,true);CO.record(pl,p.skill,true,true,RD.usedHint)}
     if(first&&RD.kind==='learn'&&it.kind==='main'){const ev=CO.record(pl,p.skill,true,true,RD.usedHint);
-      if(ev.levelUp!=null){RD.lvUps++;award(15);extra=`<div><b>Level ${ev.levelUp+1} of 3!</b> The problems get a little harder now.</div>`;toast(`Level up! Level ${ev.levelUp+1} of 3`);Snd.win()}
-      if(ev.mastered){RD.masteredNow=p.skill;RD.stop=true;RD.queue=[];award(40);extra=`<div><b>Concept mastered: ${esc(conceptName(p.skill))}!</b></div>`}
-      if(!first||RD.usedHint)extra+=''}
+      if(ev.levelUp!=null){RD.lvUps++;fanfare=true;award(15);extra=`<div><b>Level ${ev.levelUp+1} of 3!</b> The problems get a little harder now.</div>`;toast(`Level up! Level ${ev.levelUp+1} of 3`)}
+      if(ev.mastered){RD.masteredNow=p.skill;RD.stop=true;RD.queue=[];fanfare=true;award(40);extra=`<div><b>Concept mastered: ${esc(conceptName(p.skill))}!</b></div>`}}
     if(first&&RD.kind==='test'&&it.kind==='main'&&!RD.usedHint)RD.testRight++;
     const m=WORLDS[k].milestones&&WORLDS[k].milestones[RD.streak];if(first&&m&&(RD.streak===5||RD.streak===10)){award(m.b);toast(`${m.t} +${m.b} ${curName(k)}`)}}
   else if(first)award(2);
-  Snd.pop(Math.max(1,RD.streak));setMood('happy');fxFrom(el||$('#answerArea'),first?24:10);if(RD.masteredNow&&it.kind==='main')setTimeout(()=>fxConfetti(120),200);
+  /* a quick step in your head moves on by itself, so its keys stay put; everything else waits for Next */
+  const auto=first&&!extra&&it.kind==='step'&&!isPaper(p.skill),streak=it.kind==='step'?0:RD.streak;
+  if(first)Snd.right(Math.max(1,streak));else Snd.again();if(fanfare)Snd.win(.5);
+  setMood('happy');cheer(first,pl.cur-cur0,!auto);$('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
+  if(RD.masteredNow&&it.kind==='main')setTimeout(()=>fxConfetti(120),200);
   const praise=pickOne(WORLDS[k].praise||['Nice!','Great!','Yes!']);
   /* no automatic next: kids are writing on paper, so they move on when ready. Paper problems show the whole written
      solution to check their work against, line by line. */
   if(first){const pp=isPaper(p.skill)&&it.kind!=='step'&&p.how.length>1;
-    showFb('good',`<div class="fb-h">${praise}</div>`+(it.kind==='step'?'':pp?`<div>Check your work against this:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`:`<div>${p.how[p.how.length-1]}</div>`)+extra);renderDots();
+    showFb('good',fbTop(praise,streak,pl.cur-cur0)+(it.kind==='step'?'':pp?`<div>Check your work against this:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`:`<div>${p.how[p.how.length-1]}</div>`)+extra);renderDots(counted(it));
     $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=RD.stop?'See how you did':'Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;clearTimeout(RD.autoT);
-    if(!extra&&it.kind==='step'&&!isPaper(p.skill))RD.autoT=setTimeout(()=>{if(RD&&RD.cur===it&&screen==='play')nextQ()},1100)}
-  else{showFb('good',`<div class="fb-h">You got it!</div><div>Here is the shortcut again:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);renderDots();$('#nextQBtn').hidden=false;$('#nextQBtn').textContent='Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true}
+    if(auto)RD.autoT=setTimeout(()=>{if(RD&&RD.cur===it&&screen==='play')nextQ()},1100)}
+  else{showFb('good',fbTop('You got it!',0,0)+`<div>Here is the shortcut again:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);renderDots();$('#nextQBtn').hidden=false;$('#nextQBtn').textContent='Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true}
   bubble($('#playBubble'),RD.masteredNow&&it.kind==='main'?'You mastered it!':first?praise:'Way to keep trying!');persist()}
-function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setMood('oops');
-  if(RD.tries===1&&it.kind!=='pre'){it.diag=CO.diagnose(p,v);RD.streak=0;
+function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;
+  /* an assessment takes the answer and moves on, exactly as it does for a right one */
+  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0);pl.pre.t=Date.now();persist();afterPre(false);return}
+  Snd.wrong();setMood('oops');heroDo('shake');
+  if(RD.tries===1){it.diag=CO.diagnose(p,v);RD.streak=0;$('#streak').textContent='';
     if(it.kind!=='step'){
       const learning=RD.kind==='learn'||RD.kind==='test'?RD.skill:RD.kind==='fix'?RD.concept:null,cid=it.concept||p.concept;
       if(RD.kind==='learn'&&it.kind==='main'){const ev=CO.record(pl,p.skill,false,true,RD.usedHint);if(ev.levelDown!=null)toast(`Back to level ${ev.levelDown+1} for a little more practice.`)}
@@ -418,9 +448,8 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setM
       if(spot){recordMiss(spot,it.diag.why);RD.missed[spot]=(RD.missed[spot]||0)+1;it.spot=spot}
       if(cid){const m=pl.mist[cid];if(m)m.ok=0}
       if(RD.kind==='fix'){RD.fixMiss++;const dp=CO.deeper(RD.concept);if(RD.fixMiss>=2&&dp&&!RD.deeperAdded){RD.deeperAdded=dp;if(!pl.mist[dp]||pl.mist[dp].ok>=3)pl.mist[dp]={n:1,ok:0,t:Date.now()}}}}}
-  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0);pl.pre.t=Date.now();persist();afterPre(false);return}
   if(RD.tries===1){const why=it.diag&&it.diag.why;showFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${why?why:'Hint: '+(p.hint||p.how[0])}</div>${isPaper(p.skill)?'<div>Look back over your paper, one line at a time.</div>':''}`);
-    if(KP){KP.raw='';kpRender()}bubble($('#playBubble'),'Try once more!');persist();return}
+    if(KP){KP.raw='';kpRender();markAnswer(false)}bubble($('#playBubble'),'Try once more!');persist();return}
   /* second miss: show the worked shortcut, then break it down */
   logAns(it.kind==='step'?'step':'q',false,false);
   RD.phase='done';if(counted(it)){RD.results.push(false);if(it.kind!=='prac')RD.mainDone++}
@@ -434,12 +463,15 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setM
   if(it.kind!=='step'&&sp&&RD.kind!=='fix'&&!RD.inserted[sp]){RD.inserted[sp]=1;RD.endQ.push(...fixItems(sp,true).map(q=>({p:q,kind:'fix',concept:sp})))}
   $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=label;$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;renderDots();
   bubble($('#playBubble'),label==='Next'?'Now you know the trick!':'Let’s take it one step at a time.');persist()}
-function afterPre(ok,skipped){const pre=P().pre;
+/* after an assessment answer: no word on right or wrong. The same tick, the same short note and the same pause either
+   way, then the next question; how she did comes with the results at the end of the block. */
+function afterPre(skipped){const pre=P().pre;
   const strandJustDone=pre.order.find(s=>pre.st[s].done&&!RD['done_'+s]);if(strandJustDone){RD['done_'+strandJustDone]=1}
   const sname=strandJustDone?CO.STR.find(s=>s.id===strandJustDone).name:'';
-  showFb(ok?'good':'try',`<div class="fb-h">${ok?pickOne(['Nice!','Got it!','Yes!']):skipped?'That’s OK!':'Thanks!'}</div>${ok?'':'<div>We’ll practice that one.</div>'}${strandJustDone?`<div><b>${sname}</b>: placed!</div>`:''}`);
+  if(!skipped)Snd.tick();
+  showFb('note',`<div class="fb-h">${skipped?'Skipped. That’s OK!':'Answer saved.'}</div>${strandJustDone?`<div>That part is finished: <b>${sname}</b>.</div>`:''}`);
   renderDots();$('#checkBtn').hidden=true;$('#skipBtn').hidden=true;$('#hintBtn').hidden=true;
-  clearTimeout(RD.autoT);RD.autoT=setTimeout(()=>{if(RD&&RD.kind==='pre'&&screen==='play')nextQ()},ok?700:1100)}
+  clearTimeout(RD.autoT);RD.autoT=setTimeout(()=>{if(RD&&RD.kind==='pre'&&screen==='play')nextQ()},strandJustDone?1300:650)}
 
 /* ---------- end of a round ---------- */
 function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTimeout(RD.autoT);const R0=RD;
@@ -496,12 +528,16 @@ function fxCols(){return (WORLDS[CUR_WORLD]&&WORLDS[CUR_WORLD].confetti)||RAINBO
 function fxFit(){const d=Math.min(2,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;if(fxc.width!==Math.round(w*d)||fxc.height!==Math.round(h*d)){fxc.width=Math.round(w*d);fxc.height=Math.round(h*d)}const c=fxc.getContext('2d');c.setTransform(d,0,0,d,0,0);return {c,w,h}}
 function fxBurst(x,y,n){const cols=fxCols();for(let i=0;i<n;i++){const a=rand(0,6.283),sp=rand(120,380);FX.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.5,1),r:rand(3,6),col:pickOne(cols),g:380})}kick()}
 function fxFrom(el,n){if(!el)return;const r=el.getBoundingClientRect();fxBurst(r.left+r.width/2,r.top+Math.min(r.height/2,60),n)}
+/* a right answer: stars and dots fly out from the answer box, from both ends and the middle */
+function fxStars(el,n){if(!el)return;const r=el.getBoundingClientRect(),cols=fxCols(),y=r.top+r.height/2;
+  for(let i=0;i<n;i++){const a=rand(-3.6,.46),sp=rand(160,460),st=i%2===0;FX.push({x:r.left+r.width*(i%3)/2,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.7,1.25),r:st?rand(7,12):rand(3,6),col:pickOne(cols),g:520,star:st,rot:rand(0,6),vr:rand(-6,6)})}kick()}
+function starPath(c,r){c.beginPath();for(let i=0;i<10;i++){const a=-1.5708+i*.62832,q=i%2?r*.45:r;c.lineTo(Math.cos(a)*q,Math.sin(a)*q)}c.closePath()}
 function fxConfetti(n){const cols=fxCols();for(let i=0;i<n;i++)FX.push({x:rand(0,innerWidth),y:rand(-120,-10),vx:rand(-60,60),vy:rand(80,240),life:rand(2.4,3.6),r:rand(5,9),col:pickOne(cols),rect:true,rot:rand(0,6),vr:rand(-8,8),g:40});kick()}
 let fxRun=false,last=0;
 function kick(){if(fxRun)return;fxRun=true;last=performance.now();requestAnimationFrame(step)}
 function step(now){const dt=Math.min(.05,(now-last)/1000);last=now;const {c,w,h}=fxFit();c.clearRect(0,0,w,h);
   for(const p of FX){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;c.globalAlpha=clamp(p.life*1.5,0,1);c.fillStyle=p.col;
-    if(p.rect){p.rot+=p.vr*dt;c.save();c.translate(p.x,p.y);c.rotate(p.rot);c.fillRect(-p.r/2,-p.r,p.r,p.r*2);c.restore()}else{c.beginPath();c.arc(p.x,p.y,p.r,0,6.283);c.fill()}}
+    if(p.rect){p.rot+=p.vr*dt;c.save();c.translate(p.x,p.y);c.rotate(p.rot);c.fillRect(-p.r/2,-p.r,p.r,p.r*2);c.restore()}else if(p.star){p.rot+=p.vr*dt;c.save();c.translate(p.x,p.y);c.rotate(p.rot);starPath(c,p.r);c.fill();c.restore()}else{c.beginPath();c.arc(p.x,p.y,p.r,0,6.283);c.fill()}}
   c.globalAlpha=1;FX=FX.filter(p=>p.life>0&&p.y<h+40);if(FX.length)requestAnimationFrame(step);else{c.clearRect(0,0,w,h);fxRun=false}}
 
 
@@ -581,10 +617,10 @@ function nextTask(){HL.ti++;const t=HL.tasks[HL.ti];if(!t){HL.afterTasks();retur
   else{HL.ask=true;area.hidden=false;buildKeypad(area,t.p);$('#hlCheck').hidden=false;$('#hlNext').hidden=true;Narr.speak(strip2(t.intro)+'. '+(t.kind==='whole'?'':(t.p.say||strip2(t.p.text))))}}
 function taskAnswer(){if(!HL||!HL.ask||!KP)return;const v=MW.parse(KP.p,KP.raw);if(v==null){toast(KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   const t=HL.task,p=t.p,ok=MW.eqAns(p,v);HL.tries++;logAnsHelp(ok&&HL.tries===1);
-  if(ok){HL.ask=false;if(HL.tries===1&&t.kind!=='check')HL.rec.right++;if(t.kind==='check')HL.rec.check=HL.tries===1;Snd.soft();
+  if(ok){HL.ask=false;if(HL.tries===1&&t.kind!=='check')HL.rec.right++;if(t.kind==='check')HL.rec.check=HL.tries===1;if(HL.tries===1)Snd.right(1);else Snd.again();cheer(HL.tries===1,0,true);
     const say=t.kind==='step'&&t.how?strip2(t.how):p.how[p.how.length-1]?strip2(p.how[p.how.length-1]):'';
-    hlFb('good',`<div class="fb-h">${pickOne(['Yes!','Right!','Nice!'])}</div>${t.kind==='step'&&t.how?`<div>${t.how}</div>`:t.kind==='part'||t.kind==='check'||t.kind==='try'?`<div>${p.how[p.how.length-1]}</div>`:''}`);Narr.speak(pickOne(['Yes!','Right!','Nice!'])+' '+say);toNext()}
-  else if(HL.tries===1){Snd.wrong();const d=CO.diagnose(p,v);hlFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${d.why||'Hint: '+(p.hint||p.how[0])}</div>`);Narr.speak('Not quite. '+strip2(d.why||p.hint||p.how[0]));KP.raw='';kpRender()}
+    hlFb('good',`<div class="fb-top"><div class="fb-h"><span class="fb-ck">${CHECK_SVG}</span><span>${pickOne(['Yes!','Right!','Nice!'])}</span></div></div>${t.kind==='step'&&t.how?`<div>${t.how}</div>`:t.kind==='part'||t.kind==='check'||t.kind==='try'?`<div>${p.how[p.how.length-1]}</div>`:''}`);Narr.speak(pickOne(['Yes!','Right!','Nice!'])+' '+say);toNext()}
+  else if(HL.tries===1){Snd.wrong();const d=CO.diagnose(p,v);hlFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${d.why||'Hint: '+(p.hint||p.how[0])}</div>`);Narr.speak('Not quite. '+strip2(d.why||p.hint||p.how[0]));KP.raw='';kpRender();markAnswer(false)}
   else{HL.ask=false;if(t.kind==='check')HL.rec.check=false;Snd.wrong();hlFb('bad',`<div class="fb-h">The answer is ${MW.ansText(p)}</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);Narr.speak('The answer is '+strip2(MW.ansText(p))+'. '+p.how.map(strip2).join(' '));toNext()}}
 function hlFb(cls,html){const f=$('#hlFb');f.hidden=false;f.className='feedback '+cls;f.innerHTML=html}
 function toNext(){$('#hlCheck').hidden=true;$('#hlNext').hidden=false;$('#hlNext').textContent=HL.ti>=HL.tasks.length-1?'Finish':'Next'}
@@ -713,7 +749,7 @@ $('#pvPrint').onclick=()=>{Snd.click();window.print()};
 
 renderMenu();renderSaveNote();
 function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,d:a.d};case 'time':return p.dur?{h:a.h+1,m:a.m}:{h:a.h%12+1,m:a.m};case 'rem':return {q:a.q+1,r:a.r};default:return a+1}}
-window.__mw={openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
+window.__mw={snd:Snd,get fx(){return FX.length},openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
   answerRight(){if(!RD||!RD.cur)return;submit(RD.cur.p.ans,null)},
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};

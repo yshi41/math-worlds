@@ -50,18 +50,19 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => document.querySelector('#preBtn').click()); await wait(200);
   const first = await cur(p);
   check(first && first.kind === 'pre' && first.d === 1, 'the check starts with a medium problem (' + JSON.stringify(first && first.nx) + ')');
-  let asked = 0, stoppedOnce = false, blocksSeen = 0;
+  let asked = 0, stoppedOnce = false, blocksSeen = 0, sitRight = 0;
   for (let i = 0; i < 300; i++) {
     const c = await cur(p); if (!c || c.roundKind !== 'pre') break;
     if (c.phase !== 'ask') { await wait(60); continue; }
-    asked++; await answer(p, G.grade[c.nx.skill] <= 2);
+    asked++; if (G.grade[c.nx.skill] <= 2) sitRight++; await answer(p, G.grade[c.nx.skill] <= 2);
     if (asked === 7 && !stoppedOnce) { /* stop part way, come back: the check picks up where it left off */
-      stoppedOnce = true; await until(() => cur(p).then(x => x && x.phase === 'ask'), 3000); await ev(p, () => document.querySelector('#quitBtn').click()); await wait(200);
+      stoppedOnce = true; sitRight = 0; await until(() => cur(p).then(x => x && x.phase === 'ask'), 3000); await ev(p, () => document.querySelector('#quitBtn').click()); await wait(200);
       check(await ev(p, () => !document.querySelector('#hub').hidden && /Start block/.test(document.querySelector('#preBtn').textContent)), 'stopping keeps the placement check to continue');
       await ev(p, () => document.querySelector('#preBtn').click()); await wait(200);
     }
     await until(() => ev(p, () => { const R = window.__mw.RD; return !R || R.phase === 'ask' || !document.querySelector('#results').hidden; }), 4000);
     if (await resultsShown(p)) { if (await ev(p, () => window.__mw.saves.riley.pre.done)) break; blocksSeen++;
+      check(await ev(p, n => Number(document.querySelector('#rRight').textContent) === n && document.querySelector('#rCur').textContent === '+' + 2 * n, sitRight), 'the end of a block shows how many were right (' + sitRight + ')'); sitRight = 0;
       check(blocksSeen > 1 || await ev(p, () => /^Block 1 of [0-9]+ done/.test(document.querySelector('#resTitle').textContent) && document.querySelector('#againBtn').textContent === 'Next block'), 'a block ends with a break and Next block');
       await ev(p, () => document.querySelector('#againBtn').click()); await wait(200); }
   }
@@ -316,6 +317,50 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   const tooWide = [];
   for (const id of sample) { await ev(p, s => { window.__mw.startTest(s); }, id); await wait(80); if (await wide()) tooWide.push(id); await answer(p, false); await answer(p, false); if (await wide()) tooWide.push(id + ' (explanation)'); }
   check(!tooWide.length, 'problems and explanations fit 360px (' + sample.length + ' concepts; too wide: ' + tooWide.join(', ') + ')');
+  await p.close();
+
+  /* 13. a right answer is seen and heard in practice; an assessment gives no sign of right or wrong as it goes */
+  const m13 = create();
+  p = await newPage(m13); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(200);
+  await ev(p, () => { const S = window.__mw.snd, log = window.__snd = []; for (const k of ['right', 'again', 'wrong', 'tick', 'win', 'click', 'coin', 'star']) { const f = S[k].bind(S); S[k] = (...a) => { log.push(k); return f(...a); }; } });
+  const sounds = () => ev(p, () => window.__snd.splice(0));
+  const look = () => ev(p, () => { const q = s => document.querySelector(s), d = q('#kpDisp'), fb = q('#feedback'), hero = q('#playHero svg'), c = q('#playCur'), keys = q('.kp-keys'), h = fb.querySelector('.fb-h');
+    return { fbClass: fb.hidden ? 'hidden' : fb.className, head: h ? h.textContent.trim() : '', ok: !!d && d.classList.contains('ok'), bad: !!d && d.classList.contains('bad'), tick: !!q('#kpDisp .kp-ok'), keysShown: !!keys && getComputedStyle(keys).display !== 'none',
+      mood: hero && hero.getAttribute('data-mood'), jump: q('#playHero').classList.contains('jump'), curShown: getComputedStyle(c).display !== 'none', fx: window.__mw.fx, treats: window.__mw.saves.riley.cur,
+      chips: [...document.querySelectorAll('#feedback .fb-streak,#feedback .fb-gain')].map(x => x.textContent.trim()), dotPop: !!q('#dots i.ok.pop'), streak: q('#streak').textContent }; });
+  const typeAndCheck = async () => { await ev(p, () => { window.__mw.type(String(window.__mw.RD.cur.p.ans)); document.querySelector('#checkBtn').click(); }); await wait(60); };
+  await ev(p, () => document.querySelector('#preBtn').click()); await wait(200);
+  const a0 = await look(); await sounds();
+  check((await cur(p)).kind === 'pre' && !a0.curShown, 'an assessment keeps the treat counter out of sight');
+  let t0 = Date.now(); await answer(p, true); const aR = await look(), sR = await sounds();
+  await until(() => cur(p).then(x => x && x.phase === 'ask'), 4000); const waitR = Date.now() - t0;
+  t0 = Date.now(); await answer(p, false); const aW = await look(), sW = await sounds();
+  await until(() => cur(p).then(x => x && x.phase === 'ask'), 4000); const waitW = Date.now() - t0;
+  check(aR.head === aW.head && /saved/i.test(aR.head) && aR.fbClass === aW.fbClass && !/good|bad|try/.test(aR.fbClass), 'assessment: the same plain note after a right and a wrong answer (' + aR.head + ' / ' + aW.head + ')');
+  check(sR.join() === 'tick' && sW.join() === 'tick', 'assessment: the same tick for right and wrong (' + sR + ' / ' + sW + ')');
+  check(aR.mood === 'neutral' && aW.mood === 'neutral' && !aR.ok && !aR.tick && !aW.bad && !aR.jump && aR.fx === 0 && aW.fx === 0 && !aR.chips.length, 'assessment: no green box, stars, jump or sad face');
+  check(Math.abs(waitR - waitW) < 300 && waitR < 1500, 'assessment: the same short pause either way (' + waitR + ' / ' + waitW + ' ms)');
+  check(aR.treats === a0.treats + 2 && aW.treats === aR.treats, 'assessment: treats are still earned, quietly');
+  await ev(p, () => document.querySelector('#quitBtn').click()); await wait(200);
+  check(await ev(p, () => !document.querySelector('#hub').hidden && /won't say right or wrong/.test(document.querySelector('#preText').textContent)), 'the assessment card says the results come at the end of each block');
+  /* practice */
+  await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.done = true; window.__mw.startLearn('a_plus9'); }); await wait(200);
+  await sounds(); const b0 = await look();
+  check(b0.curShown && b0.keysShown, 'practice shows the treat counter and the keys');
+  await typeAndCheck(); const b1 = await look(), s1 = await sounds();
+  check(s1.includes('right') && !s1.includes('tick'), 'practice: a right answer rings (' + s1 + ')');
+  check(b1.ok && b1.tick && !b1.keysShown, 'practice: the answer box turns green with a check and the keys fold away');
+  check(/good/.test(b1.fbClass) && b1.fx >= 20 && b1.mood === 'happy' && b1.jump && b1.dotPop, 'practice: praise, stars, a happy jump and the new dot pops (' + JSON.stringify([b1.fbClass, b1.fx, b1.mood, b1.jump, b1.dotPop]) + ')');
+  check(b1.treats === b0.treats + 10 && b1.chips.join() === '+10', 'practice: the treats earned show next to the praise (' + b1.chips + ')');
+  await next(p); const b1n = await look(); check(b1n.keysShown && !b1n.ok && b1n.fbClass === 'hidden', 'the next problem starts with a fresh answer box and keys');
+  await typeAndCheck(); const b2 = await look();
+  check(b2.chips.some(c => /^2 in a row/.test(c)) && /2 in a row/.test(b2.streak), 'practice: the streak shows (' + b2.chips + ')');
+  await next(p); await sounds();
+  await answer(p, false); const b3 = await look(), s3 = await sounds();
+  check(s3.includes('wrong') && b3.bad && !b3.ok && b3.keysShown && /try/.test(b3.fbClass) && b3.mood === 'oops' && b3.streak === '', 'practice: a miss buzzes, the box shakes red and the keys stay (' + s3 + ')');
+  await answer(p, true); const b4 = await look(), s4 = await sounds();
+  check(s4.includes('again') && !s4.includes('right') && b4.ok && !b4.chips.length, 'practice: right on the second try rings a gentler bell, no streak or treats (' + s4 + ')');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.slice(0, 5).join(' | '));
