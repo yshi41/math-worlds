@@ -47,6 +47,9 @@ export function mergeState(mine, theirs, base) {
   if (isObj(mine.round) && (!isObj(theirs.round) || num(mine.round.t) >= num(theirs.round.t))) out.round = clone(mine.round);
   if ('set' in mine) out.set = clone(mine.set);
   if (typeof mine.apace === 'number') out.apace = mine.apace;
+  /* help lessons: every lesson from both devices, by time, the last 60 */
+  const hs = {}; for (const h of [...(Array.isArray(theirs.help) ? theirs.help : []), ...(Array.isArray(mine.help) ? mine.help : [])]) if (isObj(h) && num(h.t)) hs[h.id + '@' + h.t] = h;
+  out.help = Object.values(hs).sort((a, b) => num(a.t) - num(b.t)).slice(-60);
   /* the daily activity log for the parent report: each day's counters move by this page's difference */
   out.log = clone(isObj(theirs.log) ? theirs.log : {});
   const ml = isObj(mine.log) ? mine.log : {}, bl = isObj(base.log) ? base.log : {};

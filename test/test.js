@@ -208,6 +208,50 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => document.querySelector('#pvTabs [data-kid="charlie"]').click()); await wait(150);
   check(await ev(p, () => window.__mw.PV === 'charlie' && document.querySelector('#pvBody').textContent.includes('Charlie')), 'switching to Charlie');
   check(await ev(p, () => window.__storageWrites) === 0, 'the parent view writes nothing to the device');
+  /* a parent starts an assessment: two taps, saved online, and the child sees it first */
+  await ev(p, () => document.querySelector('#pvAssess').click()); await wait(50);
+  check(await ev(p, () => /Tap again/.test(document.querySelector('#pvAssess').textContent)), 'starting an assessment asks for a second tap');
+  await ev(p, () => document.querySelector('#pvAssess').click()); await wait(150);
+  await until(() => ev(p, () => window.__mw.net.idle()));
+  check(mock.store.charlie && mock.store.charlie.state.pre && mock.store.charlie.state.pre.by === 'parent' && !mock.store.charlie.state.pre.done, 'the assessment is saved online for Charlie');
+  check(await ev(p, () => /Assessment in progress/.test(document.querySelector('#pvBody').textContent)), 'the parent view shows it in progress');
+  await p.close();
+
+  /* 9c. help lessons: missing a concept twice in a round brings a narrated video, a check, a step-by-step lesson and feedback */
+  p = await newPage(mock); await ev(p, () => { window.__mwFast = true; });
+  await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(150);
+  const hid = await ev(p, () => { const CO = window.COACH, pl = window.__mw.saves.riley; return CO.ORDER.find(id => CO.isOpen(pl, id) && !CO.isMastered(pl, id) && !CO.started(pl, id)); });
+  await ev(p, id => window.__mw.startLearn(id), hid); await wait(120);
+  for (let i = 0; i < 2; i++) { await answer(p, false); await answer(p, false); if (i === 0) { for (let k = 0; k < 8; k++) { const c = await cur(p); if (c && c.kind === 'main' && c.phase === 'ask') break; await next(p); const c2 = await cur(p); if (c2 && c2.kind === 'step' && c2.phase === 'ask') await answer(p, true); } } }
+  check(await ev(p, () => document.querySelector('#nextQBtn').textContent === 'Watch a short lesson'), 'two shown answers in a round offer a help lesson (' + hid + ')');
+  await next(p); await wait(100);
+  check(await ev(p, () => !document.querySelector('#help').hidden && document.querySelectorAll('#hvBar i').length >= 4), 'the help lesson opens with a video of the trick and a worked example');
+  await until(() => ev(p, () => !document.querySelector('#hvAfter').hidden), 8000);
+  check(await ev(p, () => document.querySelectorAll('#hvStage .hv-f').length === document.querySelectorAll('#hvBar i').length && document.querySelector('#hvCap').textContent.length > 5), 'the video plays every frame with captions');
+  await ev(p, () => document.querySelector('#hvDone').click()); await wait(50);
+  check(await ev(p, () => !document.querySelector('#hlFeel').hidden && document.querySelectorAll('#hfBtns button').length === 3), 'after the video: did it make sense? (3 answers)');
+  await ev(p, () => document.querySelector('#hfBtns [data-f="some"]').click()); await wait(50);
+  let tasks = 0;
+  for (let i = 0; i < 20; i++) {
+    const st = await ev(p, () => ({ lesson: !document.querySelector('#hlLesson').hidden, feel: !document.querySelector('#hlFeel').hidden, check: !document.querySelector('#hlCheck').hidden, next: !document.querySelector('#hlNext').hidden }));
+    if (st.feel) break; if (!st.lesson) break;
+    if (st.check) { tasks++; await ev(p, () => { const H = window.__mw.HL; window.__mw.type(window.__mw.MW.rawFor(H.task.p)); document.querySelector('#hlCheck').click(); }); await wait(30); }
+    else if (st.next) { await ev(p, () => document.querySelector('#hlNext').click()); await wait(30); }
+  }
+  check(tasks >= 3, 'the lesson has a quick check, the simpler parts and the steps, each typed (' + tasks + ' typed)');
+  check(await ev(p, () => !document.querySelector('#hlFeel').hidden && /feel about it now/.test(document.querySelector('#hfQ').textContent)), 'at the end: how do you feel about it now?');
+  await ev(p, () => document.querySelector('#hfBtns [data-f="yes"]').click()); await wait(50);
+  const hr = await ev(p, () => window.__mw.saves.riley.help.slice(-1)[0]);
+  check(hr && hr.video === 'some' && hr.lesson === 'yes' && hr.check === true && hr.total >= 2, 'the lesson and both answers are saved (' + JSON.stringify(hr) + ')');
+  await ev(p, () => document.querySelector('#hdBtn').click()); await wait(100);
+  check(await ev(p, () => !document.querySelector('#play').hidden && window.__mw.RD && window.__mw.RD.kind === 'learn'), 'back to practice afterwards');
+  await until(() => ev(p, () => window.__mw.net.idle()));
+  check((mock.store.riley.state.help || []).length >= 1, 'help lessons are saved online');
+  await ev(p, id => window.__mw.openLesson(id), hid); await wait(80);
+  check(await ev(p, () => !document.querySelector('#videoBtn').hidden), 'every concept page offers the video lesson');
+  await ev(p, () => window.__mw.openParent('riley')); await wait(200);
+  check(await ev(p, () => /Help lessons/.test(document.querySelector('#pvBody').textContent)), 'the parent view lists help lessons');
   await p.close();
 
   /* 10. Charlie (4th grade) starts further along; the saves come back on a fresh page */

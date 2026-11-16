@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-16 02:55';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-16 03:03';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -786,6 +786,37 @@ body{background:var(--bg)!important}
 .chip.locked{opacity:1;color:var(--ink-soft);background:var(--surface);border-style:dotted}
 .pv-assess{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
 .pv-assess .pv-p{margin:0;flex:1 1 260px}
+
+/* help lessons */
+#videoBtn{white-space:normal}
+.hl-card{display:grid;gap:12px}
+.hv-screen{border:2px solid var(--line);border-radius:18px;background:var(--surface-2);padding:14px;display:grid;gap:10px}
+.hv-stage{display:grid;gap:10px;min-height:220px;max-height:58vh;overflow:auto}
+.hv-f{opacity:0;transform:translateY(10px);transition:opacity .45s ease,transform .45s ease}
+.hv-f.in{opacity:1;transform:none}
+.hv-f.now .hv-line,.hv-f.now .hv-card,.hv-f.now .hv-ans{border-color:var(--accent-ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-ink) 20%,transparent)}
+.hv-card,.hv-line,.hv-ans{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 12px;transition:border-color .3s,box-shadow .3s}
+.hv-k{font-weight:700;color:var(--accent-ink);font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}
+.hv-trick p{margin:.3em 0 0;font-size:1.15rem;line-height:1.45}
+.hv-q{font-size:1.25rem;font-weight:700;margin:.3em 0;line-height:1.4}
+.hv-vis{overflow-x:auto;max-width:100%}
+.hv-vis svg{max-width:100%;height:auto}
+.hv-line{display:flex;gap:10px;align-items:flex-start;font-size:1.08rem;line-height:1.45}
+.hv-n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:700;font-size:.85rem}
+.hv-ans{font-size:1.2rem}
+.hv-cap{font-size:1rem;line-height:1.45;color:var(--ink);background:var(--surface);border-radius:12px;padding:8px 12px;min-height:2.9em;border:1px solid var(--line)}
+.hv-bar{display:flex;gap:4px}
+.hv-bar i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.hv-bar i.done{background:var(--accent-ink)}
+.hv-bar i.now{background:color-mix(in srgb,var(--accent-ink) 55%,var(--line))}
+.hv-ctl{gap:8px}
+.hl-q{font-size:1.35rem;margin:0}
+.hl-feel{gap:8px;margin-top:10px;flex-wrap:wrap}
+.hl-feel .btn{white-space:normal}
+.hl-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.hl-task{display:grid;gap:8px}
+.hl-intro{line-height:1.5;font-size:1.05rem}
+.hl-intro .steps{margin:.5em 0 0}
 
 /* parent view */
 .parent-row{margin-top:18px}
@@ -18429,7 +18460,7 @@ function report(p, grade, now) {
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
   return { now, grade, week: st.week, expect, placed, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
-    learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement };
+    learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
 
 const API = { init, isExtra, strandOf, prereqs, cs, isMastered, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
@@ -18511,6 +18542,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
     <div id="pvBody" class="pv-body"></div>
   </section>
 
+  <section id="help" class="screen" hidden>
+    <div class="topbar2"><button id="hlBack" class="btn btn-ghost btn-sm" type="button">Back</button><div class="brand" id="hlTitle"></div><button id="hlSound" class="tog" type="button" aria-pressed="true">Voice</button></div>
+    <div class="card hl-card">
+      <div id="hlKicker" class="ls-kicker"></div>
+      <div id="hlVideo">
+        <div class="hv-screen"><div id="hvStage" class="hv-stage" aria-live="polite"></div><div id="hvCap" class="hv-cap"></div><div id="hvBar" class="hv-bar"></div></div>
+        <div class="row hv-ctl"><button id="hvPlay" class="btn btn-sm" type="button">Pause</button><button id="hvReplay" class="btn btn-ghost btn-sm" type="button">Watch again</button></div>
+        <div id="hvAfter" hidden><button id="hvDone" class="btn btn-good btn-big" type="button">Done watching</button></div>
+      </div>
+      <div id="hlFeel" hidden><h2 id="hfQ" class="hl-q">Did the video make sense?</h2><div id="hfBtns" class="row hl-feel"></div></div>
+      <div id="hlLesson" hidden>
+        <div class="hl-head"><h2 id="hlLessonTitle" class="hl-q">Step by step</h2><span id="hlTaskN" class="pv-soft"></span></div>
+        <div id="hlTask" class="hl-task"></div>
+        <div id="hlAns" class="answer-area"></div>
+        <div id="hlFb" class="feedback" hidden></div>
+        <div class="action-row"><button id="hlCheck" class="btn btn-good btn-big" type="button">Check</button><button id="hlNext" class="btn btn-big" type="button" hidden>Next</button></div>
+      </div>
+      <div id="hlDone" hidden><p id="hdText" class="hl-q"></p><button id="hdBtn" class="btn btn-good btn-big" type="button">Back to practice</button></div>
+    </div>
+  </section>
+
   <section id="lesson" class="screen" hidden>
     <div class="topbar2"><button id="lessonBack" class="btn btn-ghost btn-sm" type="button">Map</button><div id="lessonStrand" class="brand"></div></div>
     <div class="card lesson-card">
@@ -18522,6 +18574,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
       <div id="lsLocked" class="locked-note" hidden></div>
       <div id="lsStatus" class="ls-status"></div>
       <button id="startBtn" class="btn btn-good btn-big" type="button">Start</button>
+      <button id="videoBtn" class="btn btn-sky" type="button">▶ Watch a short video lesson</button>
       <button id="printBtn" class="btn btn-ghost" type="button">Print a practice sheet (with answer key)</button>
       <button id="testOutBtn" class="btn btn-big" type="button" hidden>Test out</button>
       <p class="star-rules" id="starRules">Each concept has 3 levels: easy, medium and hard. Get 3 right in a row (first try, no hint) to go up a level. Finish the hard level to master it, then the game moves on to the next concept.</p>
@@ -18642,7 +18695,7 @@ function applyWorld(k,lv){CUR_WORLD=k;document.documentElement.setAttribute('dat
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null;
-function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null}}
+function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null,help:[]}}
 /* a save from the first version (lessons and stars) keeps its treats and characters; the concept path and the
    placement check start fresh because the concepts are new */
 function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.assign(blank(),o);
@@ -18650,7 +18703,7 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   for(const id in b.cs){const c=b.cs[id];if(!S[id]||!c||typeof c!=='object')delete b.cs[id];else b.cs[id]=Object.assign({lv:0,st:0,ml:0,r:0,w:0,t:0,m:0,due:0,iv:0},c)}
   for(const id in b.mist)if(!S[id])delete b.mist[id];
   b.cur=Math.max(0,o.cur|0);b.games=Math.max(0,o.games|0);b.owned=Array.isArray(o.owned)?o.owned.filter(x=>typeof x==='string'&&x.includes(':')):[];
-  b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?CO.pretestFix(o.pre):null;b.apace=typeof o.apace==='number'&&isFinite(o.apace)?o.apace:null;b.now=S[o.now]?o.now:null;
+  b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?CO.pretestFix(o.pre):null;b.apace=typeof o.apace==='number'&&isFinite(o.apace)?o.apace:null;b.help=Array.isArray(o.help)?o.help.filter(h=>h&&typeof h==='object'&&S[h.id]&&h.t).slice(-60):[];b.now=S[o.now]?o.now:null;
   b.round=o.round&&typeof o.round==='object'?o.round:null;b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
   const lg={};if(o.log&&typeof o.log==='object')for(const d in o.log){const e=o.log[d];if(!/^\d{4}-\d\d-\d\d$/.test(d)||!e||typeof e!=='object')continue;const x={};for(const f in e)if(typeof e[f]==='number'&&isFinite(e[f]))x[f]=Math.max(0,e[f]);lg[d]=x}b.log=lg;
   delete b.stars;delete b.best;delete b.sk;return b}
@@ -18693,7 +18746,7 @@ const Net=(()=>{
 function persist(){if(RD&&player&&RD.kind!=='pre')saveRound();if(CLOUD&&player)Net.schedule(player)}
 /* the round in progress lives in the online save too, as recipes (seeds) rather than whole problems, so it can be
    picked up on another device exactly where it stopped */
-const ROUND_KEYS=['kind','skill','concept','mainTotal','mainDone','right','streak','bestStreak','earned','missed','inserted','results','fixMiss','fixRight','fixTotal','testRight','lvUps','deeperAdded','masteredNow','stop','rv3','rv7'];
+const ROUND_KEYS=['reveals','helped','kind','skill','concept','mainTotal','mainDone','right','streak','bestStreak','earned','missed','inserted','results','fixMiss','fixRight','fixTotal','testRight','lvUps','deeperAdded','masteredNow','stop','rv3','rv7'];
 const itemRef=it=>it&&it.p&&it.p.ref?{r:it.p.ref,kind:it.kind,concept:it.concept||it.p.concept||null}:null;
 function saveRound(){const o={v:1,t:Date.now()};ROUND_KEYS.forEach(k=>{if(RD[k]!==undefined)o[k]=RD[k]});
   o.queue=RD.queue.map(itemRef).filter(Boolean);o.endQ=RD.endQ.map(itemRef).filter(Boolean);o.cur=RD.phase==='ask'?itemRef(RD.cur):null;P().round=o}
@@ -18822,7 +18875,7 @@ function openLesson(id){const p=P(),c=S[id],open=CO.isOpen(p,id),dn=CO.isMastere
   $('#lessonStrand').textContent=strandName(id);$('#lsKicker').textContent=`${ord(c.g)} grade · ${strandName(id)}`;$('#lsTitle').textContent=c.title;$('#lsStars').innerHTML=stars3(CO.levelsDone(p,id));
   $('#lsHero').innerHTML=charSVG(charOf(p,k),'happy');$('#lsTip').textContent=c.tip;
   const lm=$('#lsMode');lm.className='q-mode'+(isPaper(id)?' paper':'');lm.textContent=isPaper(id)?'✎ A pencil-and-paper concept: copy the example onto your paper as you go':'A shortcut you do in your head';
-  $('#printBtn').onclick=()=>{Snd.click();printSheet(id)};
+  $('#printBtn').onclick=()=>{Snd.click();printSheet(id)};$('#videoBtn').onclick=()=>{Snd.init();Snd.click();openHelp(id,false)};
   const ls=$('#lsStd'),sd=stdLine(id);ls.className='ls-std'+(isExtra(id)?' extra':'');ls.textContent=sd.short;ls.title=sd.long;
   const ex=MW.gen(id,0,MW.makeR(hashStr(id)));$('#lsExQ').innerHTML=ex.text;$('#lsExVis').innerHTML=ex.vis||'';
   const ol=$('#lsExSteps');ol.innerHTML=ex.how.map((h,i)=>`<li class="${i?'hide':''}">${h}</li>`).join('')+`<li class="hide">Answer: <b>${MW.ansText(ex)}</b></li>`;
@@ -18898,6 +18951,7 @@ function nextItem(){if(RD.queue.length)return RD.queue.shift();if(RD.stop)return
 let KP=null,ANS=null;
 const counted=it=>it.kind==='main'||it.kind==='rev'||it.kind==='prac';
 function nextQ(){const it=nextItem();if(!it){finishRound();return}
+  if(it.kind==='help'){openHelp(it.p.skill,true);return}
   RD.cur=it;RD.tries=0;RD.usedHint=false;RD.phase='ask';RD.t0=Date.now();KP=null;
   const p=it.p,cid=it.concept||p.concept;
   const bd=$('#qBadge');bd.hidden=false;bd.className='q-badge'+(it.kind==='step'?' build':it.kind==='fix'||it.kind==='prac'||cid?' fix':'');
@@ -18930,7 +18984,7 @@ function kpRender(){if(!KP)return;const r=KP.raw,el=$('#kpDisp');if(!el)return;l
   else if(KP.kind==='rem')h=r?esc(r.replace('r',' r ')):'<span class="ph">?</span>';
   else h=(r?esc(r):'<span class="ph">?</span>')+(KP.p.unit?`<span class="unit">${KP.p.unit}</span>`:'');
   el.innerHTML=h}
-function kpPress(k){if(!KP||!RD||RD.phase!=='ask'||!k)return;let r=KP.raw;const numish=KP.kind==='num'||KP.kind==='frac';
+function kpPress(k){if(!KP||!k)return;if(screen==='help'){if(!HL||!HL.ask)return}else if(!RD||RD.phase!=='ask')return;let r=KP.raw;const numish=KP.kind==='num'||KP.kind==='frac';
   if(k==='⌫')r=r.slice(0,-1);
   else if(k==='.'){if(!(numish||KP.kind==='dollars'))return;const part=r.split(/[\/ ]/).pop();if(part.includes('.')||r.includes('/'))return;r+=(/\d$/.test(part)?'':'0')+'.'}
   else if(k==='/'){if(!numish||r.includes('/')||r.includes('.')||!/\d$/.test(r))return;r+='/'}
@@ -19001,7 +19055,9 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setM
   const sp=it.spot&&it.spot!==p.skill?it.spot:null;
   showFb('bad',`<div class="fb-h">The answer is ${MW.ansText(p)}</div><div>${isPaper(p.skill)&&it.kind!=='step'?'Compare your paper with these lines. Find the first line where your work is different: that is the step to fix.':'Here is the shortcut:'}</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>${p.howVis?`<div class="vis-wrap">${p.howVis}</div>`:''}${sp?`<div><span class="fb-spot">Tricky spot: ${esc(conceptName(sp))}</span> We'll practice that idea too.</div>`:''}`);
   let label='Next';
-  if(it.kind!=='step'&&p.steps&&p.steps.length&&!RD.inserted[p.key]){RD.inserted[p.key]=1;RD.queue.unshift(...p.steps.map((q,i)=>{if(p.ref)q.ref=Object.assign({},p.ref,{step:i});return {p:q,kind:'step'}}));label="Let's break it down"}
+  /* not getting it: the second shown answer in a round (or under half right after six tries) brings a help lesson */
+  if(RD.kind==='learn'&&it.kind==='main'){RD.reveals=(RD.reveals||0)+1;if(!RD.helped&&helpTrigger(pl,p.skill)){RD.helped=1;RD.queue.unshift({kind:'help',p:{skill:p.skill}});label='Watch a short lesson'}}
+  if(label==='Next'&&it.kind!=='step'&&p.steps&&p.steps.length&&!RD.inserted[p.key]){RD.inserted[p.key]=1;RD.queue.unshift(...p.steps.map((q,i)=>{if(p.ref)q.ref=Object.assign({},p.ref,{step:i});return {p:q,kind:'step'}}));label="Let's break it down"}
   if(it.kind!=='step'&&sp&&RD.kind!=='fix'&&!RD.inserted[sp]){RD.inserted[sp]=1;RD.endQ.push(...fixItems(sp,true).map(q=>({p:q,kind:'fix',concept:sp})))}
   $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=label;$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;renderDots();
   bubble($('#playBubble'),label==='Next'?'Now you know the trick!':'Let’s take it one step at a time.');persist()}
@@ -19075,6 +19131,104 @@ function step(now){const dt=Math.min(.05,(now-last)/1000);last=now;const {c,w,h}
     if(p.rect){p.rot+=p.vr*dt;c.save();c.translate(p.x,p.y);c.rotate(p.rot);c.fillRect(-p.r/2,-p.r,p.r,p.r*2);c.restore()}else{c.beginPath();c.arc(p.x,p.y,p.r,0,6.283);c.fill()}}
   c.globalAlpha=1;FX=FX.filter(p=>p.life>0&&p.y<h+40);if(FX.length)requestAnimationFrame(step);else{c.clearRect(0,0,w,h);fxRun=false}}
 
+
+/* ---------- help lessons ----------
+   When a kid isn't getting a concept (two answers shown in one round, or under half right after six tries), the
+   round offers a help lesson; the lesson page offers it any time. It goes:
+   1. a short narrated diagram video: the trick, then a worked example built up one step at a time with its pictures;
+   2. "Did that make sense?" with a quick check problem;
+   3. an interactive lesson: the simpler ideas the concept is built from (one problem each), then a new problem broken
+      into its steps, each typed and checked, then one to try alone;
+   4. "How do you feel about it now?"
+   The narration uses the device's built-in voice (nothing is recorded); captions show the same words. Each lesson and
+   its answers are saved online for the parent report. */
+let HL=null;
+const strip2=h=>String(h).replace(/<sup>2<\/sup>/g,' squared').replace(/<sup>3<\/sup>/g,' cubed').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+function sayify(h){return strip2(h).replace(/×/g,' times ').replace(/÷/g,' divided by ').replace(/−/g,' minus ').replace(/(\d)\s*-\s*(\d)/g,'$1 minus $2').replace(/=/g,' equals ').replace(/≈/g,' is about ').replace(/→/g,', then ').replace(/√/g,'the square root of ').replace(/π/g,'pi').replace(/\?/g,' what? ').replace(/\s+/g,' ').trim()}
+/* the narrator: the device's voice when it has one, else timed captions; resolves when the line is done */
+const Narr={on:true,tok:0,
+  speak(text){const tok=++this.tok,ms=Math.max(1400,text.split(/\s+/).length*(window.__mwFast?8:380));
+    return new Promise(res=>{let done=false;const fin=()=>{if(!done){done=true;res(tok===this.tok)}};const s=window.speechSynthesis;
+      if(this.on&&s&&typeof SpeechSynthesisUtterance!=='undefined'){try{s.cancel();const u=new SpeechSynthesisUtterance(sayify(text));Voice.v=Voice.v||Voice.pick();if(Voice.v)u.voice=Voice.v;u.rate=.9;u.pitch=1.08;u.onend=fin;u.onerror=fin;s.speak(u);setTimeout(fin,ms*3+4000);return}catch(e){}}
+      setTimeout(fin,ms)})},
+  stop(){this.tok++;try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}}};
+function helpTrigger(p,id){const s=p.cs[id];return (RD&&RD.reveals>=2)||(s&&s.r+s.w>=6&&s.r/(s.r+s.w)<0.5)}
+function openHelp(id,fromRound){const p=P(),c=S[id];Narr.stop();if(window.speechSynthesis)speechSynthesis.cancel();
+  const lv=CO.levelsDone(p,id),seed=hashStr(id+'#video');
+  HL={id,fromRound:!!fromRound,stage:'video',rec:{id,t:Date.now(),from:fromRound?'round':'lesson'},ex:MW.gen(id,Math.min(1,lv),MW.makeR(seed)),frame:-1,playing:false,ask:false};
+  show('help');applyWorld(lookOf(player),sceneLevel(p));$('#hlTitle').textContent=c.title;$('#hlKicker').textContent=`${ord(c.g)} grade · ${strandName(id)}`;
+  $('#hlSound').setAttribute('aria-pressed',String(Narr.on));buildVideo();playVideo(0)}
+/* the video: frames built from the concept's trick and a worked example */
+function buildVideo(){const c=S[HL.id],ex=HL.ex,F=[];
+  F.push({cap:'The trick',say:'Here is the trick. '+c.tip,html:`<div class="hv-card hv-trick"><div class="hv-k">The trick</div><p>${esc(c.tip)}</p></div>`});
+  F.push({cap:'Watch one',say:"Let's try one. "+(ex.say||strip2(ex.text)),html:`<div class="hv-card"><div class="hv-k">Watch one</div><div class="hv-q">${ex.text}</div>${ex.vis?`<div class="hv-vis">${ex.vis}</div>`:''}</div>`});
+  ex.how.forEach((h,i)=>F.push({cap:'Step '+(i+1),say:strip2(h),html:`<div class="hv-line"><span class="hv-n">${i+1}</span><span>${h}</span></div>`,step:true}));
+  if(ex.howVis)F.push({cap:'The picture',say:'Here is a picture of it.',html:`<div class="hv-vis">${ex.howVis}</div>`});
+  F.push({cap:'The answer',say:'So the answer is '+strip2(MW.ansText(ex))+'.',html:`<div class="hv-ans">Answer: <b>${MW.ansText(ex)}</b></div>`});
+  HL.frames=F;$('#hvStage').innerHTML='';$('#hvBar').innerHTML=F.map(()=>'<i></i>').join('');
+  ['#hlVideo','#hlFeel','#hlLesson','#hlDone'].forEach(s=>$(s).hidden=s!=='#hlVideo');$('#hvAfter').hidden=true}
+function showFrame(i){const F=HL.frames,st=$('#hvStage');HL.frame=i;
+  while(st.children.length>i)st.lastChild.remove();
+  for(let k=st.children.length;k<=i;k++){const d=document.createElement('div');d.className='hv-f';d.innerHTML=F[k].html;st.append(d);requestAnimationFrame(()=>d.classList.add('in'))}
+  [...st.children].forEach((d,k)=>d.classList.toggle('now',k===i));
+  const last=st.children[i];if(last&&last.scrollIntoView)last.scrollIntoView({block:'nearest',behavior:'smooth'});
+  $('#hvCap').textContent=F[i].say;$('#hvBar').querySelectorAll('i').forEach((b,k)=>b.className=k<i?'done':k===i?'now':'')}
+async function playVideo(from){if(!HL)return;HL.playing=true;const run=++HL.run||(HL.run=1),my=HL.run;$('#hvPlay').textContent='Pause';
+  for(let i=from;i<HL.frames.length;i++){if(!HL||HL.run!==my||!HL.playing||screen!=='help')return;showFrame(i);const ok=await Narr.speak(HL.frames[i].say);if(!ok||!HL||HL.run!==my||!HL.playing)return;await new Promise(r=>setTimeout(r,window.__mwFast?5:450))}
+  if(!HL||HL.run!==my)return;HL.playing=false;HL.watched=true;$('#hvPlay').textContent='Play';$('#hvAfter').hidden=false;$('#hvAfter').scrollIntoView&&$('#hvAfter').scrollIntoView({block:'nearest'})}
+$('#hvPlay').onclick=()=>{Snd.click();if(!HL)return;if(HL.playing){HL.playing=false;HL.run++;Narr.stop();$('#hvPlay').textContent='Play'}else{const f=HL.frame>=HL.frames.length-1?0:Math.max(0,HL.frame);if(f===0)$('#hvStage').innerHTML='';playVideo(f)}};
+$('#hvReplay').onclick=()=>{Snd.click();if(!HL)return;HL.run++;Narr.stop();$('#hvStage').innerHTML='';HL.replays=(HL.replays||0)+1;playVideo(0)};
+$('#hlSound').onclick=()=>{Narr.on=!Narr.on;$('#hlSound').setAttribute('aria-pressed',String(Narr.on));if(!Narr.on)Narr.stop()};
+/* feedback buttons: yes / a little / not yet */
+const FEEL={yes:'Yes, I get it',some:'A little',no:'Not yet'};
+function feelButtons(box,onPick){box.innerHTML=Object.entries(FEEL).map(([k,t])=>`<button type="button" class="btn ${k==='yes'?'btn-good':k==='some'?'btn-sky':'btn-ghost'}" data-f="${k}">${t}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{Snd.click();onPick(b.dataset.f)})}
+$('#hvDone').onclick=()=>{Snd.click();Narr.stop();HL.stage='feel1';HL.rec.replays=HL.replays||0;
+  $('#hlVideo').hidden=true;$('#hlFeel').hidden=false;$('#hfQ').textContent='Did the video make sense?';
+  feelButtons($('#hfBtns'),f=>{HL.rec.video=f;Narr.speak(f==='yes'?'Great! Show me with a quick one.':'That is OK. Try a quick one, then we will break it into smaller pieces.');startCheck()});
+  Narr.speak('Did the video make sense?')};
+/* the interactive part: a list of small tasks, each a typed problem (or a short read), checked one at a time */
+function lessonTask(kind,p,intro,extra){return Object.assign({kind,p,intro},extra||{})}
+function startCheck(){HL.tasks=[lessonTask('check',mk(HL.id,0),'Quick check: try this one.')];HL.ti=-1;HL.afterTasks=startLesson;$('#hlFeel').hidden=true;$('#hlLesson').hidden=false;$('#hlLessonTitle').textContent='Quick check';nextTask()}
+function startLesson(){const id=HL.id,parts=CO.prereqs(id).filter(x=>S[x]).slice(0,2),T=[];
+  parts.forEach(x=>{T.push(lessonTask('part',mk(x,0),`This idea is built from a simpler one: <b>${esc(S[x].title)}</b>. ${esc(S[x].tip)}`,{cid:x}))});
+  let p=mk(id,Math.min(1,CO.levelsDone(P(),id)));for(let i=0;i<6&&!(p.steps&&p.steps.length);i++)p=mk(id,i%2);
+  if(p.steps&&p.steps.length){T.push(lessonTask('read',p,`Now a new one, broken into small steps. Copy it onto your paper.<div class="hv-q">${p.text}</div>${p.vis?`<div class="hv-vis">${p.vis}</div>`:''}`));
+    p.steps.forEach((s,i)=>T.push(lessonTask('step',s,`Step ${i+1} of ${p.steps.length}`,{how:p.how[i]||p.how[p.how.length-1]})));
+    T.push(lessonTask('whole',p,'Put the steps together. What is the answer to the whole problem?',{show:true}))}
+  else T.push(lessonTask('read',p,`Now a new one. Read how it works, one line at a time.<div class="hv-q">${p.text}</div>${p.vis?`<div class="hv-vis">${p.vis}</div>`:''}<ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`));
+  T.push(lessonTask('try',mk(id,Math.min(1,CO.levelsDone(P(),id))),'Your turn: one on your own. Use your paper.'));
+  HL.tasks=T;HL.ti=-1;HL.afterTasks=finishLesson;HL.stage='lesson';HL.rec.parts=parts;HL.rec.right=0;HL.rec.total=T.filter(t=>t.kind!=='read').length;
+  $('#hlLessonTitle').textContent='Step by step';nextTask()}
+function nextTask(){HL.ti++;const t=HL.tasks[HL.ti];if(!t){HL.afterTasks();return}HL.task=t;HL.tries=0;
+  const n=HL.tasks.length,box=$('#hlTask');$('#hlTaskN').textContent=`${HL.ti+1} of ${n}`;
+  box.innerHTML=`<div class="hl-intro">${t.intro}</div>${t.kind==='read'?'':`<div class="hv-q">${t.kind==='whole'?'':t.p.text}</div>${t.kind!=='whole'&&t.p.vis&&t.kind!=='step'?`<div class="hv-vis">${t.p.vis}</div>`:''}`}`;
+  $('#hlFb').hidden=true;$('#hlFb').innerHTML='';const area=$('#hlAns');area.innerHTML='';$('#answerArea').innerHTML='';
+  if(t.kind==='read'){HL.ask=false;KP=null;area.hidden=true;$('#hlCheck').hidden=true;$('#hlNext').hidden=false;$('#hlNext').textContent='Got it, next';Narr.speak(strip2(t.intro))}
+  else{HL.ask=true;area.hidden=false;buildKeypad(area,t.p);$('#hlCheck').hidden=false;$('#hlNext').hidden=true;Narr.speak(strip2(t.intro)+'. '+(t.kind==='whole'?'':(t.p.say||strip2(t.p.text))))}}
+function taskAnswer(){if(!HL||!HL.ask||!KP)return;const v=MW.parse(KP.p,KP.raw);if(v==null){toast(KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
+  const t=HL.task,p=t.p,ok=MW.eqAns(p,v);HL.tries++;logAnsHelp(ok&&HL.tries===1);
+  if(ok){HL.ask=false;if(HL.tries===1&&t.kind!=='check')HL.rec.right++;if(t.kind==='check')HL.rec.check=HL.tries===1;Snd.soft();
+    const say=t.kind==='step'&&t.how?strip2(t.how):p.how[p.how.length-1]?strip2(p.how[p.how.length-1]):'';
+    hlFb('good',`<div class="fb-h">${pickOne(['Yes!','Right!','Nice!'])}</div>${t.kind==='step'&&t.how?`<div>${t.how}</div>`:t.kind==='part'||t.kind==='check'||t.kind==='try'?`<div>${p.how[p.how.length-1]}</div>`:''}`);Narr.speak(pickOne(['Yes!','Right!','Nice!'])+' '+say);toNext()}
+  else if(HL.tries===1){Snd.wrong();const d=CO.diagnose(p,v);hlFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${d.why||'Hint: '+(p.hint||p.how[0])}</div>`);Narr.speak('Not quite. '+strip2(d.why||p.hint||p.how[0]));KP.raw='';kpRender()}
+  else{HL.ask=false;if(t.kind==='check')HL.rec.check=false;Snd.wrong();hlFb('bad',`<div class="fb-h">The answer is ${MW.ansText(p)}</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);Narr.speak('The answer is '+strip2(MW.ansText(p))+'. '+p.how.map(strip2).join(' '));toNext()}}
+function hlFb(cls,html){const f=$('#hlFb');f.hidden=false;f.className='feedback '+cls;f.innerHTML=html}
+function toNext(){$('#hlCheck').hidden=true;$('#hlNext').hidden=false;$('#hlNext').textContent=HL.ti>=HL.tasks.length-1?'Finish':'Next'}
+function logAnsHelp(ok){const p=P(),k=CO.dayKey(Date.now()),e=p.log[k]||(p.log[k]={n:0,ok:0,ms:0});e.hq=(e.hq|0)+1;if(ok)e.hok=(e.hok|0)+1}
+$('#hlCheck').onclick=()=>{Snd.init();taskAnswer()};
+$('#hlNext').onclick=()=>{Snd.click();Narr.stop();nextTask()};
+function finishLesson(){HL.stage='feel2';HL.ask=false;KP=null;$('#hlLesson').hidden=true;$('#hlFeel').hidden=false;$('#hfQ').textContent='How do you feel about it now?';
+  Narr.speak(`You got ${HL.rec.right} of ${HL.rec.total} right. How do you feel about it now?`);
+  feelButtons($('#hfBtns'),f=>{HL.rec.lesson=f;saveHelp();$('#hlFeel').hidden=true;$('#hlDone').hidden=false;
+    $('#hdText').textContent=f==='yes'?'Great work! Back to practice, and keep your paper handy.':f==='some'?'Good effort. Practice makes it stick. The hints and step-by-step help are there when you need them.':'That is OK. Ask a grown-up to sit with you on this one. Your parent can see that this concept needs help.';
+    Narr.speak($('#hdText').textContent);$('#hdBtn').textContent=HL.fromRound?'Back to practice':'Back to the concept'})}
+function saveHelp(){const p=P(),r=Object.assign({},HL.rec);p.help=(p.help||[]).concat([r]).slice(-60);persist()}
+$('#hdBtn').onclick=()=>{Snd.click();Narr.stop();const h=HL;HL=null;if(h&&h.fromRound&&RD){show('play');applyWorld(lookOf(player),sceneLevel(P()));$('#playHero').innerHTML=charSVG(charOf(P(),lookOf(player)),'neutral');nextQ()}else if(h)openLesson(h.id);else openHub()};
+$('#hlBack').onclick=()=>{Snd.click();Narr.stop();const h=HL;if(h&&h.stage!=='video'&&h.rec&&!h.saved&&(h.rec.video||h.rec.check!=null)){h.rec.quit=true;HL.rec.lesson=HL.rec.lesson||null;saveHelp()}HL=null;if(h&&h.fromRound&&RD){show('play');nextQ()}else if(h)openLesson(h.id);else openHub()};
+document.addEventListener('keydown',e=>{if(screen!=='help'||!HL||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='Enter'){e.preventDefault();if(!$('#hlNext').hidden&&!$('#hlLesson').hidden)$('#hlNext').click();else if(!$('#hlCheck').hidden&&!$('#hlLesson').hidden)$('#hlCheck').click();return}
+  if(!HL.ask||!KP)return;if(/^\d$/.test(e.key))kpPress(e.key);else if(e.key==='Backspace'){e.preventDefault();kpPress('⌫')}else if(e.key==='.'||e.key==='/'||e.key==='-'){e.preventDefault();kpPress(e.key)}else if(e.key===' '){e.preventDefault();kpPress(' ')}else if(e.key==='r'||e.key==='R')kpPress('r')});
 
 /* ---------- parent view ----------
    One report per child, read from the online save: grade level overall and by domain, an estimated national
@@ -19150,6 +19304,9 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   card('Recently mastered',R.learned.length?`<ul class="pv-list">${R.learned.slice(0,10).map(x=>`<li>${cl(x.id)}<span>${dShort(x.at)}${x.how==='test'?' · tested out':''}</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing mastered in practice yet. Concepts from the placement check are counted above.</p>');
   const att=R.spots.map(s=>`<li>${cl(s.id)}<span>tricky spot · missed ${s.n}× · ${s.ok} of 3 fixed</span>${s.why?`<small class="pv-soft">${esc(s.why)}</small>`:''}</li>`).concat(R.hard.filter(h=>!R.spots.some(s=>s.id===h.id)).slice(0,6).map(h=>`<li>${cl(h.id)}<span>${Math.round(h.acc*100)}% right first try (${h.r+h.w} tries)</span></li>`));
   card('Needs attention',att.length?`<ul class="pv-list">${att.join('')}</ul>`:'<p class="pv-p pv-soft">Nothing stands out. Tricky spots (mistakes that point at an earlier idea) and concepts under 75% right show up here.</p>');
+  /* help lessons */
+  const FW={yes:'got it',some:'a little',no:'not yet'};
+  if(R.help.length)card('Help lessons',`<p class="pv-p pv-soft">A help lesson (a short narrated video, then the idea broken into smaller steps) starts when ${esc(k.name)} misses a concept twice in a round, or opens one from a concept's page. After the video and again at the end, she says how well she understood.</p><ul class="pv-list">${R.help.map(h=>`<li><div>${esc(conceptName(h.id))} <small class="pv-soft">${dShort(h.t)}${h.from==='lesson'?' · she opened it':''}</small></div><span>video: ${FW[h.video]||'—'} · quick check ${h.check==null?'—':h.check?'right':'missed'} · steps ${h.right!=null?h.right+' of '+h.total:'—'} · at the end: ${FW[h.lesson]||(h.quit?'stopped early':'—')}</span></li>`).join('')}</ul>`);
   /* placement */
   if(R.placement){const PL=R.placement,asked=PL.parts.reduce((a,x)=>a+x.asked,0),right=PL.parts.reduce((a,x)=>a+x.right,0),sk=PL.parts.reduce((a,x)=>a+x.skipped,0);
     const bl=PL.bms.length?` Blocks took ${PL.bms.map(ms=>mins(ms)).join(', ')} (planned at about 20 minutes each${PL.short?'; shortened because blocks ran long':''}).`:'';
@@ -19183,7 +19340,7 @@ $('#pvPrint').onclick=()=>{Snd.click();window.print()};
 
 renderMenu();renderSaveNote();
 function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,d:a.d};case 'time':return p.dur?{h:a.h+1,m:a.m}:{h:a.h%12+1,m:a.m};case 'rem':return {q:a.q+1,r:a.r};default:return a+1}}
-window.__mw={openParent,get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
+window.__mw={openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
   answerRight(){if(!RD||!RD.cur)return;submit(RD.cur.p.ans,null)},
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};

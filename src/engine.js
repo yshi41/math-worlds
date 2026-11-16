@@ -273,7 +273,7 @@ function report(p, grade, now) {
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
   return { now, grade, week: st.week, expect, placed, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
-    learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement };
+    learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
 
 const API = { init, isExtra, strandOf, prereqs, cs, isMastered, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,

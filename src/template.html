@@ -380,6 +380,37 @@ body{background:var(--bg)!important}
 .pv-assess{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
 .pv-assess .pv-p{margin:0;flex:1 1 260px}
 
+/* help lessons */
+#videoBtn{white-space:normal}
+.hl-card{display:grid;gap:12px}
+.hv-screen{border:2px solid var(--line);border-radius:18px;background:var(--surface-2);padding:14px;display:grid;gap:10px}
+.hv-stage{display:grid;gap:10px;min-height:220px;max-height:58vh;overflow:auto}
+.hv-f{opacity:0;transform:translateY(10px);transition:opacity .45s ease,transform .45s ease}
+.hv-f.in{opacity:1;transform:none}
+.hv-f.now .hv-line,.hv-f.now .hv-card,.hv-f.now .hv-ans{border-color:var(--accent-ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-ink) 20%,transparent)}
+.hv-card,.hv-line,.hv-ans{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 12px;transition:border-color .3s,box-shadow .3s}
+.hv-k{font-weight:700;color:var(--accent-ink);font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}
+.hv-trick p{margin:.3em 0 0;font-size:1.15rem;line-height:1.45}
+.hv-q{font-size:1.25rem;font-weight:700;margin:.3em 0;line-height:1.4}
+.hv-vis{overflow-x:auto;max-width:100%}
+.hv-vis svg{max-width:100%;height:auto}
+.hv-line{display:flex;gap:10px;align-items:flex-start;font-size:1.08rem;line-height:1.45}
+.hv-n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-weight:700;font-size:.85rem}
+.hv-ans{font-size:1.2rem}
+.hv-cap{font-size:1rem;line-height:1.45;color:var(--ink);background:var(--surface);border-radius:12px;padding:8px 12px;min-height:2.9em;border:1px solid var(--line)}
+.hv-bar{display:flex;gap:4px}
+.hv-bar i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.hv-bar i.done{background:var(--accent-ink)}
+.hv-bar i.now{background:color-mix(in srgb,var(--accent-ink) 55%,var(--line))}
+.hv-ctl{gap:8px}
+.hl-q{font-size:1.35rem;margin:0}
+.hl-feel{gap:8px;margin-top:10px;flex-wrap:wrap}
+.hl-feel .btn{white-space:normal}
+.hl-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.hl-task{display:grid;gap:8px}
+.hl-intro{line-height:1.5;font-size:1.05rem}
+.hl-intro .steps{margin:.5em 0 0}
+
 /* parent view */
 .parent-row{margin-top:18px}
 .pv-tabs{margin:0 0 14px}
@@ -516,6 +547,27 @@ g[data-tip]:hover .pv-bar{opacity:.8}
     <div id="pvBody" class="pv-body"></div>
   </section>
 
+  <section id="help" class="screen" hidden>
+    <div class="topbar2"><button id="hlBack" class="btn btn-ghost btn-sm" type="button">Back</button><div class="brand" id="hlTitle"></div><button id="hlSound" class="tog" type="button" aria-pressed="true">Voice</button></div>
+    <div class="card hl-card">
+      <div id="hlKicker" class="ls-kicker"></div>
+      <div id="hlVideo">
+        <div class="hv-screen"><div id="hvStage" class="hv-stage" aria-live="polite"></div><div id="hvCap" class="hv-cap"></div><div id="hvBar" class="hv-bar"></div></div>
+        <div class="row hv-ctl"><button id="hvPlay" class="btn btn-sm" type="button">Pause</button><button id="hvReplay" class="btn btn-ghost btn-sm" type="button">Watch again</button></div>
+        <div id="hvAfter" hidden><button id="hvDone" class="btn btn-good btn-big" type="button">Done watching</button></div>
+      </div>
+      <div id="hlFeel" hidden><h2 id="hfQ" class="hl-q">Did the video make sense?</h2><div id="hfBtns" class="row hl-feel"></div></div>
+      <div id="hlLesson" hidden>
+        <div class="hl-head"><h2 id="hlLessonTitle" class="hl-q">Step by step</h2><span id="hlTaskN" class="pv-soft"></span></div>
+        <div id="hlTask" class="hl-task"></div>
+        <div id="hlAns" class="answer-area"></div>
+        <div id="hlFb" class="feedback" hidden></div>
+        <div class="action-row"><button id="hlCheck" class="btn btn-good btn-big" type="button">Check</button><button id="hlNext" class="btn btn-big" type="button" hidden>Next</button></div>
+      </div>
+      <div id="hlDone" hidden><p id="hdText" class="hl-q"></p><button id="hdBtn" class="btn btn-good btn-big" type="button">Back to practice</button></div>
+    </div>
+  </section>
+
   <section id="lesson" class="screen" hidden>
     <div class="topbar2"><button id="lessonBack" class="btn btn-ghost btn-sm" type="button">Map</button><div id="lessonStrand" class="brand"></div></div>
     <div class="card lesson-card">
@@ -527,6 +579,7 @@ g[data-tip]:hover .pv-bar{opacity:.8}
       <div id="lsLocked" class="locked-note" hidden></div>
       <div id="lsStatus" class="ls-status"></div>
       <button id="startBtn" class="btn btn-good btn-big" type="button">Start</button>
+      <button id="videoBtn" class="btn btn-sky" type="button">▶ Watch a short video lesson</button>
       <button id="printBtn" class="btn btn-ghost" type="button">Print a practice sheet (with answer key)</button>
       <button id="testOutBtn" class="btn btn-big" type="button" hidden>Test out</button>
       <p class="star-rules" id="starRules">Each concept has 3 levels: easy, medium and hard. Get 3 right in a row (first try, no hint) to go up a level. Finish the hard level to master it, then the game moves on to the next concept.</p>
