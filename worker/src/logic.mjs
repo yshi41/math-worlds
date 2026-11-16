@@ -49,6 +49,10 @@ export function mergeState(mine, theirs, base) {
   /* today's practice block: the newer one wins */
   if (isObj(mine.blk) && (!isObj(theirs.blk) || num(mine.blk.t) >= num(theirs.blk.t))) out.blk = clone(mine.blk);
   if (typeof mine.apace === 'number') out.apace = mine.apace;
+  if (typeof mine.ppace === 'number') out.ppace = mine.ppace;
+  /* finished practice blocks from both devices, once each, the last 30 */
+  const bh = {}; for (const b of [...(Array.isArray(theirs.bhist) ? theirs.bhist : []), ...(Array.isArray(mine.bhist) ? mine.bhist : [])]) if (isObj(b) && num(b.t0)) bh[b.t0] = b;
+  out.bhist = Object.values(bh).sort((a, b) => num(a.t0) - num(b.t0)).slice(-30);
   /* help lessons: every lesson from both devices, by time, the last 60 */
   const hs = {}; for (const h of [...(Array.isArray(theirs.help) ? theirs.help : []), ...(Array.isArray(mine.help) ? mine.help : [])]) if (isObj(h) && num(h.t)) hs[h.id + '@' + h.t] = h;
   out.help = Object.values(hs).sort((a, b) => num(a.t) - num(b.t)).slice(-60);

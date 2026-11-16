@@ -157,9 +157,9 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
 
   /* 7. review: a due mastered concept comes back in a review mix */
   await ev(p, () => { const pl = window.__mw.saves.riley; const id = Object.keys(pl.cs).find(k => pl.cs[k].m); pl.cs[id].due = 0; window.__dueId = id; });
-  await ev(p, () => window.__mw.startReview()); await wait(150);
+  const revTotal = await ev(p, () => { window.__mw.startReview(); return window.__mw.RD.mainTotal; }); await wait(150);
   let revs = 0; for (let i = 0; i < 12; i++) { const c = await cur(p); if (!c || c.roundKind !== 'review') break; if (c.phase !== 'ask') { await next(p); continue; } if (c.kind === 'rev') revs++; await answer(p, true); await next(p); if (await resultsShown(p)) break; }
-  check(revs >= 5, 'a review mix is made of mastered concepts (' + revs + ')');
+  check(revTotal >= 4 && revs >= Math.min(5, revTotal - 2), 'a review mix is made of mastered concepts (' + revs + ' of ' + revTotal + ', sized to the block)');
   check(await ev(p, () => window.__mw.saves.riley.cs[window.__dueId].due <= Date.now()), 'a review mix is extra practice: the concept still gets its memory check');
 
   /* 8. typing: keys depend on the grade, and every answer form can be typed */
@@ -364,7 +364,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await p.close();
 
   /* 14. practice blocks: a quiet memory check opens the block, what slipped goes back on the path first, and the block
-     ends at 20 minutes; an assessment block also ends at 20 minutes */
+     ends when its problems are done, never by the clock; assessment blocks are never cut off either */
   const m14 = create();
   p = await newPage(m14); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
   await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(200);
@@ -395,20 +395,24 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(r14.keep === 'Keep going', 'the results say Keep going');
   await ev(p, () => document.querySelector('#nextLessonBtn').click()); await wait(200);
   check(await ev(p, id => !document.querySelector('#lesson').hidden && document.querySelector('#lsTitle').textContent === window.MWC.S[id].title && /slipped/.test(document.querySelector('#lsStatus').textContent), st14.cur), 'Keep going opens the slipped concept’s lesson again');
-  /* the block ends at 20 minutes, at the next break */
-  await ev(p, () => { window.__mw.blk.ms = window.COACH.SESSION_MS - 5; document.querySelector('#startBtn').click(); }); await wait(150);
+  /* the clock never ends a block; the last round is sized to the problems left, and the block ends with it */
+  const g14 = await ev(p, () => { const b = window.__mw.blk; b.ms = 3 * window.COACH.SESSION_MS; b.goal = b.n + 4; document.querySelector('#startBtn').click(); return window.__mw.RD.mainTotal; }); await wait(150);
+  check(g14 === 4, 'the round fits the 4 problems left in the block (' + g14 + ')');
+  for (let i = 0; i < 3; i++) { await answer(p, true); await next(p); }
+  check(await ev(p, () => document.querySelector('#results').hidden && window.__mw.RD && window.__mw.RD.phase === 'ask'), 'an hour on the clock does not stop the block');
   await answer(p, true); await next(p); await wait(150);
   const e14 = await ev(p, () => ({ res: !document.querySelector('#results').hidden, block: document.querySelector('#resBlock').textContent, keep: document.querySelector('#nextLessonBtn').hidden, map: document.querySelector('#hubBtn').textContent }));
-  check(e14.res && /today’s 20 minutes/i.test(e14.block) && e14.keep && /map/i.test(e14.map), 'after 20 minutes the round stops at the next break and the block is done (' + JSON.stringify(e14) + ')');
+  check(e14.res && /block is done/i.test(e14.block) && /Next block: about \d+ problems/.test(e14.block) && e14.keep && /map/i.test(e14.map), 'when its problems are done the block ends and says how big the next one is (' + JSON.stringify(e14) + ')');
+  check(await ev(p, () => { const pl = window.__mw.saves.riley; return pl.ppace > 1 && pl.bhist.length === 1 && window.COACH.blockGoal(pl) < pl.bhist[0].goal + 99; }), 'a block that ran long raises her pace and is kept in the block history');
   await until(() => ev(p, () => window.__mw.net.idle()));
   check(m14.store.riley.state.blk && m14.store.riley.state.blk.done === true && m14.store.riley.state.blk.n >= 9, 'the block is saved online');
   check(m14.store.riley.state.cs[ids14[2]].lx > 0, 'the slipped concept is saved online');
   await ev(p, () => document.querySelector('#hubBtn').click()); await wait(150);
   check(await ev(p, () => /done/.test(document.querySelector('#nextTitle').textContent) && document.querySelectorAll('#map .chip.lapsed').length >= 1), 'the map says today is done and marks what slipped');
-  /* an assessment block stops at 20 minutes of answering too */
-  await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.t = Date.now(); pl.pre.bt = window.COACH.BLOCK_MS - 5; window.__mw.startPre(); }); await wait(200);
+  /* an assessment block keeps going past 20 minutes until its parts are done */
+  await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.t = Date.now(); pl.pre.bt = 2 * window.COACH.BLOCK_MS; window.__mw.startPre(); }); await wait(200);
   await answer(p, true);
-  check(await until(() => resultsShown(p), 4000) && await ev(p, () => /^Block 1 of/.test(document.querySelector('#resTitle').textContent)), 'an assessment block ends after 20 minutes of answering');
+  check(await until(() => ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask'), 4000) && await ev(p, () => document.querySelector('#results').hidden), 'an assessment block is not cut off at 20 minutes');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.slice(0, 5).join(' | '));

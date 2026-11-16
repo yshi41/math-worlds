@@ -59,18 +59,18 @@ for (let k = 0; k < 60; k++) { const nx = E.pretestNext(pre5); if (!nx || nx.str
 const p5 = blank(); E.pretestApply(p5, pre5); const s5 = E.STR.find(s => s.id === sid5).core[pre5.st[sid5].start];
 ok(!s5 || p5.cs[s5].lv === 1, 'medium right, hard wrong: the start concept begins at level 2');
 
-/* 3b. blocks of about 20 minutes; a slow kid gets a shorter check; a later assessment starts where she is */
+/* 3b. blocks of about 20 minutes; a slow kid gets the same thorough check in more blocks; a later assessment starts where she is */
 for (const g of [3, 4]) { const pre = E.pretestStart(g); ok(pre.blocks.length >= 2 && pre.blocks.flat().length === pre.order.length, 'grade ' + g + ': the check comes in ' + pre.blocks.length + ' blocks covering every part');
   ok(E.pretestProgress(pre).estMin <= 24, 'grade ' + g + ': the first block is planned at about 20 minutes (' + E.pretestProgress(pre).estMin + ' min)'); }
 function run(grade, secs, K) { const pre = E.pretestStart(grade); let asked = 0, blocks = 0;
   for (let k = 0; k < 800; k++) { const nx = E.pretestNext(pre); if (!nx) { blocks++; if (!E.pretestAdvance(pre)) break; continue; } E.pretestRecord(pre, S[nx.skill].g <= K, secs * 1000); asked++; }
   return { pre, asked, blocks }; }
 const avg = run(3, 40, 2), slow = run(3, 150, 2);
-ok(!avg.pre.short, 'an average pace keeps the full check (' + avg.asked + ' questions, ' + avg.blocks + ' blocks)');
-ok(slow.pre.short && slow.pre.pace > 1.5, 'a kid who keeps taking over 20 minutes gets a shorter check (pace ' + slow.pre.pace.toFixed(2) + ')');
-ok(slow.asked < avg.asked, 'the shorter check asks fewer questions (' + slow.asked + ' vs ' + avg.asked + ')');
-const laterBlocks = slow.pre.bms.slice(slow.pre.bms.length > 3 ? 3 : 2); ok(laterBlocks.every(ms => ms <= E.BLOCK_MS * 1.45), 'after adapting, her blocks come back near 20 minutes (' + slow.pre.bms.map(x => Math.round(x / 60000)).join(', ') + ' min)');
-const sp = E.pretestStart(3, { pace: 2, short: true }); ok(sp.short && sp.blocks.length > E.pretestStart(3).blocks.length - 1, 'her slow pace carries into the next assessment');
+ok(!avg.pre.short && !slow.pre.short && slow.pre.pace > 1.5, 'a slow kid is never given a thinner check (pace ' + slow.pre.pace.toFixed(2) + ')');
+eq(slow.asked, avg.asked, 'she gets every question an average kid gets (' + slow.asked + ')');
+ok(slow.blocks > avg.blocks, 'spread over more blocks (' + slow.blocks + ' vs ' + avg.blocks + '), which can be on different days');
+const laterBlocks = slow.pre.bms.slice(1, -1); ok(laterBlocks.every(ms => ms <= E.BLOCK_MS * 1.6), 'once her pace is known, blocks are planned near 20 minutes (' + slow.pre.bms.map(x => Math.round(x / 60000)).join(', ') + ' min)');
+const sp = E.pretestStart(3, { pace: 2 }); ok(!sp.short && sp.blocks.length > E.pretestStart(3).blocks.length, 'her slow pace carries into the next assessment as more blocks');
 const pa = blank(); C.LIST.filter(c => !E.isExtra(c.id) && c.g <= 3).forEach(c => E.master(pa, c.id, 1));
 const re = E.pretestStart(3, { p: pa, by: 'parent' });
 ok(re.cap >= 4 && re.order.every(sid => { const s = E.STR.find(x => x.id === sid); return !E.isMastered(pa, s.core[re.st[sid].at]); }), 'a parent assessment starts at the first concept not yet mastered in each part');
@@ -154,21 +154,27 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   ok(E.blockNext(f, { ms: 0, rounds: 2, seen: [], fc: [tgt] }, T + E.DAY).kind === 'learn', 'only once a block');
   /* the block: a memory check to start when concepts are due, learning after, done at 20 minutes */
   const g = blank(); for (let k = 0, id; (id = E.current(g)) && k < 10; k++) E.master(g, id, T, k < 7 ? 0 : 9 * E.DAY);
-  const s0 = E.blockNext(g, { ms: 0, rounds: 0, seen: [] }, T + 1); ok(s0.kind === 'audit' && s0.ids.length === 4, 'the block opens with a memory check (' + s0.ids.length + ' concepts, 7 due)');
-  ok(E.blockNext(g, { ms: 0, rounds: 1, seen: s0.ids }, T + 1).kind === 'learn', 'then learning');
-  ok(E.blockNext(g, { ms: 0, rounds: 2, seen: s0.ids, justMastered: true }, T + 1).kind === 'audit', 'another short check after a concept is mastered, while some are due');
-  ok(E.blockNext(g, { ms: 17 * 60000, rounds: 2, seen: s0.ids, justMastered: true }, T + 1).kind === 'learn', 'no new check in the last few minutes');
-  ok(E.blockNext(g, { ms: E.SESSION_MS, rounds: 3, seen: [] }, T + 1).kind === 'done', 'the block is done at 20 minutes');
-  ok(E.blockNext(g, { ms: 0, rounds: 0, seen: s0.ids.concat(['x', 'y']) }, T + 1).kind === 'learn', 'at most 6 concepts checked in a block');
+  const s0 = E.blockNext(g, { goal: 30, n: 0, rounds: 0, seen: [] }, T + 1); ok(s0.kind === 'audit' && s0.ids.length === 4, 'the block opens with a memory check (' + s0.ids.length + ' concepts, 7 due)');
+  ok(E.blockNext(g, { goal: 30, n: 8, rounds: 1, seen: s0.ids }, T + 1).kind === 'learn', 'then learning');
+  ok(E.blockNext(g, { goal: 30, n: 18, rounds: 2, seen: s0.ids, justMastered: true }, T + 1).kind === 'audit', 'another short check after a concept is mastered, while some are due');
+  ok(E.blockNext(g, { goal: 30, n: 26, rounds: 2, seen: s0.ids, justMastered: true }, T + 1).kind === 'learn', 'no new check with only a few problems left');
+  ok(E.blockNext(g, { goal: 30, n: 22, ms: 60 * 60000, rounds: 3, seen: s0.ids }, T + 1).kind === 'learn', 'the clock never ends a block');
+  ok(E.blockNext(g, { goal: 30, n: 30, rounds: 3, seen: [] }, T + 1).kind === 'done', 'it is done when its problems are done');
+  ok(E.blockNext(g, { goal: 30, n: 0, rounds: 0, seen: s0.ids.concat(['x', 'y']) }, T + 1).kind === 'learn', 'at most 6 concepts checked in a block');
+  /* sizing: about 20 minutes at her pace on the concept she is on */
+  const h = blank(), head = C.LIST.find(c => !c.paper && c.s !== 'story' && !c.pre.length && !S[c.id].prev).id; h.now = head;
+  const g0 = E.blockGoal(h); ok(g0 >= 20 && g0 <= 32, 'a first block on a mental-math concept is about ' + g0 + ' problems');
+  const paperId = ORDER.find(id => S[id].paper && S[id].s !== 'story'); const hp = blank(); C.LIST.forEach(c => { if (ORDER.indexOf(c.id) < ORDER.indexOf(paperId)) E.master(hp, c.id, 1); }); hp.now = paperId;
+  ok(E.current(hp) === paperId && E.blockGoal(hp) < g0 / 1.8, 'a pencil-and-paper concept gets fewer problems (' + E.blockGoal(hp) + ')');
+  const slowB = { goal: g0, n: g0, ms: 2 * g0 * E.pracSec(head) * 1000, exp: g0 * E.pracSec(head) * 1000 };
+  E.blockPace(h, slowB); ok(h.ppace === 2 && E.blockGoal(h) < g0 * 0.6, 'a block that took twice as long makes the next one smaller (' + E.blockGoal(h) + ')');
+  E.blockPace(h, { ms: 1, exp: 4 }); ok(h.ppace < 1.5 && E.blockGoal(h) > g0 * 0.6, 'a fast block makes the next one bigger again (' + E.blockGoal(h) + ')');
 }
-/* 10. assessment blocks end at 20 minutes of answering, wherever they are, and pick up there */
+/* 10. an assessment block is never cut off by the clock: it ends when its parts are done */
 {
-  const pre = E.pretestStart(3); let k = 0;
-  while (E.pretestNext(pre) && k < 500) { E.pretestRecord(pre, k % 2 === 0, 70000); k++; }
-  const done1 = pre.order.filter(s => pre.st[s].done).length;
-  ok(k === Math.ceil(E.BLOCK_MS / 70000) && E.pretestTimeUp(pre), 'the first block stops after 20 minutes (' + k + ' questions at 70 s)');
-  const more = E.pretestAdvance(pre); ok(more && !E.pretestTimeUp(pre) && E.pretestNext(pre), 'the next block picks up where it stopped');
-  ok(pre.pace > 1.5 && pre.short, 'a kid twice as slow as average gets a shorter check (pace ' + pre.pace.toFixed(2) + ')');
-  ok(done1 < pre.order.length, 'parts left over carry to the next block');
+  const pre = E.pretestStart(3), first = pre.blocks[0].slice(); let k = 0;
+  while (E.pretestNext(pre) && k < 500) { E.pretestRecord(pre, k % 2 === 0, 200000); k++; }
+  ok(first.every(s => pre.st[s].done) && (pre.bt || 0) > E.BLOCK_MS, 'a slow first block runs past 20 minutes and finishes its parts (' + k + ' questions)');
+  ok(E.pretestAdvance(pre) && E.pretestNext(pre) && !pre.short, 'the next block follows, with the same thorough search');
 }
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');

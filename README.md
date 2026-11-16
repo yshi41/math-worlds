@@ -36,16 +36,22 @@ mastered.
 
 ## Practice blocks
 
-Practice comes in blocks of about 20 minutes. The clock counts time spent answering (at most 4 minutes a problem, so
-walking away doesn't use it up) and time in help lessons. A block opens with a memory check when concepts are due, then
-works along the path; "Keep going" on each results screen asks the block what comes next (`COACH.blockNext`). At the
-first break after 20 minutes (the end of the problem in hand, plus its break-down steps) the block ends with a summary.
-Another block can be started from the map. The block lives in the online save, so it carries across devices.
+Practice comes in blocks planned at about 20 minutes. A block is a number of problems (6 to 40), set when it starts
+(`COACH.blockGoal`): 20 minutes divided by how long one problem on her current concept takes an average kid (about
+45 s in her head, 100 s on paper, 115 s for a word problem), times her pace. No clock ever ends a block: each round is
+sized to the problems left (4 to 10), and the block ends with the round that finishes them, with a summary that says
+how big the next block will be. Another block can be started from the map. The block lives in the online save.
+
+Her pace is the time a finished block really took (answering, at most 4 minutes a problem, plus help lessons) over an
+average kid's time for the same problems, folded half-and-half into her running pace (`COACH.blockPace`). So a block
+that ran long, because the concept was hard or she needed break-downs, hints or a help lesson, makes the next block
+smaller, a fast one makes it bigger, and a harder concept (written methods, word problems) gets fewer problems. Finished
+blocks are kept in `bhist` for the parent view.
 
 What the block does next depends on how the kid is doing:
 
 - A memory check at the start of each block (3 due concepts, 4 when 6 or more are due) and a short one (2) after each
-  concept is mastered, at most 6 concepts a block and none in its last 4 minutes.
+  concept is mastered, at most 6 concepts a block and none when fewer than 6 problems are left.
 - When she is struggling with the concept she is learning (under 60% right after 8 tries, or she dropped a level), the
   concepts it is built on are checked, even before they are due (each at most every 3 days).
 - Levels, tricky spots, break-downs and help lessons adapt within each round, as below.
@@ -78,9 +84,11 @@ same tick, the same "Answer saved." note and the same short pause, the character
 hidden so it can't give the answer away. How many were right, and the treats earned, show on the results at the end of
 each block. (Test-outs are practice, not assessments: they answer right away.)
 
-Each assessment block ends at the first question after 20 minutes of answering, wherever it is in the check; the next
-block picks up exactly there. Her pace (her time over an average kid's time on the same questions) carries over, and a
-kid who takes 1.6 times as long or more gets a shorter check (one hard problem per concept and a coarser search).
+An assessment is not limited to 20 minutes. It comes in blocks, each a set of whole parts planned at about 20 minutes,
+and a block is never cut off: it ends when its parts are done. After each block the rest of the check is re-planned at
+her pace (her time over an average kid's time on the same questions), so a kid who takes longer gets more blocks, never
+a thinner check. It can run over several days, one block a day, for as long as it takes to find where she really is.
+Her pace carries over to the next assessment.
 
 ## The coach
 

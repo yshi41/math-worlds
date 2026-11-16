@@ -43,6 +43,8 @@ const assert = require('assert');
   eq(mergeState({ blk: { day: 'd', ms: 600000, t: 900 } }, { blk: { day: 'd', ms: 300000, t: 500 } }, {}).blk.ms, 600000, 'the newer practice block wins');
   eq(mergeState({}, { blk: { day: 'd', ms: 1, t: 5 } }, {}).blk.ms, 1, 'a block from the other device is kept');
   eq(lowersProgress({ cs: { a: { m: 5, lx: 9 } } }, { cs: { a: { m: 5 } } }), false, 'a lapse is not lost progress: the mastery date stays');
+  const bm = mergeState({ ppace: 1.4, bhist: [{ t0: 1, n: 20 }, { t0: 3, n: 12 }] }, { ppace: 1, bhist: [{ t0: 1, n: 20 }, { t0: 2, n: 25 }] }, {});
+  eq(bm.ppace, 1.4, 'the practice pace follows this page'); eq(bm.bhist.map(b => b.t0), [1, 2, 3], 'finished blocks from both devices are kept once each');
   /* progress never drops */
   eq(lowersProgress({ cs: {} }, { cs: { a_ten: { m: 5 } } }), true, 'losing a mastered concept is refused');
   eq(lowersProgress({ cs: { a_ten: { m: 5 } }, owned: [] }, { cs: { a_ten: { m: 5 } }, owned: ['lagoon:frog'] }), true, 'losing a character is refused');

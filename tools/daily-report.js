@@ -48,6 +48,8 @@ function kidSection(k, p, day, now) {
     if (masteredToday.length) lines.push(`Mastered today: ${masteredToday.map(x => title(x.id) + (x.test ? ' (tested out)' : '')).join('; ')}.`);
     if (helpToday.length) lines.push(`Help lessons: ${helpToday.map(h => `${title(h.id)} (after the video: ${FW[h.video] || '—'}; at the end: ${FW[h.lesson] || (h.quit ? 'stopped early' : '—')})`).join('; ')}.`);
     if (e.ac) lines.push(`Memory checks: ${e.ac} earlier concept${e.ac === 1 ? '' : 's'} checked, ${e.ap | 0} held${e.al ? `, ${e.al} slipped and went back on her path to master again` : ''}.`);
+    const blocksToday = (p.bhist || []).filter(b => b.t >= start && b.t < end);
+    if (blocksToday.length) lines.push(`Practice blocks finished: ${blocksToday.map(b => `${b.n} problems in ${mins(b.ms)}`).join('; ')}. Next block: about ${E.blockGoal(p)} problems.`);
     if (spotsToday.length) lines.push(`New tricky spots: ${spotsToday.map(s => title(s.id)).join('; ')}.`);
   }
   if (preTxt) lines.push(preTxt);

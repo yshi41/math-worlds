@@ -95,16 +95,26 @@ function auditResult(p, id, oks, now) {
 }
 
 /* ---------- practice blocks ----------
-   Practice comes in blocks of about 20 minutes (time spent on problems and help lessons, at most a few minutes per
-   problem). A block opens with a memory check when concepts are due, then works along the path; after each concept is
-   mastered, another short memory check runs if more are due; when the kid is struggling with a concept, its
-   foundations are checked. A block ends at the first break after 20 minutes. blockNext says what comes next. */
-const SESSION_MS = 20 * 60000, AUDIT_CAP = 6;
+   Practice comes in blocks planned to take about 20 minutes. A block is a number of problems (its goal), set when it
+   starts from the concept she is on and her pace; the block is never cut off by a clock, it ends when its problems are
+   done, at the end of a round. Her pace is the time she really took over the time an average kid takes on the same
+   problems, so harder concepts (written methods, word problems), break-down steps, hints and help lessons all make the
+   next block smaller, and a kid who works fast gets a bigger one. A block opens with a memory check when concepts are
+   due, then works along the path; after each concept is mastered, another short memory check runs if more are due;
+   when she is struggling with a concept, its foundations are checked. blockNext says what comes next. */
+const SESSION_MS = 20 * 60000, AUDIT_CAP = 6, GOAL_MIN = 6, GOAL_MAX = 40;
+/* about how long an average kid takes on one practice problem, reading the feedback included */
+const pracSec = id => Math.round(avgSec(id) * 1.3);
+const clampPace = r => Math.min(3, Math.max(0.4, r));
+function blockGoal(p) { const id = current(p) || ORDER[0], pace = clampPace(p.ppace || 1); return Math.max(GOAL_MIN, Math.min(GOAL_MAX, Math.round(SESSION_MS / (pracSec(id) * 1000 * pace)))); }
+/* at the end of a block: fold its pace into hers (half the old, half the new) */
+function blockPace(p, blk) { if (!blk || !blk.exp || !blk.ms) return p.ppace || 1; const r = clampPace(blk.ms / blk.exp); p.ppace = Math.round((p.ppace ? (p.ppace + r) / 2 : r) * 100) / 100; return p.ppace; }
+const blockLeft = blk => Math.max(0, (blk.goal || 0) - (blk.n || 0));
 function blockNext(p, blk, now) {
   now = now || Date.now(); blk = blk || {};
-  if ((blk.ms || 0) >= SESSION_MS) return { kind: 'done' };
-  const cur = current(p), seen = blk.seen || [], fc = blk.fc || [], left = SESSION_MS - (blk.ms || 0), room = AUDIT_CAP - seen.length;
-  if (room > 0 && left >= 4 * 60000) {
+  if (blk.goal && (blk.n || 0) >= blk.goal) return { kind: 'done' };
+  const cur = current(p), seen = blk.seen || [], fc = blk.fc || [], left = blk.goal ? blockLeft(blk) : GOAL_MAX, room = Math.min(AUDIT_CAP - seen.length, Math.floor((left - 2) / 2));
+  if (room > 0 && left >= 6) {
     const focus = cur && struggling(p, cur) && !fc.includes(cur) ? cur : null, start = !(blk.rounds | 0), after = !!blk.justMastered;
     if (focus) { const ids = auditPick(p, now, Math.min(3, room), focus, seen).filter(id => prereqs(focus).includes(id)); if (ids.length) return { kind: 'audit', ids, focus }; }
     if (start || after) { const ids = auditPick(p, now, Math.min(start ? (due(p, now).length >= 6 ? 4 : 3) : 2, room), null, seen); if (ids.length) return { kind: 'audit', ids, focus: null }; }
@@ -148,15 +158,15 @@ const deeper = id => prereqs(id)[0] || null;
    a binary search finds where to start. Each concept tested asks a medium and a hard problem; both right moves up, a
    miss moves down. The first check starts at the kid's grade; a later assessment starts at the first concept not yet
    mastered in each strand. It searches the Common Core concepts only; extras stay on the path to be learned.
-   The check comes in blocks planned to take about 20 minutes for an average kid. The time each block really takes is
-   recorded; if a kid routinely takes longer, the rest of the check is planned for her pace and made shorter (one hard
-   problem per concept, and a coarser search), and her pace carries over to the next assessment. */
+   The check comes in blocks, each a set of whole parts planned to take about 20 minutes. A block is never cut off by
+   a clock: it ends when its parts are done. The time each block really takes is recorded and the rest of the check is
+   re-planned at her pace, so a kid who takes longer gets more, shorter-planned blocks, never a thinner check. The
+   check can run over several days; her pace carries over to the next assessment. */
 const BLOCK_MS = 20 * 60000;
 function capLen(st, grade, cap) { const top = cap != null ? cap : grade + 1; let k = 0; while (k < st.core.length && S[st.core[k]].g <= top) k++; return k; }
 /* how long an average kid takes on one placement problem: about 35 s in her head, 75 s on paper, 90 s for a word problem */
 const avgSec = id => S[id].s === 'story' ? 90 : S[id].paper ? 75 : 35;
-/* a block ends at the first question after 20 minutes of answering, wherever it is in the check */
-const pretestTimeUp = pre => (pre.bt || 0) >= BLOCK_MS;
+
 function strandEstimate(pre, sid) {
   const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s || st.done) return 0;
   const span = Math.max(1, st.hi - st.lo - 1), probes = Math.max(1, Math.ceil(Math.log2(span + 1)) - (pre.short ? 1 : 0)), perConcept = pre.short ? 1 : 1.4;
@@ -196,7 +206,6 @@ function pretestFix(pre) {
 const blockOf = pre => (pre.blocks && pre.blocks[pre.bi || 0]) || pre.order;
 /* the next question in the current block, or null when the block (or the whole check) is done */
 function pretestNext(pre) {
-  if (pretestTimeUp(pre)) return null;
   for (const sid of blockOf(pre)) { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || st.done || !s) continue;
     return { strand: sid, skill: s.core[st.at], d: pre.short || st.step > 0 ? 2 : 1 }; }
   return null;
@@ -218,8 +227,7 @@ function pretestAdvance(pre) {
   const est = pre.be || blk.reduce((a, sid) => a + (pre.st[sid].log.length * avgSec(pre.st[sid].log[0] ? pre.st[sid].log[0][0] : STR.find(x => x.id === sid).core[0]) * 1000), 0);
   const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0; pre.be = 0;
   if (est > 0 && ms > 0) { const r = ms / est, n = pre.bms.length; pre.pace = ((pre.pace || 1) * (n - 1) + r) / n; }
-  /* a kid who takes much longer than average gets a shorter check from here on, so it doesn't run to many blocks */
-  if (!pre.short && pre.pace >= 1.6) { pre.short = true; pre.adapted = Date.now(); }
+  /* the check is never shortened for a slow kid: the rest of it is planned at her pace, in more blocks if need be */
   pre.bi = (pre.bi || 0) + 1;
   const left = pre.order.filter(s => pre.st[s] && !pre.st[s].done);
   if (!left.length) { pre.blocks = pre.blocks.slice(0, pre.bi); return false; }
@@ -337,7 +345,7 @@ function report(p, grade, now) {
     learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, retention, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
 
-const API = { init, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, SESSION_MS, AUDIT_CAP, pretestTimeUp, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;
