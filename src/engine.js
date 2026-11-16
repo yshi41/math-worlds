@@ -11,9 +11,13 @@ const DAY = 864e5;
    plus any listed prerequisites from other strands. The overall order goes grade by grade and takes the strands in turn,
    so a kid moves between kinds of ideas instead of doing one strand for weeks. */
 let STR = [], ORDER = [];
+const isExtra = id => !!(S[id].extra || !(S[id].cc && S[id].cc.length));
 function init() {
   STR = STRANDS.map(s => Object.assign({}, s, { list: LIST.filter(c => c.s === s.id).sort((a, b) => a.g - b.g || a.def - b.def).map(c => c.id) })).filter(s => s.list.length);
-  const rank = {}; STR.forEach((s, i) => { rank[s.id] = i; s.list.forEach((id, k) => { S[id].idx = k; S[id].prev = k ? s.list[k - 1] : null; }); });
+  /* extras (shortcuts beyond the Common Core) sit on the path and need what comes before them, but a Common Core
+     concept only needs the Common Core concept before it, so an extra never holds back grade-level work */
+  const rank = {}; STR.forEach((s, i) => { rank[s.id] = i; s.list.forEach((id, k) => { S[id].idx = k; let j = k - 1; if (!isExtra(id)) while (j >= 0 && isExtra(s.list[j])) j--; S[id].prev = j >= 0 ? s.list[j] : null; }); });
+  STR.forEach(s => { s.core = s.list.filter(id => !isExtra(id)); });
   const pos = {}; STR.forEach(s => { const seen = {}; s.list.forEach(id => { const g = S[id].g; seen[g] = (seen[g] || 0); pos[id] = seen[g]++; }); });
   ORDER = LIST.map(c => c.id).sort((a, b) => S[a].g - S[b].g || pos[a] - pos[b] || rank[S[a].s] - rank[S[b].s]);
   API.STR = STR; API.ORDER = ORDER;
@@ -89,17 +93,18 @@ const deeper = id => prereqs(id)[0] || null;
 
 /* ---------- placement check ----------
    For each strand with ideas up to one grade above the kid's, a binary search finds where to start. Each concept
-   tested asks a medium and a hard problem; both right moves up, a miss moves down. It starts at the kid's grade. */
-function capLen(st, grade) { let k = 0; while (k < st.list.length && S[st.list[k]].g <= grade + 1) k++; return k; }
+   tested asks a medium and a hard problem; both right moves up, a miss moves down. It starts at the kid's grade.
+   It searches the Common Core concepts only; extras stay on the path to be learned. */
+function capLen(st, grade) { let k = 0; while (k < st.core.length && S[st.core[k]].g <= grade + 1) k++; return k; }
 function pretestStart(grade) {
   const st = {}, order = [];
-  STR.forEach(s => { const L = capLen(s, grade); if (!L) return; order.push(s.id); let e = s.list.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1;
+  STR.forEach(s => { const L = capLen(s, grade); if (!L) return; order.push(s.id); let e = s.core.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1;
     st[s.id] = { lo: -1, hi: L, at: Math.max(0, e - (e > 2 ? 1 : 0)), step: 0, done: false, log: [] }; });
   return { v: 2, grade, st, order, done: false, t: 0 };
 }
 function pretestNext(pre) {
   for (const sid of pre.order) { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || st.done || !s) continue;
-    return { strand: sid, skill: s.list[st.at], d: st.step === 0 ? 1 : 2 }; }
+    return { strand: sid, skill: s.core[st.at], d: st.step === 0 ? 1 : 2 }; }
   return null;
 }
 function settle(st) { st.step = 0; if (st.hi - st.lo <= 1) { st.done = true; st.start = st.hi; return; } st.at = Math.floor((st.lo + st.hi + 1) / 2); if (st.at <= st.lo) st.at = st.lo + 1; if (st.at >= st.hi) st.at = st.hi - 1; }
@@ -118,13 +123,13 @@ function pretestApply(p, pre, now) {
   now = now || Date.now(); const out = { mastered: 0, starts: {} };
   pre.order.forEach(sid => { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s) return;
     const upto = st.done ? st.start : st.lo + 1;
-    for (let i = 0; i < upto; i++) { const id = s.list[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); out.mastered++; } }
-    const sid2 = s.list[upto]; out.starts[sid] = sid2 || null;
+    for (let i = 0; i < upto; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); out.mastered++; } }
+    const sid2 = s.core[upto]; out.starts[sid] = sid2 || null;
     if (sid2 && st.half === upto) { const c = cs(p, sid2); if (!c.m && c.lv < 1) c.lv = 1; } });
   p.now = null; return out;
 }
 
-const API = { init, strandOf, prereqs, cs, isMastered, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, isExtra, strandOf, prereqs, cs, isMastered, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply,
   capLen, DAY, STR, ORDER };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

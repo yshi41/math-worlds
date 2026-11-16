@@ -129,6 +129,10 @@ function recordFix(id){const m=P().mist[id];if(!m||m.ok>=3)return;m.ok++;m.t=Dat
    shortcut done in your head; the game says which on every problem */
 const isPaper=id=>!!(S[id]&&(S[id].paper||S[id].s==='story'));
 const MODE_PAPER='✎ Pencil and paper: show your work',MODE_HEAD='In your head';
+/* Common Core: the standards a concept practises, or an extra that goes beyond Common Core */
+const isExtra=id=>!!(S[id]&&(S[id].extra||!(S[id].cc&&S[id].cc.length)));
+function stdLine(id){const c=S[id],cc=(c.cc||[]).filter(x=>MW.STD[x]);if(!cc.length)return {short:'★ Extra: beyond Common Core',long:'A bonus shortcut or idea that goes beyond the Common Core standards.'};
+  return {short:'Common Core '+cc.join(', '),long:cc.map(x=>x+': '+MW.STD[x].text).join(String.fromCharCode(10))}}
 const pips=n=>`<span class="pips" aria-label="${n} of 3 levels">${[0,1,2].map(i=>`<i class="${i<n?'on':''}"></i>`).join('')}</span>`;
 
 /* ---------- screens ---------- */
@@ -182,8 +186,8 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
     det.innerHTML=`<summary><span class="st-ic">${g}</span><span>${ord(g)} grade</span><span class="gbar"><i style="width:${(m/ids.length*100).toFixed(1)}%"></i></span><span class="st-count">${m} of ${ids.length}</span></summary>`;
     const box=document.createElement('div');box.className='chips';
     ids.forEach(id=>{const c=S[id],dn=CO.isMastered(p,id),op=CO.isOpen(p,id),pg=!dn&&CO.started(p,id),st=CO.strandOf(id);
-      const b=document.createElement('button');b.type='button';b.className='chip'+(dn?' done':pg?' prog':op?' open':' locked')+(id===cur&&done?' now':'');
-      b.innerHTML=`<span class="ci">${dn?'✓':st.icon}</span><span class="chip-t">${esc(c.title)}</span>`;b.title=st.name+(dn?' · mastered':pg?' · level '+(CO.levelsDone(p,id)+1)+' of 3':op?'':' · locked');
+      const b=document.createElement('button');b.type='button';b.className='chip'+(dn?' done':pg?' prog':op?' open':' locked')+(id===cur&&done?' now':'')+(isExtra(id)?' extra':'');
+      b.innerHTML=`<span class="ci">${dn?'✓':st.icon}</span><span class="chip-t">${esc(c.title)}</span>`;b.title=st.name+' · '+stdLine(id).short+(dn?' · mastered':pg?' · level '+(CO.levelsDone(p,id)+1)+' of 3':op?'':' · locked');
       b.onclick=()=>{Snd.init();Snd.click();openLesson(id)};box.append(b)});
     det.append(box);map.append(det)}
   /* characters and worlds */
@@ -217,6 +221,7 @@ function openLesson(id){const p=P(),c=S[id],open=CO.isOpen(p,id),dn=CO.isMastere
   $('#lsHero').innerHTML=charSVG(charOf(p,k),'happy');$('#lsTip').textContent=c.tip;
   const lm=$('#lsMode');lm.className='q-mode'+(isPaper(id)?' paper':'');lm.textContent=isPaper(id)?'✎ A pencil-and-paper concept: copy the example onto your paper as you go':'A shortcut you do in your head';
   $('#printBtn').onclick=()=>{Snd.click();printSheet(id)};
+  const ls=$('#lsStd'),sd=stdLine(id);ls.className='ls-std'+(isExtra(id)?' extra':'');ls.textContent=sd.short;ls.title=sd.long;
   const ex=MW.gen(id,0,MW.makeR(hashStr(id)));$('#lsExQ').innerHTML=ex.text;$('#lsExVis').innerHTML=ex.vis||'';
   const ol=$('#lsExSteps');ol.innerHTML=ex.how.map((h,i)=>`<li class="${i?'hide':''}">${h}</li>`).join('')+`<li class="hide">Answer: <b>${MW.ansText(ex)}</b></li>`;
   LS_EXVIS=ex.howVis||'';
@@ -238,7 +243,7 @@ h1{font:700 1.6rem var(--display),sans-serif;margin:0 0 4px}.ws-tip{margin:0 0 4
 .ws-q{break-inside:avoid;border-bottom:1px dashed #bbb;padding:10px 0 ${pp?120:56}px;font-size:1.15rem}.ws-q .fig,.ws-q svg{max-width:300px}
 .ws-a{margin-top:8px;color:#555}.ws-key{break-before:page}.ws-key ol{margin:4px 0 12px}.noprint{margin:16px 0}
 @media print{.noprint{display:none}body{padding:0}}</style></head><body>
-<h1>${esc(c.title)}</h1><p class="ws-tip">${esc(c.tip)}</p><p class="ws-name">Name: ${esc(kid(player).name)} · ${ord(c.g)} grade · ${pp?'Show your work.':'Do it in your head, or jot notes.'}</p>
+<h1>${esc(c.title)}</h1><p class="ws-tip">${esc(c.tip)}</p><p class="ws-name">Name: ${esc(kid(player).name)} · ${ord(c.g)} grade · ${esc(stdLine(id).short)} · ${pp?'Show your work.':'Do it in your head, or jot notes.'}</p>
 <button class="noprint btn" onclick="print()">Print</button>
 ${probs.map((q,i)=>`<div class="ws-q"><b>${i+1}.</b> ${q.text}${q.vis?`<div>${q.vis}</div>`:''}<div class="ws-a">Answer: ______________</div></div>`).join('')}
 <div class="ws-key"><h1>Answer key</h1>${probs.map((q,i)=>`<div><b>${i+1}. ${MW.ansText(q)}</b><ol>${q.how.map(h=>`<li>${h}</li>`).join('')}</ol></div>`).join('')}</div></body></html>`);
@@ -425,7 +430,7 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     found.slice(0,4).forEach(id=>{const d=document.createElement('div');d.className='spot';d.innerHTML=`<span class="spot-name">${esc(conceptName(id))}</span><small>${esc((p.mist[id]&&p.mist[id].why)||S[id].tip)}</small>`;const b=document.createElement('button');b.type='button';b.className='btn btn-sm';b.textContent='Practice';b.onclick=()=>startFix(id);d.append(b);box.append(d)});rs.append(box)}
   /* placement results */
   const pl=$('#resPlaces');pl.innerHTML='';
-  if(R0.kind==='pre'&&p.pre&&p.pre.done){p.pre.order.forEach(sid=>{const st=CO.STR.find(s=>s.id===sid),x=p.pre.st[sid],start=st.list[x.start];pl.insertAdjacentHTML('beforeend',`<div class="place"><span class="st-ic">${st.icon}</span><span class="place-name">${st.name}</span><small>${start?'Starts at: '+esc(conceptName(start)):'Everything here up to '+ord(p.pre.grade+1)+' grade is mastered'}</small></div>`)})}
+  if(R0.kind==='pre'&&p.pre&&p.pre.done){p.pre.order.forEach(sid=>{const st=CO.STR.find(s=>s.id===sid),x=p.pre.st[sid],start=st.core[x.start];pl.insertAdjacentHTML('beforeend',`<div class="place"><span class="st-ic">${st.icon}</span><span class="place-name">${st.name}</span><small>${start?'Starts at: '+esc(conceptName(start)):'Everything here up to '+ord(p.pre.grade+1)+' grade is mastered'}</small></div>`)})}
   const cur=CO.current(p),nb=$('#nextLessonBtn');nb.hidden=!cur||!preDone(p)||(R0.kind==='learn'&&!R0.masteredNow&&cur===R0.skill);
   nb.textContent=R0.masteredNow||R0.kind!=='learn'?'Next concept':'Up next';nb.onclick=()=>{Snd.click();playConcept(CO.current(P()))};
   $('#againBtn').hidden=(R0.kind==='pre'&&preDone(p))||!!R0.masteredNow||(R0.kind==='test'&&CO.isMastered(p,R0.skill));

@@ -351,8 +351,11 @@ function sayOf(html) {
 }
 function hashStr(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
 const TYPES = ['num', 'frac', 'money', 'time', 'rem'];
+/* a hyphen typed as a minus sign (= -4, (-2), divide by -1) becomes the real minus sign, so negatives read clearly */
+const minusFix = t => typeof t === 'string' ? t.replace(/(^|[\s=(\[,+×÷>])-(\s?\d)/g, '$1' + MINUS + '$2') : t;
 function finish(p, id, d) {
-  p.skill = id; p.d = d; p.type = p.type || 'num'; p.how = p.how || [];
+  p.skill = id; p.d = d; p.type = p.type || 'num'; p.how = (p.how || []).map(minusFix); p.text = minusFix(p.text); if (p.hint) p.hint = minusFix(p.hint);
+  if (p.traps) p.traps.forEach(t => { if (t) t.why = minusFix(t.why); });
   if (p.type === 'num') p.ans = +(+p.ans).toFixed(10);
   if (p.type === 'frac' && p.ans && p.ans.d < 0) p.ans = { n: -p.ans.n, d: -p.ans.d };
   p.say = p.say || sayOf(p.text);

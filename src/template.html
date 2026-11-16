@@ -1,7 +1,7 @@
 <title>Math Worlds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /*@@SW_CSS@@*/
 /* Math Worlds: the Spelling Worlds palettes, scenery and characters above; the lessons below. */
@@ -38,6 +38,9 @@ body{overflow:auto;min-height:100%}
 .hero-card .bubble{max-width:100%;overflow-wrap:anywhere}
 .axo-name{overflow-wrap:anywhere}
 .key.key-sm{font-size:1rem}
+.ls-std{font-weight:800;font-size:.8rem;padding:3px 10px;border-radius:99px;background:var(--surface-2);border:2px solid var(--line);color:var(--ink-soft)}
+.ls-std.extra{border-color:var(--accent);color:var(--accent)}
+.chip.extra{border-style:dashed}
 .hero-card{display:grid;justify-items:center;gap:8px;text-align:center}
 .hero-card .axo-box{max-width:200px}
 .lv{width:100%;text-align:left}
@@ -146,7 +149,8 @@ sup{font-size:.62em;line-height:0}
 .chip.now{outline:3px solid var(--accent);outline-offset:1px}
 .chip.locked{opacity:.5}
 .chip-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.map{grid-template-columns:1fr !important}
+.map{grid-template-columns:minmax(0,1fr) !important}
+.grade{min-width:0}.chips{min-width:0}.chip{max-width:100%;min-width:0}.chip-t{min-width:0}
 .pips{display:inline-flex;gap:4px;vertical-align:middle}
 .pips i{width:12px;height:12px;border-radius:4px;background:var(--line);display:inline-block}
 .pips i.on{background:var(--good)}
@@ -322,6 +326,14 @@ sup{font-size:.62em;line-height:0}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
 @keyframes stepIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes wig{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+/* one plain, easy-to-read font everywhere: Verdana (built into Windows, Mac, iPhone and iPad); Android phones, which
+   don't have it, get Atkinson Hyperlegible, a font made for easy reading */
+:root,:root[data-world]{--display:Verdana,'Atkinson Hyperlegible',Tahoma,sans-serif;--font:Verdana,'Atkinson Hyperlegible',Tahoma,sans-serif}
+*,*::before,*::after,svg text{font-family:var(--font)!important;letter-spacing:0}
+/* Verdana bold is heavy in long text: sentences read in regular weight; headings, numbers and buttons stay bold */
+.lede,.trick p,.steps,.steps li,.feedback>div:not(.fb-h),.empty-note,.res-note,.kp-hint,.paper-note,.save-note,.spot small,.star-rules,.ls-status,.locked-note,.pre-card p,.bubble,.place small,.next-btn small,.btn small,.q-mode,.ls-std,.chip-t{font-weight:400!important}
+.lede,.trick p,.steps,.feedback{line-height:1.5}
+.q-text{font-weight:400}.q-text b{font-weight:700}
 </style>
 <script>
 /*@@SW_JS@@*/
@@ -400,7 +412,7 @@ sup{font-size:.62em;line-height:0}
     <div class="topbar2"><button id="lessonBack" class="btn btn-ghost btn-sm" type="button">Map</button><div id="lessonStrand" class="brand"></div></div>
     <div class="card lesson-card">
       <div class="lesson-head"><div id="lsHero" class="axo-box"></div><div><div id="lsKicker" class="ls-kicker"></div><h2 id="lsTitle" class="ls-title"></h2><div id="lsStars"></div></div></div>
-      <div id="lsMode" class="q-mode"></div>
+      <div class="q-tags"><div id="lsMode" class="q-mode"></div><div id="lsStd" class="ls-std"></div></div>
       <div class="trick"><div class="trick-h">The trick</div><p id="lsTip"></p></div>
       <div class="example"><div class="trick-h">Watch one</div><div id="lsExQ" class="ex-q"></div><div id="lsExVis" class="vis-wrap"></div><ol id="lsExSteps" class="steps"></ol>
         <button id="lsStepBtn" class="btn btn-ghost btn-sm" type="button" style="margin-top:8px">Next step</button></div>

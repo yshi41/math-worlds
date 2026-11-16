@@ -4,7 +4,7 @@ A math game for the kids, set in the Spelling Worlds worlds. It runs from 2nd to
 
 ## Concepts, not chapters
 
-The game is a path through about 250 concepts. Each concept is one narrow idea or mental-math shortcut, for example
+The game is a path through 448 concepts. Each concept is one narrow idea or mental-math shortcut, for example
 "add 9: add 10, take 1", "×25 is ×100 then ÷4", "squares ending in 5", "8% of 50 = 50% of 8", "slope is rise over run"
 or "the power rule". Pattern recognition runs through every grade: skip counting, the hundred chart, growing patterns,
 odd and even rules, square and triangular numbers, last-digit cycles, sequences, Pascal's triangle and finite differences.
@@ -12,6 +12,20 @@ The plan, with every concept's grade and strand, is in [docs/CONCEPTS.md](docs/C
 
 Every answer is typed on an on-screen keypad or a keyboard. The keypad only shows the extra keys a grade needs:
 `.`, `/` and `−` come in from 4th to 6th grade, and `r` for remainders.
+
+## Common Core, plus extras
+
+Every concept is mapped to the Common Core math standards it practises, at the grade where Common Core puts it
+(high school by course: Algebra 1 = 9, Geometry = 10, Algebra 2 = 11, Precalculus = 12). Every standard a
+typed-answer game can practise, from grade 2 through the advanced (+) high school standards, has at least one concept.
+Standards that need drawing, constructing, proofs or explaining are listed as pencil-and-paper or conversation work.
+[docs/STANDARDS.md](docs/STANDARDS.md) lists every standard with its concepts; `node test/standards.test.js --strict --write`
+checks the coverage and regenerates it.
+
+On top of that, 64 extras go beyond the Common Core: mental shortcuts such as 43 × 47 = 2021, ×125, squares near 50,
+cube roots from the last digit, casting out nines and the 142857 cycle, plus patterns like Fibonacci and last-digit
+cycles. Extras are marked ★ on the map and their pages. They sit on the path and need what comes before them, but a
+Common Core concept never waits on an extra, and the placement check only tests Common Core concepts.
 
 ## Mastery
 
@@ -46,14 +60,22 @@ Every problem carries its worked shortcut (`how`), a break-down into smaller que
   the concept one step back.
 - General checks also catch answers 10 times too big or small, reversed digits, sign flips and carrying slips.
 
+## Look
+
+Everything is set in Verdana (built into Windows, Mac, iPhone and iPad), with Atkinson Hyperlegible on Android.
+Sentences are regular weight; headings, numbers and buttons are bold. The layout is checked at phone width.
+
 ## Layout
 
 - `index.html` is the built page; do not edit it by hand. `node build.js` rebuilds it from `src/`, plus the Spelling
   Worlds palettes, scenes and characters, which are read from the last commit of the sibling `spelling-worlds` repo.
 - `src/core.js`: helpers, pictures, the concept registry, and how typed answers are read and checked.
-- `src/concepts/*.js`: the concepts. Files are `a1` (number sense, adding, patterns to 5th grade), `a2` (times and
-  dividing to 4th, time, money), `b` (fractions, decimals, percents, factors, shapes), `c` (algebra, data and chance)
-  and `d` (shortcuts from 5th grade up, integers, later patterns, powers and logs, trig, calculus).
+- `src/concepts/*.js`: the concepts. `a1` (number sense, adding, patterns to 5th grade), `a2` (times and dividing to
+  4th, time, money), `b` (fractions, decimals, percents, factors, shapes), `c` (algebra, data and chance), `d`
+  (shortcuts from 5th grade up, integers, later patterns, powers and logs, trig, calculus), `e` (word problems, written
+  methods, find the mistake), `f` (extra shortcuts), `h1`/`h2` (high school standards, regular and (+)), `k1`/`k2`
+  (grades 2-5 and 6-8 standards). `z_ccss_k8` and `z_ccss_hs` list the Common Core standards, map concepts to them
+  and move a few concepts to their Common Core grade.
 - `src/engine.js`: the path, mastery, review, placement and diagnosis. `src/game.js`: the page.
 - `worker/`: the save service (Cloudflare Worker + D1, tables `mw_saves` and `mw_history` in the Spelling Worlds
   database). Saves are online only; nothing is kept in the browser. Two devices' saves merge, and a mastered concept
@@ -61,5 +83,7 @@ Every problem carries its worked shortcut (`how`), a break-down into smaller que
 - `test/`:
   - `node concepts.test.js`: every concept at every level, many times over (answers typeable, no broken text, steps and traps well formed). `--show <id>` prints samples.
   - `node engine.test.js`: the path, mastery, placement and the coach.
+  - `node standards.test.js`: Common Core coverage.
   - `node logic.test.js`: the merge rules.
+  - `node phone-shots.js <folder> .`: phone-size screenshots of each screen, for a look by eye.
   - `node test.js ../index.html`: headless Chrome, against an in-memory stand-in for the save service.

@@ -40,7 +40,7 @@ function checkProblem(id, p, where) {
   if (!C.eqAns(p, back)) fail(id, where + ': typing the answer (' + raw + ') is not accepted', p);
   const all = [p.text, p.vis || '', p.howVis || '', ...(p.how || []), p.hint || ''].join(' ');
   if (BAD.test(strip(all))) fail(id, where + ': text has ' + strip(all).match(BAD)[0], p);
-  if (/(^|[^<])\b-\d/.test(strip(p.text + ' ' + (p.how || []).join(' ')).replace(/[a-z]-\d/gi, ''))) warn(id, where + ': hyphen used as a minus sign (use C.MINUS or C.num): ' + strip(p.text).slice(0, 80));
+  if (/(^|[\s=(\[,:+×÷])-\s?\d/.test(strip(p.text + ' ' + (p.how || []).join(' ') + ' ' + (p.traps || []).map(t => t.why || '').join(' ')))) warn(id, where + ': hyphen used as a minus sign (use C.MINUS or C.num): ' + strip(p.text).slice(0, 80));
   return true;
 }
 const ids = C.LIST.filter(c => !ONLY || owner[c.id] === ONLY).map(c => c.id);
