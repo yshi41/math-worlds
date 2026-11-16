@@ -32,6 +32,9 @@ const assert = require('assert');
   const lg = mergeState({ log: { d1: { n: 15, ok: 12, ms: 9000 }, d2: { n: 4, ok: 4, ms: 100 } } }, { log: { d1: { n: 13, ok: 10, ms: 7000 }, d0: { n: 2, ok: 1, ms: 50 } } }, { log: { d1: { n: 10, ok: 8, ms: 5000 } } });
   eq(lg.log.d1, { n: 18, ok: 14, ms: 11000 }, 'each day adds both devices new answers');
   ok(lg.log.d0 && lg.log.d2 && lg.log.d2.n === 4, 'days from both devices are kept');
+  const hm = mergeState({ help: [{ id: 'a', t: 1 }, { id: 'b', t: 3 }] }, { help: [{ id: 'a', t: 1 }, { id: 'c', t: 2 }] }, {});
+  eq(hm.help.map(h => h.id), ['a', 'c', 'b'], 'help lessons from both devices are kept once each, in time order');
+  eq(mergeState({ apace: 1.4 }, { apace: 1 }, {}).apace, 1.4, 'the kid’s pace follows this page');
   /* progress never drops */
   eq(lowersProgress({ cs: {} }, { cs: { a_ten: { m: 5 } } }), true, 'losing a mastered concept is refused');
   eq(lowersProgress({ cs: { a_ten: { m: 5 } }, owned: [] }, { cs: { a_ten: { m: 5 } }, owned: ['lagoon:frog'] }), true, 'losing a character is refused');

@@ -63,6 +63,8 @@ Every problem carries its worked shortcut (`how`), a break-down into smaller que
 ## Look
 
 Everything is set in Verdana (built into Windows, Mac, iPhone and iPad), with Atkinson Hyperlegible on Android.
+Two worlds remain, the axolotl lagoon and the candy sweetshop, each with a plain high-contrast color scheme (text about
+15:1, secondary text about 7:1, buttons 5:1 or better) and soft dark versions; no moving scenery behind the page.
 Sentences are regular weight; headings, numbers and buttons are bold. The layout is checked at phone width.
 
 ## Layout
