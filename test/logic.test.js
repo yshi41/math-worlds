@@ -35,6 +35,14 @@ const assert = require('assert');
   const hm = mergeState({ help: [{ id: 'a', t: 1 }, { id: 'b', t: 3 }] }, { help: [{ id: 'a', t: 1 }, { id: 'c', t: 2 }] }, {});
   eq(hm.help.map(h => h.id), ['a', 'c', 'b'], 'help lessons from both devices are kept once each, in time order');
   eq(mergeState({ apace: 1.4 }, { apace: 1 }, {}).apace, 1.4, 'the kid’s pace follows this page');
+  /* a concept that slipped in a memory check: the newer copy's lapse and level stand, the first mastery date stays */
+  const lp = mergeState({ cs: { x: { lv: 1, r: 12, w: 3, t: 900, m: 400, lx: 900, due: 0 } } }, { cs: { x: { lv: 2, r: 10, w: 2, t: 500, m: 400, due: 7 } } }, { cs: { x: { r: 10, w: 2 } } });
+  ok(lp.cs.x.lx === 900 && lp.cs.x.lv === 1 && lp.cs.x.m === 400, 'a lapse from a memory check is kept in a merge');
+  const rl = mergeState({ cs: { x: { lv: 2, r: 20, w: 3, t: 1200, m: 400, lx: 0, rm: 1200, due: 9 } } }, { cs: { x: { lv: 1, r: 12, w: 3, t: 900, m: 400, lx: 900 } } }, {});
+  ok(!rl.cs.x.lx && rl.cs.x.lv === 2, 'mastering it again clears the lapse everywhere');
+  eq(mergeState({ blk: { day: 'd', ms: 600000, t: 900 } }, { blk: { day: 'd', ms: 300000, t: 500 } }, {}).blk.ms, 600000, 'the newer practice block wins');
+  eq(mergeState({}, { blk: { day: 'd', ms: 1, t: 5 } }, {}).blk.ms, 1, 'a block from the other device is kept');
+  eq(lowersProgress({ cs: { a: { m: 5, lx: 9 } } }, { cs: { a: { m: 5 } } }), false, 'a lapse is not lost progress: the mastery date stays');
   /* progress never drops */
   eq(lowersProgress({ cs: {} }, { cs: { a_ten: { m: 5 } } }), true, 'losing a mastered concept is refused');
   eq(lowersProgress({ cs: { a_ten: { m: 5 } }, owned: [] }, { cs: { a_ten: { m: 5 } }, owned: ['lagoon:frog'] }), true, 'losing a character is refused');

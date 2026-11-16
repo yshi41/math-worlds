@@ -15,8 +15,8 @@ export function mergeState(mine, theirs, base) {
   const out = clone(theirs);
   out.cur = Math.max(0, num(theirs.cur) + delta(mine.cur, base.cur));
   out.games = num(theirs.games) + Math.max(0, delta(mine.games, base.games));
-  /* concepts: right/wrong counts move by this page's difference; level, streak and review timing follow the newer copy;
-     a concept mastered on either device stays mastered */
+  /* concepts: right/wrong counts move by this page's difference; level, streak, review timing and a lapse (lx, a
+     failed memory check) follow the newer copy; the date a concept was first mastered is never lost */
   out.cs = clone(isObj(theirs.cs) ? theirs.cs : {});
   const mc = isObj(mine.cs) ? mine.cs : {}, bc = isObj(base.cs) ? base.cs : {};
   for (const key in mc) {
@@ -25,7 +25,7 @@ export function mergeState(mine, theirs, base) {
     const newer = num(m.t) >= num(t.t) ? m : t, r = Object.assign(clone(t), clone(newer));
     r.r = num(t.r) + Math.max(0, delta(m.r, b.r)); r.w = num(t.w) + Math.max(0, delta(m.w, b.w)); r.t = Math.max(num(t.t), num(m.t));
     const ms = [num(m.m), num(t.m)].filter(x => x > 0);
-    if (ms.length) { r.m = Math.min(...ms); r.lv = 2; if (!num(r.due)) r.due = Math.max(num(m.due), num(t.due)); }
+    if (ms.length) { r.m = Math.min(...ms); if (!num(r.lx)) { r.lv = 2; if (!num(r.due)) r.due = Math.max(num(m.due), num(t.due)); } }
     out.cs[key] = r;
   }
   delete out.stars; delete out.best; delete out.sk;
@@ -46,6 +46,8 @@ export function mergeState(mine, theirs, base) {
      clears it everywhere); settings follow this page */
   if (isObj(mine.round) && (!isObj(theirs.round) || num(mine.round.t) >= num(theirs.round.t))) out.round = clone(mine.round);
   if ('set' in mine) out.set = clone(mine.set);
+  /* today's practice block: the newer one wins */
+  if (isObj(mine.blk) && (!isObj(theirs.blk) || num(mine.blk.t) >= num(theirs.blk.t))) out.blk = clone(mine.blk);
   if (typeof mine.apace === 'number') out.apace = mine.apace;
   /* help lessons: every lesson from both devices, by time, the last 60 */
   const hs = {}; for (const h of [...(Array.isArray(theirs.help) ? theirs.help : []), ...(Array.isArray(mine.help) ? mine.help : [])]) if (isObj(h) && num(h.t)) hs[h.id + '@' + h.t] = h;

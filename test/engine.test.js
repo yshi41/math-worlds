@@ -124,4 +124,51 @@ eq(rp.byPlacement, 0, 'concepts mastered outside the placement check are not cou
 ok(rp.domains.length === 6 && rp.domains.every(d => isFinite(d.ge)), 'report: six areas');
 const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length === 0 && Math.abs(rb.overall.ge - 2) < 1e-9, 'report: an empty save');
 
+/* 9. memory checks: pass waits longer, one miss is wobbly, a lapse goes back on the path ahead of anything new */
+{
+  const p = blank(), T = 1e12; let a, b, c, d; const ids = [];
+  for (let id; (id = E.current(p)) && ids.length < 12; ) { E.master(p, id, T); ids.push(id); }
+  [a, b, c, d] = ids; const next0 = E.current(p);
+  eq(E.auditResult(p, a, [true, true], T + E.DAY), 'pass', 'both right: the concept holds'); eq(p.cs[a].iv, 3, 'and the next check waits 3 days');
+  eq(E.auditResult(p, b, [true, false], T + E.DAY), 'shaky', 'one right: wobbly'); ok(E.isMastered(p, b) && p.cs[b].due === T + 2 * E.DAY, 'a wobbly concept stays mastered and is checked tomorrow');
+  eq(E.auditResult(p, b, [false, true], T + 2 * E.DAY), 'lapse', 'wobbly twice: it slipped');
+  ok(!E.isMastered(p, b) && E.isLapsed(p, b) && p.cs[b].m === T && p.cs[b].lv === 1, 'a slipped concept stops counting, keeps its first mastery date and restarts at the medium level');
+  eq(E.auditResult(p, c, [false, false], T + E.DAY), 'lapse', 'none right: it slipped'); eq(p.cs[c].lv, 0, 'from the easy level');
+  eq(E.current(p), ids.indexOf(b) < ids.indexOf(c) ? b : c, 'the path goes back to what slipped before anything new (not ' + next0 + ')');
+  ok(!E.due(p, T + 99 * E.DAY).includes(b), 'a slipped concept is not up for a memory check');
+  const before = E.masteredCount(p);
+  let ev; for (let i = 0; i < 6; i++) ev = E.record(p, b, true, true, false, T + 3 * E.DAY);
+  ok(ev.mastered && ev.refreshed && E.isMastered(p, b) && !p.cs[b].lx && p.cs[b].rm === T + 3 * E.DAY && p.cs[b].m === T, 'six in a row from the medium level masters it again');
+  eq(E.masteredCount(p), before + 1, 'and it counts again');
+  const r = E.report(p, 3, T + 3 * E.DAY); ok(r.retention.lapsed.length === 1 && r.retention.lapsed[0].id === c && r.retention.lapses === 2 && r.retention.pass === 1 && r.retention.shaky === 1, 'report: memory checks');
+  /* picking what to check: wobbly first, then placed-and-never-checked, then the most overdue */
+  const q = blank(); const qs = []; for (let id; (id = E.current(q)) && qs.length < 8; ) { E.master(q, id, T, 0); qs.push(id); }
+  q.cs[qs[0]].due = T - 5; q.cs[qs[1]].due = T - 9; q.cs[qs[2]].pl = 1; q.cs[qs[3]].sh = 1;
+  const pick = E.auditPick(q, T + 1, 3); eq(pick[0], qs[3], 'a wobbly one first'); eq(pick[1], qs[2], 'then a placed one never checked'); eq(pick.length, 3, 'up to the limit');
+  /* foundations: struggling with a concept checks what it is built on, even before it is due */
+  const f = blank(); let tgt = null; for (let id; (id = E.current(f)); ) { if (E.prereqs(id).length && E.prereqs(id).every(x => E.isMastered(f, x))) { tgt = id; break; } E.master(f, id, T, 50 * E.DAY); }
+  ok(tgt, 'a concept with foundations (' + tgt + ')');
+  f.now = tgt; for (let i = 0; i < 9; i++) E.record(f, tgt, i % 3 === 0, true, false, T); ok(E.struggling(f, tgt), 'under 60% after 8 tries is struggling');
+  const nb = E.blockNext(f, { ms: 0, rounds: 2, seen: [], fc: [] }, T + E.DAY);
+  ok(nb.kind === 'audit' && nb.focus === tgt && nb.ids.every(x => E.prereqs(tgt).includes(x)), 'the block checks its foundations (' + JSON.stringify(nb) + ')');
+  ok(E.blockNext(f, { ms: 0, rounds: 2, seen: [], fc: [tgt] }, T + E.DAY).kind === 'learn', 'only once a block');
+  /* the block: a memory check to start when concepts are due, learning after, done at 20 minutes */
+  const g = blank(); for (let k = 0, id; (id = E.current(g)) && k < 10; k++) E.master(g, id, T, k < 7 ? 0 : 9 * E.DAY);
+  const s0 = E.blockNext(g, { ms: 0, rounds: 0, seen: [] }, T + 1); ok(s0.kind === 'audit' && s0.ids.length === 4, 'the block opens with a memory check (' + s0.ids.length + ' concepts, 7 due)');
+  ok(E.blockNext(g, { ms: 0, rounds: 1, seen: s0.ids }, T + 1).kind === 'learn', 'then learning');
+  ok(E.blockNext(g, { ms: 0, rounds: 2, seen: s0.ids, justMastered: true }, T + 1).kind === 'audit', 'another short check after a concept is mastered, while some are due');
+  ok(E.blockNext(g, { ms: 17 * 60000, rounds: 2, seen: s0.ids, justMastered: true }, T + 1).kind === 'learn', 'no new check in the last few minutes');
+  ok(E.blockNext(g, { ms: E.SESSION_MS, rounds: 3, seen: [] }, T + 1).kind === 'done', 'the block is done at 20 minutes');
+  ok(E.blockNext(g, { ms: 0, rounds: 0, seen: s0.ids.concat(['x', 'y']) }, T + 1).kind === 'learn', 'at most 6 concepts checked in a block');
+}
+/* 10. assessment blocks end at 20 minutes of answering, wherever they are, and pick up there */
+{
+  const pre = E.pretestStart(3); let k = 0;
+  while (E.pretestNext(pre) && k < 500) { E.pretestRecord(pre, k % 2 === 0, 70000); k++; }
+  const done1 = pre.order.filter(s => pre.st[s].done).length;
+  ok(k === Math.ceil(E.BLOCK_MS / 70000) && E.pretestTimeUp(pre), 'the first block stops after 20 minutes (' + k + ' questions at 70 s)');
+  const more = E.pretestAdvance(pre); ok(more && !E.pretestTimeUp(pre) && E.pretestNext(pre), 'the next block picks up where it stopped');
+  ok(pre.pace > 1.5 && pre.short, 'a kid twice as slow as average gets a shorter check (pace ' + pre.pace.toFixed(2) + ')');
+  ok(done1 < pre.order.length, 'parts left over carry to the next block');
+}
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');

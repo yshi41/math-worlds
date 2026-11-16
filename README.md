@@ -31,8 +31,35 @@ Common Core concept never waits on an extra, and the placement check only tests 
 
 Each concept has three levels: easy, medium and hard. Three first-try answers in a row with no hint move up a level.
 Three in a row at the hard level masters the concept, and the game moves on to the next concept on the path. Two misses
-at a level move back down one. Mastered concepts come back for review after 1, 3, 9 and 27 days. A round is 10 problems,
-and when concepts are due, two of those 10 are reviews.
+at a level move back down one. A round is 10 problems on one concept. The path never moves past a concept until it is
+mastered.
+
+## Practice blocks
+
+Practice comes in blocks of about 20 minutes. The clock counts time spent answering (at most 4 minutes a problem, so
+walking away doesn't use it up) and time in help lessons. A block opens with a memory check when concepts are due, then
+works along the path; "Keep going" on each results screen asks the block what comes next (`COACH.blockNext`). At the
+first break after 20 minutes (the end of the problem in hand, plus its break-down steps) the block ends with a summary.
+Another block can be started from the map. The block lives in the online save, so it carries across devices.
+
+What the block does next depends on how the kid is doing:
+
+- A memory check at the start of each block (3 due concepts, 4 when 6 or more are due) and a short one (2) after each
+  concept is mastered, at most 6 concepts a block and none in its last 4 minutes.
+- When she is struggling with the concept she is learning (under 60% right after 8 tries, or she dropped a level), the
+  concepts it is built on are checked, even before they are due (each at most every 3 days).
+- Levels, tricky spots, break-downs and help lessons adapt within each round, as below.
+
+## Memory checks
+
+Every mastered concept is checked again 1, 3, 9, 27 and 81 days after it is mastered (or 1 to 7 days after the
+placement check marks it mastered). A check is two problems per concept, medium then hard, mixed with the other
+concepts being checked, with no hints and no feedback until the end, like an assessment. Both right: it held, and the
+next check waits three times as long. One right: wobbly, checked again tomorrow; wobbly twice counts as slipped. None
+right: slipped. A slipped concept stops counting as mastered (the parent report and grade level drop with it), goes back
+on the path ahead of anything new, opens on its lesson again, and has to be mastered again from the medium level (or
+the easy level if both were wrong). In the save it keeps `m` (first mastered, which the save service never drops) and
+gets `lx` (when it slipped); mastering it again clears `lx` and sets `rm`.
 
 The path goes grade by grade and takes the strands in turn. Within a strand each concept needs the one before it.
 Some concepts also need one from another strand: making change needs counting up, and fractions of a number need
@@ -50,6 +77,10 @@ The placement check and the assessments a parent starts never say right or wrong
 same tick, the same "Answer saved." note and the same short pause, the character stays neutral, and the treat counter is
 hidden so it can't give the answer away. How many were right, and the treats earned, show on the results at the end of
 each block. (Test-outs are practice, not assessments: they answer right away.)
+
+Each assessment block ends at the first question after 20 minutes of answering, wherever it is in the check; the next
+block picks up exactly there. Her pace (her time over an average kid's time on the same questions) carries over, and a
+kid who takes 1.6 times as long or more gets a shorter check (one hard problem per concept and a coarser search).
 
 ## The coach
 
