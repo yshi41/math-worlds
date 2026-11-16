@@ -63,7 +63,7 @@ function applyWorld(k,lv){CUR_WORLD=k;document.documentElement.setAttribute('dat
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null;
-function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null}}
+function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null}}
 /* a save from the first version (lessons and stars) keeps its treats and characters; the concept path and the
    placement check start fresh because the concepts are new */
 function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.assign(blank(),o);
@@ -72,6 +72,7 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   for(const id in b.mist)if(!S[id])delete b.mist[id];
   b.cur=Math.max(0,o.cur|0);b.games=Math.max(0,o.games|0);b.owned=Array.isArray(o.owned)?o.owned.filter(x=>typeof x==='string'&&x.includes(':')):[];
   b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?o.pre:null;b.now=S[o.now]?o.now:null;
+  b.round=o.round&&typeof o.round==='object'?o.round:null;b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
   delete b.stars;delete b.best;delete b.sk;return b}
 function P(){return saves[player]||(saves[player]=blank())}
 function kid(id){return KIDS.find(k=>k.id===id)||KIDS[0]}
@@ -109,7 +110,20 @@ const Net=(()=>{
   window.addEventListener('online',()=>{if(CLOUD)retry()});
   return {refresh,schedule,retry,idle:()=>{for(const id in SENDING)if(SENDING[id])return false;for(const id in TIMERS)if(TIMERS[id])return false;return true},rev:id=>REV[id]||0}
 })();
-function persist(){if(CLOUD&&player)Net.schedule(player)}
+function persist(){if(RD&&player&&RD.kind!=='pre')saveRound();if(CLOUD&&player)Net.schedule(player)}
+/* the round in progress lives in the online save too, as recipes (seeds) rather than whole problems, so it can be
+   picked up on another device exactly where it stopped */
+const ROUND_KEYS=['kind','skill','concept','mainTotal','mainDone','right','streak','bestStreak','earned','missed','inserted','results','fixMiss','fixRight','fixTotal','testRight','lvUps','deeperAdded','masteredNow','stop','rv3','rv7'];
+const itemRef=it=>it&&it.p&&it.p.ref?{r:it.p.ref,kind:it.kind,concept:it.concept||it.p.concept||null}:null;
+function saveRound(){const o={v:1,t:Date.now()};ROUND_KEYS.forEach(k=>{if(RD[k]!==undefined)o[k]=RD[k]});
+  o.queue=RD.queue.map(itemRef).filter(Boolean);o.endQ=RD.endQ.map(itemRef).filter(Boolean);o.cur=RD.phase==='ask'?itemRef(RD.cur):null;P().round=o}
+function endRound(){if(player)P().round={done:true,t:Date.now()}}
+function liveRound(p){const r=p&&p.round;return r&&!r.done&&r.v===1&&Date.now()-r.t<14*864e5&&(r.kind==='review'||S[r.skill]||S[r.concept])?r:null}
+function itemFrom(x){const q=fromRef(x.r);if(!q)return null;if(x.concept)q.concept=x.concept;return {p:q,kind:x.kind,concept:x.concept||undefined}}
+function resumeRound(){const r=liveRound(P());if(!r)return;Snd.init();Snd.click();newRound({});ROUND_KEYS.forEach(k=>{if(r[k]!==undefined)RD[k]=r[k]});
+  RD.missed=RD.missed||{};RD.inserted=RD.inserted||{};RD.results=RD.results||[];
+  try{RD.queue=(r.queue||[]).map(itemFrom).filter(Boolean);RD.endQ=(r.endQ||[]).map(itemFrom).filter(Boolean);const c=r.cur&&itemFrom(r.cur);if(c)RD.queue.unshift(c)}catch(e){RD.queue=[];RD.endQ=[]}
+  if(RD.kind==='learn'&&RD.skill&&!CO.isMastered(P(),RD.skill))P().now=RD.skill;beginPlay()}
 function renderSaveNote(){const n=$('#saveNote');
   n.textContent=saveMode==='loading'?'Loading saves…':saveMode==='on'?'Progress saves online for every player.':saveMode==='error'?'Can’t reach the save server. Check the connection and try again.':'Saving is off in this copy, so progress won’t be kept.';
   $('#saveRetry').hidden=saveMode!=='error'}
@@ -147,7 +161,7 @@ function renderMenu(){applyWorld('lagoon',3);const box=$('#kids');box.innerHTML=
     b.innerHTML=`${charSVG(charOf(p,w))}<span class="pc-name">${k.name}</span><span class="pc-world">${WNAME[w]}</span><span class="pc-meta"><span title="Concepts mastered">${starSvg(true)} ${p?CO.masteredCount(p):0}</span><span>${CUR_ICON[w]} ${p?p.cur:0}</span></span>`;
     b.onclick=()=>{Snd.init();Snd.click();player=k.id;openHub()};box.append(b)})}
 
-function openHub(){RD=null;show('hub');renderHub();const k=lookOf(player),p=P();
+function openHub(){RD=null;const p0=P();if(p0.set){if(typeof p0.set.snd==='boolean')Snd.on=p0.set.snd;if(typeof p0.set.voice==='boolean')Voice.on=p0.set.voice}show('hub');renderHub();const k=lookOf(player),p=P();
   const lines=preDone(p)?[`Hi ${kid(player).name}! Ready for a trick?`,'Mistakes show us what to practice!',`Every 5 concepts grows the ${WNAME[k].toLowerCase()}!`,'Shortcuts make math fast!','Spot the pattern!']:[`Hi ${kid(player).name}! Let's find where to start.`];
   bubble($('#hubLine'),pickOne(lines))}
 function playConcept(id){if(!id)return;const p=P();if(!CO.started(p,id)&&!CO.isMastered(p,id))openLesson(id);else startLearn(id)}
@@ -168,6 +182,8 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
   /* up next */
   const cur=CO.current(p);
   if(!done){$('#nextTitle').textContent='Placement check';$('#nextSub').textContent='Find out where to start';$('#nextBtn').onclick=startPre}
+  else if(liveRound(p)){const r=liveRound(p),t=r.kind==='review'?'Review mix':r.kind==='fix'?'Tricky spot: '+conceptName(r.concept):r.kind==='test'?'Test out: '+conceptName(r.skill):conceptName(r.skill);
+    $('#nextTitle').textContent='Continue where you left off';$('#nextSub').textContent=`${t} · ${r.kind==='fix'?(r.results||[]).length:r.mainDone} of ${r.mainTotal} done`;$('#nextBtn').onclick=resumeRound}
   else if(cur){const c=S[cur];$('#nextTitle').textContent=c.title;$('#nextSub').innerHTML=`Grade ${c.g} · ${esc(strandName(cur))} · ${pips(CO.levelsDone(p,cur))}`;$('#nextBtn').onclick=()=>{Snd.init();Snd.click();playConcept(cur)}}
   else{$('#nextTitle').textContent='Everything mastered!';$('#nextSub').textContent='Keep sharp with a review mix';$('#nextBtn').onclick=startReview}
   const dueN=CO.due(p).length;$('#reviewBtn').disabled=!(mc>0||mistList(p).length);
@@ -209,8 +225,8 @@ function pickChar(k,id,cost){const p=P();
 $('#switchBtn').onclick=()=>{Snd.click();show('menu');renderMenu()};
 $('#preBtn').onclick=()=>startPre();
 $('#reviewBtn').onclick=()=>startReview();
-$('#tSound').onclick=()=>{Snd.init();Snd.on=!Snd.on;$('#tSound').setAttribute('aria-pressed',String(Snd.on));Snd.click()};
-$('#tVoice').onclick=()=>{Voice.on=!Voice.on;$('#tVoice').setAttribute('aria-pressed',String(Voice.on));if(Voice.on)Voice.say('I will read the questions out loud.');else if(window.speechSynthesis)speechSynthesis.cancel()};
+$('#tSound').onclick=()=>{Snd.init();Snd.on=!Snd.on;$('#tSound').setAttribute('aria-pressed',String(Snd.on));Snd.click();P().set=Object.assign({},P().set,{snd:Snd.on});persist()};
+$('#tVoice').onclick=()=>{Voice.on=!Voice.on;P().set=Object.assign({},P().set,{voice:Voice.on});persist();$('#tVoice').setAttribute('aria-pressed',String(Voice.on));if(Voice.on)Voice.say('I will read the questions out loud.');else if(window.speechSynthesis)speechSynthesis.cancel()};
 $('#redoPre').onclick=()=>{const p=P();p.pre=CO.pretestStart(kid(player).grade);p.pre.t=Date.now();persist();renderHub();toast('The placement check starts fresh. Concepts you already mastered stay mastered.')};
 
 /* ---------- concept intro ---------- */
@@ -258,21 +274,26 @@ $('#lessonBack').onclick=()=>{Snd.click();openHub()};
    the round with a celebration, and the path moves on. */
 let RD=null;
 function newRound(o){RD=Object.assign({queue:[],endQ:[],mainDone:0,mainTotal:10,right:0,streak:0,bestStreak:0,earned:0,missed:{},inserted:{},results:[],keys:new Set(),R:MW.makeR(),fixMiss:0,fixRight:0,fixTotal:0,testRight:0,lvUps:0,phase:'ask'},o)}
-function uniqueGen(id,d){let p;for(let i=0;i<14;i++){p=MW.gen(id,d,RD.R);if(!RD.keys.has(p.key))break}RD.keys.add(p.key);return p}
+/* every problem is made from its own seed and remembers it (ref), so the round in progress can be saved online as a
+   short recipe and rebuilt exactly on any device */
+function mk(id,d,concept){const seed=Math.floor(Math.random()*2147483647),q=MW.gen(id,d,MW.makeR(seed));q.ref={id,d,seed};if(concept)q.concept=concept;return q}
+function fromRef(r){let q=MW.gen(r.id,r.d,MW.makeR(r.seed));q.ref={id:r.id,d:r.d,seed:r.seed};if(r.step!=null){const st=q.steps[r.step];if(!st)return null;st.ref=Object.assign({},q.ref,{step:r.step});q=st}return q}
+function fixItems(id,two){return (two?[0,1]:[0,0,1,1,2,2]).map(d=>mk(id,d,id))}
+function uniqueGen(id,d){let p;for(let i=0;i<14;i++){p=mk(id,d);if(!RD.keys.has(p.key))break}RD.keys.add(p.key);return p}
 function startLearn(id){Snd.init();Snd.click();const p=P();if(!CO.isMastered(p,id))p.now=id;newRound({kind:'learn',skill:id});beginPlay()}
 function startTest(id){Snd.init();Snd.click();newRound({kind:'test',skill:id,mainTotal:5});beginPlay()}
 function startReview(){Snd.init();Snd.click();newRound({kind:'review'});beginPlay()}
 function startFix(cid){Snd.init();Snd.click();newRound({kind:'fix',concept:cid});
-  RD.queue=CO.fixSet(cid,RD.R).map(q=>({p:q,kind:'prac',concept:cid}));RD.fixTotal=RD.queue.length;RD.mainTotal=RD.fixTotal;beginPlay()}
+  RD.queue=fixItems(cid).map(q=>({p:q,kind:'prac',concept:cid}));RD.fixTotal=RD.queue.length;RD.mainTotal=RD.fixTotal;beginPlay()}
 function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done){p.pre=CO.pretestStart(kid(player).grade);p.pre.t=Date.now()}newRound({kind:'pre'});beginPlay()}
 function beginPlay(){const p=P(),k=lookOf(player);applyWorld(k,sceneLevel(p));show('play');$('#playHero').innerHTML=charSVG(charOf(p,k),'neutral');
   $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):'Placement check';
   bubble($('#playBubble'),RD.kind==='pre'?'Do your best! It is fine to skip what you have not learned.':'You can do it!');nextQ()}
 function pickWeighted(list,wf){const w=list.map(wf);let r=Math.random()*w.reduce((a,b)=>a+b,0);for(let i=0;i<list.length;i++){r-=w[i];if(r<=0)return list[i]}return list[list.length-1]}
 function reviewProblem(){const p=P(),ml=mistList(p),dl=CO.due(p);
-  if(ml.length&&Math.random()<.35){const [cid]=pickOne(ml.slice(0,3));const q=MW.gen(cid,ri(2),RD.R);q.concept=cid;RD.keys.add(q.key);return {p:q,kind:'main',concept:cid}}
+  if(ml.length&&Math.random()<.35){const [cid]=pickOne(ml.slice(0,3));const q=mk(cid,ri(2),cid);RD.keys.add(q.key);return {p:q,kind:'main',concept:cid}}
   const mast=Object.keys(p.cs).filter(id=>S[id]&&p.cs[id].m);
-  if(!mast.length){if(!ml.length)return null;const [cid]=ml[0];const q=MW.gen(cid,1,RD.R);q.concept=cid;return {p:q,kind:'main',concept:cid}}
+  if(!mast.length){if(!ml.length)return null;const [cid]=ml[0];const q=mk(cid,1,cid);return {p:q,kind:'main',concept:cid}}
   const id=dl.length&&Math.random()<.7?pickOne(dl.slice(0,4)):pickWeighted(mast,x=>{const s=p.cs[x];return 1+4*s.w/(s.r+s.w+1)+Math.min(3,(Date.now()-(s.t||0))/864e5)});
   return {p:uniqueGen(id,Math.random()<.75?2:1),kind:'rev'}}
 function makeMain(){const p=P();
@@ -301,7 +322,7 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   renderDots();$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${P().cur}`;
   $('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
   if(Voice.on)Voice.say(p.say);
-  setMood('neutral')}
+  setMood('neutral');persist()}
 function renderDots(){const d=$('#dots');if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
   let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}"></i>`}d.innerHTML=h}
 function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m)}
@@ -339,7 +360,7 @@ $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHi
 $('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';CO.pretestSkip(P().pre);P().pre.t=Date.now();persist();afterPre(false,true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
-$('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;openHub()};
+$('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
 function showFb(cls,html){const fb=$('#feedback');fb.hidden=false;fb.className='feedback '+cls;fb.innerHTML=html}
 
 /* ---------- checking an answer ---------- */
@@ -390,8 +411,8 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setM
   const sp=it.spot&&it.spot!==p.skill?it.spot:null;
   showFb('bad',`<div class="fb-h">The answer is ${MW.ansText(p)}</div><div>${isPaper(p.skill)&&it.kind!=='step'?'Compare your paper with these lines. Find the first line where your work is different: that is the step to fix.':'Here is the shortcut:'}</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>${p.howVis?`<div class="vis-wrap">${p.howVis}</div>`:''}${sp?`<div><span class="fb-spot">Tricky spot: ${esc(conceptName(sp))}</span> We'll practice that idea too.</div>`:''}`);
   let label='Next';
-  if(it.kind!=='step'&&p.steps&&p.steps.length&&!RD.inserted[p.key]){RD.inserted[p.key]=1;RD.queue.unshift(...p.steps.map(q=>({p:q,kind:'step'})));label="Let's break it down"}
-  if(it.kind!=='step'&&sp&&RD.kind!=='fix'&&!RD.inserted[sp]){RD.inserted[sp]=1;RD.endQ.push(...CO.fixSet(sp,RD.R,2).map(q=>({p:q,kind:'fix',concept:sp})))}
+  if(it.kind!=='step'&&p.steps&&p.steps.length&&!RD.inserted[p.key]){RD.inserted[p.key]=1;RD.queue.unshift(...p.steps.map((q,i)=>{if(p.ref)q.ref=Object.assign({},p.ref,{step:i});return {p:q,kind:'step'}}));label="Let's break it down"}
+  if(it.kind!=='step'&&sp&&RD.kind!=='fix'&&!RD.inserted[sp]){RD.inserted[sp]=1;RD.endQ.push(...fixItems(sp,true).map(q=>({p:q,kind:'fix',concept:sp})))}
   $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=label;$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;renderDots();
   bubble($('#playBubble'),label==='Next'?'Now you know the trick!':'Let’s take it one step at a time.');persist()}
 function afterPre(ok,skipped){const pre=P().pre;
@@ -419,7 +440,7 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   else if(R0.kind==='pre'){const pre=p.pre;sub='Placement check';
     if(pre&&!CO.pretestNext(pre)){pre.done=true;const res=CO.pretestApply(p,pre);title='All placed!';note=`${res.mastered} concepts you already know are marked mastered. They'll come back now and then for review.`}
     else{title='Saved!';note='Your placement check is saved. Pick up where you left off any time.'}}
-  persist();RD=null;LAST=R0;
+  RD=null;LAST=R0;endRound();persist();
   show('results');applyWorld(k,sceneLevel(p));$('#resHero').innerHTML=charSVG(charOf(p,k),'happy');$('#resTitle').textContent=title;$('#resSub').textContent=sub;
   $('#resStars').innerHTML=starsShown!=null?[0,1,2].map(i=>starSvg(i<starsShown)).join(''):'';
   $('#rRight').textContent=R0.kind==='pre'?R0.earned/2|0:R0.kind==='fix'?R0.fixRight:R0.right;$('#rStreak').textContent=R0.bestStreak;$('#rCur').textContent='+'+R0.earned;$('#rCurL').textContent=cap(curName(k));
@@ -465,7 +486,7 @@ function step(now){const dt=Math.min(.05,(now-last)/1000);last=now;const {c,w,h}
 
 renderMenu();renderSaveNote();
 function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,d:a.d};case 'time':return p.dur?{h:a.h+1,m:a.m}:{h:a.h%12+1,m:a.m};case 'rem':return {q:a.q+1,r:a.r};default:return a+1}}
-window.__mw={get RD(){return RD},get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
+window.__mw={get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
   answerRight(){if(!RD||!RD.cur)return;submit(RD.cur.p.ans,null)},
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};

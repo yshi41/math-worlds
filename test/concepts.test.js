@@ -65,6 +65,8 @@ for (const id of ids) {
   if (c.tip && c.tip.length > 260) warn(id, 'tip is long (' + c.tip.length + ' chars)');
   if (typeof c.gen !== 'function') { fail(id, 'no gen'); continue; }
   for (const r of c.pre) if (!C.S[r]) (STRICT ? fail : warn)(id, 'pre "' + r + '" is not a concept (yet)');
+  /* a problem rebuilt from its seed must be identical (rounds in progress are saved online as seeds) */
+  for (let d = 0; d < 3; d++) for (const seed of [12345, 987654321]) { try { const a = JSON.stringify(C.gen(id, d, C.makeR(seed))), b = JSON.stringify(C.gen(id, d, C.makeR(seed))); if (a !== b) fail(id, 'd' + d + ': the same seed made a different problem (uses Math.random or shared state?)'); } catch (e) {} }
   for (let d = 0; d < 3; d++) {
     const keys = new Set(), R = C.makeR(1000 + d * 7919 + id.length), t0 = Date.now(); let steps = 0, traps = 0;
     for (let k = 0; k < N; k++) {

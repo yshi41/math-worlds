@@ -42,6 +42,10 @@ export function mergeState(mine, theirs, base) {
   out.char = Object.assign({}, isObj(theirs.char) ? theirs.char : {}, isObj(mine.char) ? mine.char : {});
   if ('look' in mine) out.look = mine.look;
   if ('now' in mine) out.now = mine.now;
+  /* the round in progress: the newer one wins (a finished round is a {done, t} marker, so finishing on one device
+     clears it everywhere); settings follow this page */
+  if (isObj(mine.round) && (!isObj(theirs.round) || num(mine.round.t) >= num(theirs.round.t))) out.round = clone(mine.round);
+  if ('set' in mine) out.set = clone(mine.set);
   out.updated = Date.now();
   return out;
 }

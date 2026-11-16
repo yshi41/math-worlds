@@ -207,6 +207,30 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check((await state(p, 'charlie')).pre.st[cf.nx.strand].log.length === 1, 'skipping counts as not known yet');
   await p.close();
 
+  /* 10b. any device: a round started on one device continues on another, and settings follow the player */
+  const devA = await newPage(mock), devB = await newPage(mock);
+  for (const d of [devA, devB]) await until(() => ev(d, () => !document.querySelector('.profile-card').disabled));
+  await ev(devA, () => document.querySelectorAll('.profile-card')[1].click()); await wait(150);
+  await ev(devA, () => window.__mw.startLearn(window.__mw.CO.current(window.__mw.saves.riley))); await wait(100);
+  for (let i = 0; i < 3; i++) { await answer(devA, true); await next(devA); }
+  const qA = await ev(devA, () => document.querySelector('#qText').innerHTML);
+  await until(() => ev(devA, () => window.__mw.net.idle()));
+  await ev(devB, () => window.__mw.net.refresh()); await wait(400);
+  await ev(devB, () => document.querySelectorAll('.profile-card')[1].click()); await wait(150);
+  check(await ev(devB, () => document.querySelector('#nextTitle').textContent === 'Continue where you left off'), 'another device offers to continue the round');
+  await ev(devB, () => document.querySelector('#nextBtn').click()); await wait(150);
+  check(await ev(devB, () => window.__mw.RD.mainDone === 3 && window.__mw.RD.results.length === 3), 'it picks up after the 3 answers already given');
+  check(await ev(devB, () => document.querySelector('#qText').innerHTML) === qA, 'with the same question on screen');
+  await ev(devB, () => { document.querySelector('#quitBtn').click(); }); await wait(150);
+  await ev(devB, () => document.querySelector('#hubBtn').click()); await wait(150);
+  await ev(devB, () => document.querySelector('#tSound').click()); await until(() => ev(devB, () => window.__mw.net.idle()));
+  const devC = await newPage(mock); await until(() => ev(devC, () => !document.querySelector('.profile-card').disabled));
+  await ev(devC, () => document.querySelectorAll('.profile-card')[1].click()); await wait(150);
+  check(await ev(devC, () => document.querySelector('#tSound').getAttribute('aria-pressed') === 'false'), 'turning sounds off follows Riley to another device');
+  check(await ev(devC, () => document.querySelector('#nextTitle').textContent !== 'Continue where you left off'), 'a finished round is cleared on every device');
+  check(await ev(devC, () => window.__storageWrites) === 0, 'still nothing written to the device');
+  for (const d of [devA, devB, devC]) await d.close();
+
   /* 11. service down: the player screen waits, Try again loads */
   const down = create(); down.ctl.down = true;
   p = await newPage(down); await wait(1500);

@@ -22,6 +22,12 @@ const assert = require('assert');
   ok(m2.cs.x.m === 400 && m2.cs.x.lv === 2, 'mastery is never lost in a merge');
   const redo = mergeState({ pre: { v: 2, done: false, t: 900, st: {} } }, { pre: { v: 2, done: true, t: 500, st: {} } }, {});
   eq(redo.pre.done, false, 'a redone placement check (newer) replaces a finished older one');
+  /* the round in progress: newer wins, and a finished marker clears an older round */
+  const rr = mergeState({ round: { done: true, t: 900 } }, { round: { v: 1, kind: 'learn', t: 500 } }, {});
+  eq(rr.round.done, true, 'finishing a round on one device clears it everywhere');
+  const r2 = mergeState({ round: { v: 1, kind: 'learn', t: 400 } }, { round: { v: 1, kind: 'review', t: 800 } }, {});
+  eq(r2.round.kind, 'review', 'the newer round in progress wins');
+  eq(mergeState({ set: { snd: false, voice: true } }, { set: { snd: true } }, {}).set, { snd: false, voice: true }, 'settings follow this page');
   /* progress never drops */
   eq(lowersProgress({ cs: {} }, { cs: { a_ten: { m: 5 } } }), true, 'losing a mastered concept is refused');
   eq(lowersProgress({ cs: { a_ten: { m: 5 } }, owned: [] }, { cs: { a_ten: { m: 5 } }, owned: ['lagoon:frog'] }), true, 'losing a character is refused');
