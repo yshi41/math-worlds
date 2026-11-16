@@ -334,6 +334,60 @@ sup{font-size:.62em;line-height:0}
 .lede,.trick p,.steps,.steps li,.feedback>div:not(.fb-h),.empty-note,.res-note,.kp-hint,.paper-note,.save-note,.spot small,.star-rules,.ls-status,.locked-note,.pre-card p,.bubble,.place small,.next-btn small,.btn small,.q-mode,.ls-std,.chip-t{font-weight:400!important}
 .lede,.trick p,.steps,.feedback{line-height:1.5}
 .q-text{font-weight:400}.q-text b{font-weight:700}
+/* parent view */
+.parent-row{margin-top:18px}
+.pv-tabs{margin:0 0 14px}
+.pv-body{display:grid;gap:14px}
+.pv-card{min-width:0}
+.pv-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pv-name{font-family:var(--display),sans-serif;font-size:1.7rem;font-weight:700;line-height:1.2}
+.pv-sub,.pv-soft{color:var(--ink-soft);font-weight:400}
+.pv-sub{font-size:.9rem}
+.pv-p{margin:.5em 0 0;line-height:1.5;font-weight:400;max-width:75ch}
+.pv-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pv-tile{padding:10px 10px 12px;text-align:left;display:grid;align-content:start;gap:2px}
+.pv-tile small{color:var(--ink-soft);font-size:.78rem;line-height:1.35;font-weight:400}
+@media (max-width:640px){.pv-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pv-dom{display:grid;gap:4px;margin:12px 0 0}
+.pv-dom small{font-size:.8rem;line-height:1.35}
+.pv-dom-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.pv-ge{font-family:var(--display),sans-serif;font-weight:700;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.pv-chip{font-size:.78rem;font-weight:700;padding:2px 9px;border-radius:99px;border:2px solid var(--line);color:var(--ink-soft);background:var(--surface-2)}
+.pv-chip.up,.pv-chip.down{color:var(--ink)}
+.pv-track{position:relative;height:14px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);margin:2px 0}
+.pv-fill{position:absolute;left:0;top:2px;bottom:2px;border-radius:0 4px 4px 0;background:var(--accent);min-width:3px}
+.pv-now{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--ink)}
+.pv-sep{border-top:2px dashed var(--line);margin:14px 0 2px}
+.pv-ticks{position:relative;height:18px;margin-top:8px;font-size:.75rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.pv-ticks span{position:absolute;transform:translateX(-50%)}
+.pv-axis{text-align:center;font-size:.75rem;color:var(--ink-soft)}
+.pv-chart{width:100%;height:auto;display:block;overflow:visible}
+.pv-chart text{font-size:12px}
+.pv-axt{fill:var(--ink-soft)}
+.pv-grid{stroke:var(--line);stroke-width:1}
+.pv-base{stroke:var(--ink-soft);stroke-width:1}
+.pv-line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.pv-ref{fill:none;stroke:var(--ink-soft);stroke-width:2;stroke-dasharray:6 5}
+.pv-hit{fill:transparent}
+.pv-hitbar{fill:transparent}
+.pv-bar{fill:var(--accent)}
+g[data-tip]:hover .pv-bar{opacity:.8}
+.pv-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;color:var(--ink-soft);margin-top:6px}
+.pv-key{display:inline-block;width:22px;height:0;vertical-align:middle;margin-right:6px;border-top:3px solid var(--accent)}
+.pv-key.ref{border-top:2px dashed var(--ink-soft)}
+.pv-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem;font-variant-numeric:tabular-nums}
+.pv-table th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:4px 6px;border-bottom:2px solid var(--line)}
+.pv-table td{padding:6px;border-bottom:1px solid var(--line);font-weight:400;vertical-align:top}
+.pv-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px}
+.pv-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:7px 0;border-bottom:1px solid var(--line);font-weight:400}
+.pv-list li>span{color:var(--ink-soft);font-size:.85rem;text-align:right}
+.pv-list li>small{grid-column:1/-1;font-size:.8rem}
+.pv-list li small{font-size:.78rem}
+@media (max-width:520px){.pv-list li{grid-template-columns:minmax(0,1fr)}.pv-list li>span{text-align:left}}
+.pv-notes{margin:6px 0 0;padding-left:1.2em;display:grid;gap:8px;font-weight:400;line-height:1.5;font-size:.92rem}
+.pv-tip{position:fixed;z-index:50;max-width:280px;background:var(--ink);color:var(--surface);font-size:.85rem;line-height:1.35;padding:6px 10px;border-radius:10px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+@media print{#pageScene,#bubbles,#fx,.topbar2 .btn,.pv-tabs,.pv-tip{display:none!important}
+  body,html{background:#fff!important}.pv-card{box-shadow:none!important;border:1px solid #ccc;break-inside:avoid}}
 </style>
 <script>
 /*@@SW_JS@@*/
@@ -359,6 +413,7 @@ sup{font-size:.62em;line-height:0}
     <div id="kids" class="profile-grid"></div>
     <p id="saveNote" class="save-note">Loading saves…</p>
     <button id="saveRetry" class="btn btn-ghost btn-sm" type="button" hidden style="margin-top:10px">Try again</button>
+    <div class="parent-row"><button id="parentBtn" class="btn btn-ghost" type="button">Parent view: progress reports</button></div>
   </section>
 
   <section id="hub" class="screen" hidden>
@@ -403,9 +458,16 @@ sup{font-size:.62em;line-height:0}
           <button id="tSound" class="tog" type="button" aria-pressed="true">Sounds</button>
           <button id="tVoice" class="tog" type="button" aria-pressed="false">Read questions aloud</button>
           <button id="redoPre" class="tog" type="button">Redo placement check</button>
+          <button id="hubParent" class="tog" type="button">Parent view</button>
         </div>
       </div>
     </div>
+  </section>
+
+  <section id="parent" class="screen" hidden>
+    <div class="topbar2"><button id="pvBack" class="btn btn-ghost btn-sm" type="button">Players</button><div class="brand">Parent view</div><button id="pvPrint" class="btn btn-ghost btn-sm" type="button">Print</button></div>
+    <div id="pvTabs" class="toggles pv-tabs" role="group" aria-label="Choose a child"></div>
+    <div id="pvBody" class="pv-body"></div>
   </section>
 
   <section id="lesson" class="screen" hidden>

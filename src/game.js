@@ -11,8 +11,11 @@ CO.init();
 const WK=['lagoon','candy','canopy','ocean','bows','boba','birds','cheer'];
 const WNAME={lagoon:'Lagoon',candy:'Sweetshop',canopy:'Rainforest',ocean:'Ocean',bows:'Bow Boutique',boba:'Boba Shop',birds:'Terror Birds',cheer:'Cheer Gym'};
 const WGRAD={lagoon:'linear-gradient(135deg,#CFF0F1,#9BDCE0)',candy:'linear-gradient(135deg,#FFF3F8,#FFD3E6)',canopy:'linear-gradient(135deg,#E4F3D6,#AFDA95)',ocean:'linear-gradient(135deg,#E3E7FF,#B9C3F5)',bows:'linear-gradient(135deg,#FFF0F6,#F8C8DD)',boba:'linear-gradient(135deg,#FFF6EC,#F5D9BD)',birds:'linear-gradient(135deg,#F6E9CF,#E6CFA3)',cheer:'linear-gradient(135deg,#FCE8F3,#E6D6FB)'};
-/* the players: Riley (3rd grade) and Charlie (4th grade), plus Yan as the test account. The grade picks where the placement check begins. */
-const KIDS=[{id:'charlie',name:'Charlie',theme:'candy',grade:4},{id:'riley',name:'Riley',theme:'lagoon',grade:3},{id:'yan',name:'Yan',theme:'birds',grade:4}];
+/* the players: Riley (3rd grade) and Charlie (4th grade) in the 2026-27 school year, plus Yan as the test account.
+   The grade moves up each August (gy is the school year the grade is given for). It picks where the placement check
+   begins and what the parent report compares with. */
+const KIDS=[{id:'charlie',name:'Charlie',theme:'candy',grade:4,gy:2026},{id:'riley',name:'Riley',theme:'lagoon',grade:3,gy:2026},{id:'yan',name:'Yan',theme:'birds',grade:4,gy:2026}];
+const gradeOf=(k,t)=>clamp(k.grade+CO.schoolTime(t||Date.now()).year-k.gy,2,12);
 const CHAR_COST=[0,60,120,200,300,420];
 const CUR_ICON={
   lagoon:'<svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#F4EEF8" stroke="#C9BCD9" stroke-width="1.4"/><circle cx="7.4" cy="7" r="2.4" fill="#fff"/></svg>',
@@ -63,7 +66,7 @@ function applyWorld(k,lv){CUR_WORLD=k;document.documentElement.setAttribute('dat
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null;
-function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null}}
+function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{}}}
 /* a save from the first version (lessons and stars) keeps its treats and characters; the concept path and the
    placement check start fresh because the concepts are new */
 function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.assign(blank(),o);
@@ -73,6 +76,7 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   b.cur=Math.max(0,o.cur|0);b.games=Math.max(0,o.games|0);b.owned=Array.isArray(o.owned)?o.owned.filter(x=>typeof x==='string'&&x.includes(':')):[];
   b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?o.pre:null;b.now=S[o.now]?o.now:null;
   b.round=o.round&&typeof o.round==='object'?o.round:null;b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
+  const lg={};if(o.log&&typeof o.log==='object')for(const d in o.log){const e=o.log[d];if(!/^\d{4}-\d\d-\d\d$/.test(d)||!e||typeof e!=='object')continue;const x={};for(const f in e)if(typeof e[f]==='number'&&isFinite(e[f]))x[f]=Math.max(0,e[f]);lg[d]=x}b.log=lg;
   delete b.stars;delete b.best;delete b.sk;return b}
 function P(){return saves[player]||(saves[player]=blank())}
 function kid(id){return KIDS.find(k=>k.id===id)||KIDS[0]}
@@ -88,7 +92,7 @@ const Net=(()=>{
   async function call(method,path,body){const o={method,cache:'no-store'};if(body){o.body=JSON.stringify(body);o.headers={'Content-Type':'text/plain'};o.keepalive=o.body.length<60000}
     const r=await fetch(CLOUD+path,o);if(r.status!==200)throw new Error('HTTP '+r.status);return r.json()}
   function adopt(id,rev,state){REV[id]=rev;if(state){saves[id]=normalize(state);BASE[id]=snap(saves[id])}else{delete saves[id];BASE[id]=null}
-    if(screen==='menu')renderMenu();else if(screen==='hub'&&player===id)renderHub()}
+    if(screen==='menu')renderMenu();else if(screen==='hub'&&player===id)renderHub();else if(screen==='parent'&&PV===id)renderParent()}
   function failed(){fails++;clearTimeout(retryT);retryT=setTimeout(retry,Math.min(30000,3000*fails));
     if(!LOADED)setReady('error');else if(!warned){warned=true;toast('Can’t reach the save server. Progress is not saved until it reconnects.')}}
   function retry(){if(!LOADED)return refresh();let any=false;for(const id in DIRTY)if(DIRTY[id]){any=true;push(id)}if(!any)refresh()}
@@ -138,6 +142,12 @@ function sceneLevel(p){return clamp(1+Math.floor(CO.masteredCount(p)/5),1,10)}
 function preDone(p){return !!(p&&p.pre&&p.pre.done)}
 function mistList(p){return Object.entries(p.mist||{}).filter(([id,m])=>m&&m.ok<3&&S[id]).sort((a,b)=>(b[1].n-a[1].n)||(b[1].t-a[1].t))}
 function recordMiss(id,why){const p=P();const m=p.mist[id]||(p.mist[id]={n:0,ok:0,t:0});m.n=(m.n|0)+1;m.ok=0;m.t=Date.now();if(why)m.why=why}
+/* the daily activity log behind the parent report: problems answered, right first try, hints, time spent (capped at
+   5 minutes a problem), break-down steps and placement questions */
+function logAns(kind,first,right){if(!player||!RD)return;const p=P(),k=CO.dayKey(Date.now()),e=p.log[k]||(p.log[k]={n:0,ok:0,ms:0});
+  e.ms=(e.ms|0)+clamp(Date.now()-(RD.t0||Date.now()),0,300000);
+  if(kind==='pre'){e.pre=(e.pre|0)+1;if(right)e.pok=(e.pok|0)+1;return}if(kind==='step'){e.st=(e.st|0)+1;return}
+  e.n=(e.n|0)+1;if(first&&right)e.ok=(e.ok|0)+1;if(RD.usedHint)e.h=(e.h|0)+1}
 function recordFix(id){const m=P().mist[id];if(!m||m.ok>=3)return;m.ok++;m.t=Date.now();if(m.ok>=3){toast(`Tricky spot fixed: ${conceptName(id)}!`);Snd.win()}}
 /* every concept is either a pencil-and-paper concept (written methods, word problems, most algebra and up) or a
    shortcut done in your head; the game says which on every problem */
@@ -173,9 +183,9 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
   if(lv<10){$('#lvBar').style.width=clamp((mc-5*(lv-1))/5*100,0,100)+'%';$('#lvNext').textContent=`Next: ${WORLDS[k].levels[lv].l} at ${5*lv} concepts mastered`}else{$('#lvBar').style.width='100%';$('#lvNext').textContent='Your world is complete!'}
   /* placement check */
   const pc=$('#preCard'),done=preDone(p);pc.hidden=done;
-  if(!done){const pre=p.pre,order=pre?pre.order:CO.pretestStart(kid(player).grade).order,started=pre&&pre.order.some(s=>pre.st[s].log.length);const prog=pre?CO.pretestProgress(pre):{done:0,total:order.length};
+  if(!done){const pre=p.pre,order=pre?pre.order:CO.pretestStart(gradeOf(kid(player))).order,started=pre&&pre.order.some(s=>pre.st[s].log.length);const prog=pre?CO.pretestProgress(pre):{done:0,total:order.length};
     $('#preTitle').textContent=started?'Keep going with the placement check':'Placement check';
-    $('#preText').textContent=`A check of everything up to ${ord(kid(player).grade+1)} grade, in ${order.length} parts. It finds which concepts you already know, where each part should start, and how hard to make it. Have a pencil and paper ready. You can skip what you haven't learned, stop any time and come back.`;
+    $('#preText').textContent=`A check of everything up to ${ord(gradeOf(kid(player))+1)} grade, in ${order.length} parts. It finds which concepts you already know, where each part should start, and how hard to make it. Have a pencil and paper ready. You can skip what you haven't learned, stop any time and come back.`;
     const nx=pre&&CO.pretestNext(JSON.parse(JSON.stringify(pre)));
     $('#preParts').innerHTML=order.map(sid=>{const s=CO.STR.find(x=>x.id===sid);return `<span class="pre-part${pre&&pre.st[sid].done?' done':nx&&nx.strand===sid?' now':''}">${s.short}</span>`}).join('');
     $('#preBtn').textContent=started?`Continue (${prog.done} of ${prog.total} parts done)`:'Start the placement check'}
@@ -196,7 +206,7 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
     d.innerHTML=`<span class="spot-name">${esc(conceptName(id))}</span><small>Missed ${m.n} ${m.n===1?'time':'times'} · fixed when 3 in a row are right <span class="okdots">${[0,1,2].map(i=>`<i class="${i<m.ok?'on':''}"></i>`).join('')}</span></small>`;
     const b=document.createElement('button');b.type='button';b.className='btn btn-sm';b.textContent='Practice';b.onclick=()=>startFix(id);d.append(b);sp.append(d)});
   /* the map: one card per grade */
-  const map=$('#map');map.innerHTML='';const openG=cur?S[cur].g:kid(player).grade;
+  const map=$('#map');map.innerHTML='';const openG=cur?S[cur].g:gradeOf(kid(player));
   for(let g=2;g<=12;g++){const ids=CO.ORDER.filter(id=>S[id].g===g);if(!ids.length)continue;const m=ids.filter(id=>CO.isMastered(p,id)).length;
     const det=document.createElement('details');det.className='grade';det.open=g===openG;
     det.innerHTML=`<summary><span class="st-ic">${g}</span><span>${ord(g)} grade</span><span class="gbar"><i style="width:${(m/ids.length*100).toFixed(1)}%"></i></span><span class="st-count">${m} of ${ids.length}</span></summary>`;
@@ -227,7 +237,7 @@ $('#preBtn').onclick=()=>startPre();
 $('#reviewBtn').onclick=()=>startReview();
 $('#tSound').onclick=()=>{Snd.init();Snd.on=!Snd.on;$('#tSound').setAttribute('aria-pressed',String(Snd.on));Snd.click();P().set=Object.assign({},P().set,{snd:Snd.on});persist()};
 $('#tVoice').onclick=()=>{Voice.on=!Voice.on;P().set=Object.assign({},P().set,{voice:Voice.on});persist();$('#tVoice').setAttribute('aria-pressed',String(Voice.on));if(Voice.on)Voice.say('I will read the questions out loud.');else if(window.speechSynthesis)speechSynthesis.cancel()};
-$('#redoPre').onclick=()=>{const p=P();p.pre=CO.pretestStart(kid(player).grade);p.pre.t=Date.now();persist();renderHub();toast('The placement check starts fresh. Concepts you already mastered stay mastered.')};
+$('#redoPre').onclick=()=>{const p=P();p.pre=CO.pretestStart(gradeOf(kid(player)));p.pre.t=Date.now();persist();renderHub();toast('The placement check starts fresh. Concepts you already mastered stay mastered.')};
 
 /* ---------- concept intro ---------- */
 let LS=null,LS_EXVIS='';
@@ -285,7 +295,7 @@ function startTest(id){Snd.init();Snd.click();newRound({kind:'test',skill:id,mai
 function startReview(){Snd.init();Snd.click();newRound({kind:'review'});beginPlay()}
 function startFix(cid){Snd.init();Snd.click();newRound({kind:'fix',concept:cid});
   RD.queue=fixItems(cid).map(q=>({p:q,kind:'prac',concept:cid}));RD.fixTotal=RD.queue.length;RD.mainTotal=RD.fixTotal;beginPlay()}
-function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done){p.pre=CO.pretestStart(kid(player).grade);p.pre.t=Date.now()}newRound({kind:'pre'});beginPlay()}
+function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done){p.pre=CO.pretestStart(gradeOf(kid(player)));p.pre.t=Date.now()}newRound({kind:'pre'});beginPlay()}
 function beginPlay(){const p=P(),k=lookOf(player);applyWorld(k,sceneLevel(p));show('play');$('#playHero').innerHTML=charSVG(charOf(p,k),'neutral');
   $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):'Placement check';
   bubble($('#playBubble'),RD.kind==='pre'?'Do your best! It is fine to skip what you have not learned.':'You can do it!');nextQ()}
@@ -357,7 +367,7 @@ $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=c
   if(v==null){const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
-$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';CO.pretestSkip(P().pre);P().pre.t=Date.now();persist();afterPre(false,true)};
+$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre);P().pre.t=Date.now();persist();afterPre(false,true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
 $('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
@@ -367,6 +377,7 @@ function showFb(cls,html){const fb=$('#feedback');fb.hidden=false;fb.className='
 function submit(v,el){if(!RD||RD.phase!=='ask')return;const it=RD.cur,p=it.p;if(MW.eqAns(p,v))onRight(el);else onWrong(v,el)}
 function award(n){if(n<=0)return;const p=P();p.cur+=n;RD.earned+=n;$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${p.cur}`}
 function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P();RD.phase='done';
+  logAns(it.kind==='pre'?'pre':it.kind==='step'?'step':'q',first,true);
   if(it.kind==='pre'){CO.pretestRecord(pl.pre,true);pl.pre.t=Date.now();award(2);Snd.soft();persist();afterPre(true);return}
   let extra='';
   if(it.kind!=='step'){
@@ -402,10 +413,11 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setM
       if(spot){recordMiss(spot,it.diag.why);RD.missed[spot]=(RD.missed[spot]||0)+1;it.spot=spot}
       if(cid){const m=pl.mist[cid];if(m)m.ok=0}
       if(RD.kind==='fix'){RD.fixMiss++;const dp=CO.deeper(RD.concept);if(RD.fixMiss>=2&&dp&&!RD.deeperAdded){RD.deeperAdded=dp;if(!pl.mist[dp]||pl.mist[dp].ok>=3)pl.mist[dp]={n:1,ok:0,t:Date.now()}}}}}
-  if(it.kind==='pre'){RD.phase='done';CO.pretestRecord(pl.pre,false);pl.pre.t=Date.now();persist();afterPre(false);return}
+  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false);pl.pre.t=Date.now();persist();afterPre(false);return}
   if(RD.tries===1){const why=it.diag&&it.diag.why;showFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${why?why:'Hint: '+(p.hint||p.how[0])}</div>${isPaper(p.skill)?'<div>Look back over your paper, one line at a time.</div>':''}`);
     if(KP){KP.raw='';kpRender()}bubble($('#playBubble'),'Try once more!');persist();return}
   /* second miss: show the worked shortcut, then break it down */
+  logAns(it.kind==='step'?'step':'q',false,false);
   RD.phase='done';if(counted(it)){RD.results.push(false);if(it.kind!=='prac')RD.mainDone++}
   $('#answerArea').hidden=true;
   const sp=it.spot&&it.spot!==p.skill?it.spot:null;
@@ -432,7 +444,7 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     else{const lv=CO.cs(p,id).lv;nextId=id;title=R0.lvUps?'Level up!':R0.right>=7?ST[1]:ST[2];
       note=(R0.lvUps?`You reached level ${lv+1} of 3. `:`You're on level ${lv+1} of 3. `)+'Get 3 right in a row, first try, to go up. Finish level 3 to master it.'}}
   else if(R0.kind==='test'){const id=R0.skill;sub='Test out: '+conceptName(id);
-    if(!early&&R0.testRight>=5){CO.master(p,id);title='Tested out!';starsShown=3;note=`“${conceptName(id)}” is mastered.`}else{title=ST[2];note=early?'Stopped early. Try again any time.':'Not this time. All 5 need to be right on the first try, with no hints.'}}
+    if(!early&&R0.testRight>=5){CO.master(p,id);CO.cs(p,id).to=1;title='Tested out!';starsShown=3;note=`“${conceptName(id)}” is mastered.`}else{title=ST[2];note=early?'Stopped early. Try again any time.':'Not this time. All 5 need to be right on the first try, with no hints.'}}
   else if(R0.kind==='review'){sub='Review mix';p.games++}
   else if(R0.kind==='fix'){const m=p.mist[R0.concept];sub='Tricky spot: '+conceptName(R0.concept);
     note=m&&m.ok>=3?'Fixed! That idea is solid now.':`${R0.fixRight} of ${R0.fixTotal} practice problems right the first time. Fixed after 3 in a row.`;
@@ -484,9 +496,103 @@ function step(now){const dt=Math.min(.05,(now-last)/1000);last=now;const {c,w,h}
   c.globalAlpha=1;FX=FX.filter(p=>p.life>0&&p.y<h+40);if(FX.length)requestAnimationFrame(step);else{c.clearRect(0,0,w,h);fxRun=false}}
 
 
+/* ---------- parent view ----------
+   One report per child, read from the online save: grade level overall and by domain, an estimated national
+   percentile (NWEA MAP Growth 2025 norms), practice over the last two weeks, what is mastered, in progress and tricky,
+   and the placement check. All the numbers come from CO.report, which node tests. */
+let PV=null;
+const fmtGE=ge=>ge>=13?'12.9+':ge.toFixed(1);
+function gradeWords(ge){if(ge>=13)return 'beyond 12th grade';const g=Math.floor(ge),f=ge-g;return (f<1/3?'early ':f<2/3?'mid-':'late ')+ord(g)+' grade'}
+function diffWords(d){const a=Math.abs(d);if(a<0.25)return {cls:'on',icon:'●',t:'On grade level'};return d>0?{cls:'up',icon:'▲',t:a.toFixed(1)+' grade'+(a>=1.05?'s':'')+' ahead'}:{cls:'down',icon:'▼',t:a.toFixed(1)+' grade'+(a>=1.05?'s':'')+' behind'}}
+const pctWord=n=>n+(n%100>=11&&n%100<=13?'th':n%10===1?'st':n%10===2?'nd':n%10===3?'rd':'th');
+const mins=ms=>{const m=Math.round(ms/60000);return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'};
+const accTxt=(r,n)=>n?Math.round(100*r/n)+'%':'—';
+const dShort=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const dLong=t=>new Date(t).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+function openParent(id){PV=id||PV||(KIDS.find(k=>saves[k.id]&&CO.masteredCount(saves[k.id]))||KIDS[0]).id;show('parent');applyWorld(lookOf(PV),3);renderParent();if(CLOUD)Net.refresh()}
+function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=gradeOf(k),R=CO.report(p,grade),O=R.overall;applyWorld(lookOf(PV),3);
+  $('#pvTabs').innerHTML=KIDS.map(x=>`<button type="button" class="tog" data-kid="${x.id}" aria-pressed="${x.id===PV}">${x.name}</button>`).join('');
+  $('#pvTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{Snd.click();PV=b.dataset.kid;renderParent()});
+  const out=[];const card=(h,body,cls)=>out.push(`<div class="card pv-card${cls?' '+cls:''}"><h3>${h}</h3>${body}</div>`);
+  const head=`<div class="pv-head"><div><div class="pv-name">${esc(k.name)}</div><div class="pv-sub">${ord(grade)} grade · report for ${dLong(R.now)} · week ${Math.round(R.week)} of 36 in the school year</div></div></div>`;
+  if(!R.placed&&!R.answered){out.push(`<div class="card pv-card">${head}<p class="pv-p">${esc(k.name)} hasn't started yet. The report fills in once the placement check is done; it finds which concepts ${esc(k.name)} already knows.</p></div>`);$('#pvBody').innerHTML=out.join('');return}
+  /* summary tiles */
+  const dw=diffWords(O.diff),ceilO=O.ceil?'+':'';
+  const tiles=[[fmtGE(O.ge)+ceilO,'Grade level',`${gradeWords(O.ge)}; the average ${ord(grade)} grader is at ${R.expect.toFixed(1)} now`],
+    [R.placed?`${pctWord(R.pct.pct)}`:'—','National percentile',R.placed?'estimate from NWEA 2025 national norms':'after the placement check'],
+    [String(R.mastered),'Concepts mastered',`${R.byPlacement} from the placement check, ${R.mastered-R.byPlacement} learned in the game${R.learnedWeek?`, ${R.learnedWeek} this week`:''}`],
+    [accTxt(R.month.ok,R.month.n),'Right first try',R.month.n?`last 30 days, ${R.month.n} problems`:'no practice problems yet'],
+    [mins(R.week7.ms),'Time this week',`${R.week7.days} of the last 7 days`],
+    [String(R.streak),'Day streak',R.streak===1?'day in a row':'days in a row']];
+  const strong=R.domains.slice().sort((a,b)=>b.diff-a.diff),weak=strong.slice().reverse();
+  let sum=`${esc(k.name)} is working at about a <b>${gradeWords(O.ge)}</b> level overall (${fmtGE(O.ge)}${ceilO}), <b>${dw.t.toLowerCase()}</b>${dw.cls==='on'?'':' compared with the average '+ord(grade)+' grader at this point in the year'}.`;
+  if(R.placed)sum+=` That is about the <b>${pctWord(R.pct.pct)} percentile</b> nationally${O.ceil?' or higher':''}.`;
+  sum+=` Strongest: ${esc(strong[0].name)} (${fmtGE(strong[0].ge)}). Most room to grow: ${esc(weak[0].name)} (${fmtGE(weak[0].ge)})${weak[1].ge<strong[0].ge?` and ${esc(weak[1].name)} (${fmtGE(weak[1].ge)})`:''}.`;
+  const conf={none:'There is no placement check yet, so the grade levels only count concepts mastered in practice.',low:'These numbers are rough for now: they rest mostly on the placement check. They firm up with every few hundred problems.',medium:'These numbers rest on the placement check and a fair amount of practice.',high:'These numbers rest on the placement check and a lot of practice.'}[R.confidence];
+  out.push(`<div class="card pv-card">${head}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p><p class="pv-p pv-soft">${conf}</p></div>`);
+  /* grade level by domain */
+  const lo=2,hi=Math.max(grade+3,Math.ceil(Math.max(...R.domains.map(d=>d.ge),O.ge)+0.5)),X=v=>((clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(2);
+  const ticks=[];for(let g=lo;g<=hi;g++)ticks.push(`<span style="left:${X(g)}%">${g}</span>`);
+  const row=(name,about,d,acc,extra)=>{const w=diffWords(d.diff);return `<div class="pv-dom"><div class="pv-dom-h"><b>${esc(name)}</b><span class="pv-ge">${fmtGE(d.ge)}${d.ceil?'+':''}</span><span class="pv-chip ${w.cls}">${w.icon} ${w.t}</span></div>${about?`<small class="pv-soft">${esc(about)}</small>`:''}
+    <div class="pv-track" data-tip="${esc(name)}: ${fmtGE(d.ge)}${d.ceil?'+':''} (${gradeWords(d.ge)}). The average ${ord(grade)} grader is at ${R.expect.toFixed(1)}."><i class="pv-fill" style="width:${X(d.ge)}%"></i><i class="pv-now" style="left:${X(R.expect)}%"></i></div>
+    <small class="pv-soft">${d.atGrade} of ${d.atGradeTotal} concepts through ${ord(grade)} grade mastered · right first try ${acc}${extra||''}</small></div>`};
+  card('Grade level by area',`<p class="pv-p pv-soft">The bar is the grade level; the line marks where the average ${ord(grade)} grader is now (${R.expect.toFixed(1)}). A + means everything the placement check covered is mastered, so the true level may be higher.</p>
+    ${row('Overall','',O,accTxt(O.r,O.r+O.w))}<div class="pv-sep"></div>${R.domains.map(d=>row(d.name,d.about,d,accTxt(d.r,d.r+d.w),d.first>grade+1?` · starts in ${ord(d.first)} grade`:'')).join('')}<div class="pv-ticks">${ticks.join('')}</div><div class="pv-axis">grade level</div>`);
+  /* percentile */
+  if(R.placed){const P0=R.pct;card('National percentile (estimate)',`<p class="pv-p">About the <b>${pctWord(P0.pct)} percentile</b>${O.ceil?' or higher':''} among U.S. ${ord(grade)} graders at this point in the school year.</p>
+    <p class="pv-p pv-soft">How: a grade level of ${fmtGE(O.ge)} matches a MAP Growth math score of about ${Math.round(P0.rit)}, the national average for students at that point in school. The national average for ${ord(grade)} graders now is ${Math.round(P0.mean)}, with a spread (standard deviation) of ${Math.round(P0.sd)}, so ${Math.round(P0.rit)} sits at the ${pctWord(P0.pct)} percentile.${R.ceilPct!=null?` The placement check went up to ${ord(R.capG)} grade, so for now the highest this can show is about the ${pctWord(R.ceilPct)} percentile; it rises as harder concepts are mastered.`:''}</p>
+    <p class="pv-p pv-soft">This is an estimate from the game, not a test score. A school MAP or other standardized test is the real measure.</p>`)}
+  /* grade level over time */
+  const CW=clamp(($('#pvBody').clientWidth||640)-36,300,640);
+  const span=R.trend.length?R.trend[R.trend.length-1].t-R.trend[0].t:0;
+  if(R.trend.length>=3&&span>=2*864e5){const T=R.trend,t0=T[0].t,t1=Math.max(T[T.length-1].t,t0+864e5),exp=T.map(q=>({t:q.t,ge:gradeOf(k,q.t)+CO.schoolTime(q.t).week/36}));
+    const all=T.concat(exp).map(q=>q.ge),y0=Math.floor(Math.min(...all)*2)/2-0.25,y1=Math.ceil(Math.max(...all)*2)/2+0.25,W=CW,H=200,L=34,B=24,xs=t=>L+(t-t0)/(t1-t0)*(W-L-12),ys=v=>8+(y1-v)/(y1-y0)*(H-8-B);
+    const path=a=>a.map((q,i)=>(i?'L':'M')+xs(q.t).toFixed(1)+' '+ys(q.ge).toFixed(1)).join(' ');
+    let grid='';for(let v=Math.ceil(y0);v<=y1;v++)grid+=`<line x1="${L}" x2="${W-12}" y1="${ys(v)}" y2="${ys(v)}" class="pv-grid"/><text x="${L-6}" y="${ys(v)+4}" text-anchor="end" class="pv-axt">${v}</text>`;
+    const pts=T.map(q=>`<circle cx="${xs(q.t).toFixed(1)}" cy="${ys(q.ge).toFixed(1)}" r="9" class="pv-hit" data-tip="${dShort(q.t)}: grade level ${q.ge.toFixed(1)}"/>`).join('');
+    card('Grade level over time',`<svg class="pv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grade level over time, from ${T[0].ge.toFixed(1)} to ${T[T.length-1].ge.toFixed(1)}">${grid}
+      <path d="${path(exp)}" class="pv-ref"/><path d="${path(T)}" class="pv-line"/>${pts}
+      <text x="${L}" y="${H-6}" class="pv-axt">${dShort(t0)}</text><text x="${W-12}" y="${H-6}" text-anchor="end" class="pv-axt">${dShort(t1)}</text></svg>
+      <div class="pv-legend"><span><i class="pv-key line"></i>${esc(k.name)}</span><span><i class="pv-key ref"></i>Average ${ord(grade)} grader</span></div>`)}
+  else card('Grade level over time','<p class="pv-p pv-soft">This chart starts once there are a few days of practice.</p>');
+  /* practice, last 14 days */
+  const D=R.days,mx=Math.max(10,...D.map(d=>d.n)),BW=CW,BH=170,bw=(BW-40)/14;
+  const bars=D.map((d,i)=>{const h=d.n/mx*(BH-40),x=34+i*bw,dt=new Date(d.k+'T12:00');return `<g data-tip="${dShort(dt)}: ${d.n} problems, ${accTxt(d.ok,d.n)} right first try, ${mins(d.ms)}"><rect x="${x}" y="8" width="${bw}" height="${BH-30}" class="pv-hitbar"/>${d.n?`<path d="M${(x+3).toFixed(1)} ${(BH-22).toFixed(1)} v${(-Math.max(0,h-4)).toFixed(1)} q0 -4 4 -4 h${(bw-14).toFixed(1)} q4 0 4 4 v${Math.max(0,h-4).toFixed(1)} z" class="pv-bar"/>`:''}<text x="${(x+bw/2).toFixed(1)}" y="${BH-6}" text-anchor="middle" class="pv-axt">${dt.toLocaleDateString('en-US',{weekday:'narrow'})}</text></g>`}).join('');
+  card('Practice, last 14 days',`<svg class="pv-chart" viewBox="0 0 ${BW} ${BH}" role="img" aria-label="Problems answered each day for the last 14 days"><line x1="34" x2="${BW-6}" y1="${BH-22}" y2="${BH-22}" class="pv-base"/><text x="28" y="${BH-22-(BH-40)+4}" text-anchor="end" class="pv-axt">${mx}</text><text x="28" y="${BH-18}" text-anchor="end" class="pv-axt">0</text>${bars}</svg>
+    <p class="pv-p pv-soft">Problems answered each day (placement questions not included).</p>
+    <table class="pv-table"><tr><th></th><th>Problems</th><th>Right first try</th><th>Time</th><th>Days</th></tr>
+    ${[['Last 7 days',R.week7],['Last 30 days',R.month],['All time',R.ever]].map(([n,s])=>`<tr><td>${n}</td><td>${s.n}</td><td>${accTxt(s.ok,s.n)}</td><td>${mins(s.ms)}</td><td>${s.days}</td></tr>`).join('')}</table>`);
+  /* now, mastered, attention */
+  const cur=R.current,cl=id=>`<div>${esc(conceptName(id))} <small class="pv-soft">${ord(S[id].g)} grade · ${esc(strandName(id))}</small></div>`;
+  card('Working on now',`${cur?`<p class="pv-p">Next on the path: <b>${esc(conceptName(cur))}</b> (${ord(S[cur].g)} grade, ${esc(strandName(cur))}).</p>`:''}
+    ${R.working.length?`<ul class="pv-list">${R.working.slice(0,8).map(w=>`<li>${cl(w.id)}<span>level ${w.lv+1} of 3 · ${accTxt(w.r,w.r+w.w)} right</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing in progress yet.</p>'}
+    <p class="pv-p pv-soft">${R.due} mastered concept${R.due===1?' is':'s are'} due for review.</p>`);
+  card('Recently mastered',R.learned.length?`<ul class="pv-list">${R.learned.slice(0,10).map(x=>`<li>${cl(x.id)}<span>${dShort(x.at)}${x.how==='test'?' · tested out':''}</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing mastered in practice yet. Concepts from the placement check are counted above.</p>');
+  const att=R.spots.map(s=>`<li>${cl(s.id)}<span>tricky spot · missed ${s.n}× · ${s.ok} of 3 fixed</span>${s.why?`<small class="pv-soft">${esc(s.why)}</small>`:''}</li>`).concat(R.hard.filter(h=>!R.spots.some(s=>s.id===h.id)).slice(0,6).map(h=>`<li>${cl(h.id)}<span>${Math.round(h.acc*100)}% right first try (${h.r+h.w} tries)</span></li>`));
+  card('Needs attention',att.length?`<ul class="pv-list">${att.join('')}</ul>`:'<p class="pv-p pv-soft">Nothing stands out. Tricky spots (mistakes that point at an earlier idea) and concepts under 75% right show up here.</p>');
+  /* placement */
+  if(R.placement){const PL=R.placement,asked=PL.parts.reduce((a,x)=>a+x.asked,0),right=PL.parts.reduce((a,x)=>a+x.right,0),sk=PL.parts.reduce((a,x)=>a+x.skipped,0);
+    card('Placement check',`<p class="pv-p">${PL.done?'Finished':'Started'} ${PL.t?dShort(PL.t):''}: ${right} of ${asked} questions right${sk?`, ${sk} skipped as not learned yet`:''}. It checked up to ${ord(PL.grade+1)} grade.${asked>=8&&right/asked<0.5&&PL.done?' Under half right is low for the start of the check. If it was rushed, Redo placement check (in the game’s Settings) runs it again; concepts mastered so far stay mastered.':''}</p>
+      <table class="pv-table"><tr><th>Part</th><th>Right</th><th>Starts at</th></tr>${PL.parts.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.right} of ${x.asked}${x.skipped?` (${x.skipped} skipped)`:''}</td><td>${!x.done?'not finished':x.start?esc(conceptName(x.start))+` <small class="pv-soft">${ord(S[x.start].g)}</small>`:'all mastered'}</td></tr>`).join('')}</table>`)}
+  card('How these numbers are worked out',`<ul class="pv-notes">
+    <li><b>Grade level</b> = 2.0 (the start of 2nd grade) plus the share of each grade's Common Core concepts that are mastered. All of 2nd grade and half of 3rd gives 3.5. Extras beyond the Common Core don't count. The average student is at their grade plus the share of the school year gone (36 weeks from mid-August, breaks left out), so ${R.expect.toFixed(1)} for a ${ord(grade)} grader today.</li>
+    <li><b>Mastered</b> means 3 right in a row, first try and no hint, at each of the 3 levels; or a test-out (5 hard ones in a row); or placed by the placement check.</li>
+    <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
+    <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
+  $('#pvBody').innerHTML=out.join('')}
+/* hover and tap tips for the report's charts */
+(()=>{const tip=document.createElement('div');tip.className='pv-tip';tip.hidden=true;document.body.append(tip);
+  const showTip=e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(!t||screen!=='parent'){tip.hidden=true;return}tip.textContent=t.getAttribute('data-tip');tip.hidden=false;
+    const x=Math.min(innerWidth-tip.offsetWidth-8,Math.max(8,e.clientX-tip.offsetWidth/2)),y=e.clientY-tip.offsetHeight-14;tip.style.left=x+'px';tip.style.top=(y<8?e.clientY+18:y)+'px'};
+  document.addEventListener('pointermove',showTip);document.addEventListener('pointerdown',showTip);window.addEventListener('scroll',()=>{tip.hidden=true},{passive:true})})();
+$('#parentBtn').onclick=()=>{Snd.init();Snd.click();openParent()};
+$('#hubParent').onclick=()=>{Snd.click();openParent(player)};
+$('#pvBack').onclick=()=>{Snd.click();show('menu');renderMenu()};
+$('#pvPrint').onclick=()=>{Snd.click();window.print()};
+
 renderMenu();renderSaveNote();
 function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,d:a.d};case 'time':return p.dur?{h:a.h+1,m:a.m}:{h:a.h%12+1,m:a.m};case 'rem':return {q:a.q+1,r:a.r};default:return a+1}}
-window.__mw={get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
+window.__mw={openParent,get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
   answerRight(){if(!RD||!RD.cur)return;submit(RD.cur.p.ans,null)},
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};

@@ -78,4 +78,32 @@ ok(E.spotFor(p6, { id: first }, first) === null, 'the concept being learned is n
 const far = ORDER[ORDER.length - 1]; ok(E.spotFor(p6, { id: far }, 'x') === null, 'a concept far ahead is never a tricky spot');
 ok(E.fixSet(first, R).length === 6, 'tricky-spot practice is 6 problems, easy to hard');
 
+/* 5. the parent report: grade level, norms, percentile, school calendar, activity */
+const core = C.LIST.filter(c => !E.isExtra(c.id));
+const upTo = (G, frac) => { const p = blank(); p.log = {}; core.forEach(c => { if (c.g < G) E.master(p, c.id, 1000); }); const next = core.filter(c => c.g === G); next.slice(0, Math.round(next.length * (frac || 0))).forEach(c => E.master(p, c.id, 1000)); return p; };
+ok(Math.abs(E.gradeLevel(blank(), null).ge - 2) < 1e-9, 'nothing mastered: grade level 2.0');
+ok(Math.abs(E.gradeLevel(upTo(3), null).ge - 3) < 1e-9, 'all of 2nd grade: 3.0');
+ok(Math.abs(E.gradeLevel(upTo(5, 0.5), null).ge - 5.5) < 0.02, 'through 4th grade and half of 5th: about 5.5');
+ok(Math.abs(E.gradeLevel(upTo(13), null).ge - 13) < 1e-9, 'everything: 13.0');
+for (const d of E.DOMAINS) { const g = E.gradeLevel(upTo(5), d.strands); ok(g && Math.abs(g.ge - 5) < 1e-9, d.id + ': through 4th grade is 5.0 in every area (' + (g && g.ge) + ')'); }
+ok(E.DOMAINS.flatMap(d => d.strands).sort().join() === C.STRANDS.map(s => s.id).sort().join(), 'every strand is in exactly one area');
+const n4 = E.normAt(4 + 4 / 36), n4w = E.normAt(4 + 20 / 36);
+ok(Math.abs(n4.m - 197.03) < 1e-6 && Math.abs(n4.sd - 15.91) < 1e-6 && Math.abs(n4w.m - 204.48) < 1e-6, 'norms match NWEA Table A.1 at the norm weeks');
+eq(E.percentileFor(4 + 20 / 36, 4, 20).pct, 50, 'at the average for the grade and week: 50th percentile');
+ok(E.percentileFor(5.5, 4, 20).pct > 60 && E.percentileFor(3, 4, 20).pct < 30, 'a grade ahead is above the middle, a grade and a half behind well below');
+ok(Math.abs(E.phi(1.96) - 0.975) < 1e-4 && Math.abs(E.phi(-1) - 0.1587) < 1e-4, 'normal curve');
+const stN = E.schoolTime(new Date(2026, 10, 15, 12)), stJ = E.schoolTime(new Date(2027, 6, 1)), stA = E.schoolTime(new Date(2026, 7, 12, 12));
+ok(stN.year === 2026 && stN.week > 13 && stN.week < 14.5, 'mid-November is about week 13-14 (' + stN.week.toFixed(1) + ')');
+ok(stJ.year === 2026 && stJ.week === 36 && stA.year === 2026 && stA.week < 0.2, 'summer is the end of the year just finished; August 12 starts the new one');
+ok(E.schoolTime(new Date(2027, 8, 1)).year === 2027, 'September starts the next school year');
+const pr = upTo(4); pr.pre = { v: 2, grade: 3, done: true, t: 5e6, order: [], st: {} };
+const today = E.dayKey(Date.now()); pr.log = { [today]: { n: 12, ok: 9, ms: 600000 } };
+const rp = E.report(pr, 3);
+ok(Math.abs(rp.overall.ge - 4) < 1e-9 && rp.overall.diff > 0, 'report: grade level 4.0 for a 3rd grader is ahead');
+ok(rp.placed && rp.pct.pct > 50 && rp.ceilPct >= rp.pct.pct, 'report: above-average percentile, under the placement ceiling');
+eq([rp.week7.n, rp.week7.ok, rp.streak, rp.days.length], [12, 9, 1, 14], 'report: activity from the daily log');
+eq(rp.byPlacement, 0, 'concepts mastered outside the placement check are not counted as placed');
+ok(rp.domains.length === 6 && rp.domains.every(d => isFinite(d.ge)), 'report: six areas');
+const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length === 0 && Math.abs(rb.overall.ge - 2) < 1e-9, 'report: an empty save');
+
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');

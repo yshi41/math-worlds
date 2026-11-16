@@ -115,7 +115,7 @@ function pretestRecord(pre, ok) {
   if (ok && st.step === 1) st.lo = Math.max(st.lo, st.at); else { st.hi = Math.min(st.hi, st.at); if (ok === false && st.step === 1) st.half = st.at; }
   settle(st);
 }
-function pretestSkip(pre) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; st.log.push([nx.skill, nx.d, 0]); st.hi = Math.min(st.hi, st.at); settle(st); }
+function pretestSkip(pre) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; st.log.push([nx.skill, nx.d, 0, 1]); st.hi = Math.min(st.hi, st.at); settle(st); }
 function pretestProgress(pre) { let done = 0; pre.order.forEach(s => { if (pre.st[s].done) done++; }); return { done, total: pre.order.length }; }
 /* what the placement means: every concept below the start in each strand is mastered (reviews spread over the next
    days); a start concept whose medium problem was right begins at the medium level */
@@ -123,14 +123,106 @@ function pretestApply(p, pre, now) {
   now = now || Date.now(); const out = { mastered: 0, starts: {} };
   pre.order.forEach(sid => { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s) return;
     const upto = st.done ? st.start : st.lo + 1;
-    for (let i = 0; i < upto; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); out.mastered++; } }
+    for (let i = 0; i < upto; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); cs(p, id).pl = 1; out.mastered++; } }
     const sid2 = s.core[upto]; out.starts[sid] = sid2 || null;
     if (sid2 && st.half === upto) { const c = cs(p, sid2); if (!c.m && c.lv < 1) c.lv = 1; } });
   p.now = null; return out;
 }
 
+/* ---------- the parent report ----------
+   Grade level: the start of 2nd grade, plus the share of each grade's Common Core concepts mastered. Mastering every
+   2nd-grade concept and half of the 3rd-grade ones gives 3.5 (3rd grade, halfway through the year). Extras don't count.
+   A domain with no concepts in some grade (trig before 8th grade) uses the smaller share of the grades on either side.
+   Percentile: the grade level is turned into the national average MAP Growth score for that point in school, and
+   that score is placed in the national spread for the kid's own grade at today's week of school. It is an estimate
+   from the game, not a test score. */
+const DOMAINS = [
+  { id: 'num', name: 'Number Sense', strands: ['count', 'fact', 'pow'], about: 'Place value, comparing and rounding, factors and primes, powers and roots' },
+  { id: 'ops', name: 'Operations & Word Problems', strands: ['add', 'mul', 'story'], about: 'Adding, subtracting, multiplying and dividing, mental math, written methods, word problems' },
+  { id: 'frac', name: 'Fractions, Decimals & Percents', strands: ['frac'], about: 'Fractions, decimals, percents, ratios and rates' },
+  { id: 'alg', name: 'Patterns & Algebra', strands: ['pat', 'alg', 'calc'], about: 'Patterns and sequences, expressions, equations, functions' },
+  { id: 'geo', name: 'Measurement, Time, Money & Geometry', strands: ['meas', 'time', 'money', 'trig'], about: 'Measuring, clocks and elapsed time, money, shapes, area and volume, triangles and trig' },
+  { id: 'data', name: 'Data & Probability', strands: ['data'], about: 'Graphs, averages and spread, chance' }];
+function gradeLevel(p, strands, asOf) {
+  const tot = {}, got = {};
+  for (const c of LIST) { if (isExtra(c.id) || (strands && !strands.includes(c.s))) continue; tot[c.g] = (tot[c.g] || 0) + 1; const s = p.cs[c.id]; if (s && s.m && (!asOf || s.m <= asOf)) got[c.g] = (got[c.g] || 0) + 1; }
+  const gs = Object.keys(tot).map(Number).sort((a, b) => a - b); if (!gs.length) return null;
+  const f = {}; gs.forEach(g => { f[g] = (got[g] || 0) / tot[g]; });
+  let ge = 2;
+  for (let g = 2; g <= 12; g++) { if (tot[g]) { ge += f[g]; continue; } const lo = gs.filter(x => x < g).pop(), hi = gs.find(x => x > g); ge += Math.min(lo == null ? 1 : f[lo], hi == null ? 0 : f[hi]); }
+  return { ge, f, tot, got, first: gs[0], last: gs[gs.length - 1] };
+}
+/* NWEA MAP Growth 2025 norms, student achievement, mathematics (Technical Manual, Table A.1): mean and SD of the RIT
+   score in fall, winter and spring (instructional weeks 4, 20 and 32), kindergarten to 12th grade */
+const NORMS = [[141.17, 12.29, 150.65, 12.57, 157.77, 13.04], [159.29, 13.40, 168.26, 13.83, 174.99, 14.32], [172.87, 15.44, 181.20, 15.70, 187.46, 16.07],
+  [184.05, 15.54, 192.65, 16.34, 199.10, 17.03], [197.03, 15.91, 204.48, 17.02, 210.07, 18.04], [206.23, 16.23, 211.82, 17.42, 216.01, 18.44],
+  [210.23, 15.99, 216.00, 17.35, 220.33, 18.47], [217.21, 17.22, 221.00, 18.36, 223.85, 19.29], [222.05, 18.33, 225.95, 19.31, 228.87, 20.16],
+  [224.90, 17.67, 227.14, 19.17, 228.82, 21.08], [226.80, 18.58, 229.40, 20.19, 231.36, 22.23], [229.19, 20.48, 231.36, 21.85, 233.00, 23.16],
+  [228.14, 20.95, 229.85, 21.81, 231.13, 23.28]];
+const NPTS = []; NORMS.forEach((r, g) => [4, 20, 32].forEach((w, i) => NPTS.push([g + w / 36, r[2 * i], r[2 * i + 1]])));
+/* the norm at a point in school: t = grade + week/36 (kindergarten is 0); straight lines between the norm weeks */
+function normAt(t) {
+  if (t <= NPTS[0][0]) return { m: NPTS[0][1], sd: NPTS[0][2] };
+  for (let i = 1; i < NPTS.length; i++) { const a = NPTS[i - 1], b = NPTS[i]; if (t <= b[0]) { const k = (t - a[0]) / (b[0] - a[0]); return { m: a[1] + k * (b[1] - a[1]), sd: a[2] + k * (b[2] - a[2]) }; } }
+  const z = NPTS[NPTS.length - 1]; return { m: z[1], sd: z[2] };
+}
+function phi(z) { const x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.3275911 * x), y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return z >= 0 ? (1 + y) / 2 : (1 - y) / 2; }
+function percentileFor(ge, grade, week) {
+  const now = normAt(grade + week / 36), est = normAt(ge), z = (est.m - now.m) / now.sd;
+  return { pct: Math.max(1, Math.min(99, Math.round(phi(z) * 100))), rit: est.m, mean: now.m, sd: now.sd, z };
+}
+/* where a date falls in the school year: it starts August 12, with Thanksgiving week, two weeks at the winter holidays
+   and spring break off; 36 weeks of school. Summer counts as the end of the year just finished. */
+function schoolTime(date) {
+  const d = new Date(date); let y = d.getFullYear(); if (d < new Date(y, 7, 12)) y--;
+  const s = new Date(y, 7, 12), breaks = [[new Date(y, 10, 23), new Date(y, 10, 30)], [new Date(y, 11, 20), new Date(y + 1, 0, 4)], [new Date(y + 1, 2, 14), new Date(y + 1, 2, 23)]];
+  let days = (d - s) / DAY; for (const [a, b] of breaks) days -= Math.max(0, Math.min(d, b) - a) / DAY;
+  return { year: y, week: Math.max(0, Math.min(36, days / 7)) };
+}
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function report(p, grade, now) {
+  now = now || Date.now(); const st = schoolTime(now), expect = grade + st.week / 36;
+  const pre = p.pre, placed = !!(pre && pre.done), capG = (pre && pre.grade ? pre.grade : grade) + 1;
+  const core = LIST.filter(c => !isExtra(c.id));
+  const how = id => { const s = p.cs[id]; if (!s || !s.m) return null; if (s.pl || (pre && pre.t && !(s.r + s.w) && Math.abs(s.m - pre.t) < 6e4)) return 'placement'; return s.to ? 'test' : 'practice'; };
+  const ceilFor = strands => placed && core.filter(c => (!strands || strands.includes(c.s)) && c.g <= capG).every(c => isMastered(p, c.id));
+  const tally = ids => { let r = 0, w = 0, m = 0; ids.forEach(id => { const s = p.cs[id]; if (s) { r += s.r | 0; w += s.w | 0; if (s.m) m++; } }); return { r, w, m }; };
+  const ov = gradeLevel(p, null), all = tally(LIST.map(c => c.id));
+  const overall = { ge: ov.ge, diff: ov.ge - expect, ceil: ceilFor(null), r: all.r, w: all.w, mastered: all.m, total: LIST.length,
+    atGrade: core.filter(c => c.g <= grade && isMastered(p, c.id)).length, atGradeTotal: core.filter(c => c.g <= grade).length };
+  const domains = DOMAINS.map(d => { const gl = gradeLevel(p, d.strands), ids = LIST.filter(c => d.strands.includes(c.s)).map(c => c.id), t = tally(ids), up = core.filter(c => d.strands.includes(c.s) && c.g <= grade);
+    return Object.assign({}, d, { ge: gl.ge, diff: gl.ge - expect, first: gl.first, last: gl.last, ceil: ceilFor(d.strands), r: t.r, w: t.w, mastered: t.m, total: ids.length, atGrade: up.filter(c => isMastered(p, c.id)).length, atGradeTotal: up.length }); });
+  const pct = percentileFor(ov.ge, grade, st.week), ceilPct = placed ? percentileFor(capG + 1, grade, st.week).pct : null;
+  /* activity, from the daily log */
+  const log = p.log || {}, today = new Date(now), dayAt = i => dayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - i, 12));
+  const days = []; for (let i = 13; i >= 0; i--) { const k = dayAt(i), e = log[k] || {}; days.push({ k, n: e.n | 0, ok: e.ok | 0, ms: e.ms | 0 }); }
+  const sum = n => { const o = { n: 0, ok: 0, ms: 0, days: 0 }; for (let i = 0; i < n; i++) { const e = log[dayAt(i)]; if (e && e.n) { o.n += e.n | 0; o.ok += e.ok | 0; o.ms += e.ms | 0; o.days++; } } return o; };
+  const ever = { n: 0, ok: 0, ms: 0, days: 0 }; for (const k in log) { const e = log[k]; if (e && e.n) { ever.n += e.n | 0; ever.ok += e.ok | 0; ever.ms += e.ms | 0; ever.days++; } }
+  let streak = 0; for (let i = (log[dayAt(0)] && log[dayAt(0)].n) ? 0 : 1; i < 400; i++) { const e = log[dayAt(i)]; if (e && e.n) streak++; else break; }
+  /* concepts */
+  const mastered = Object.keys(p.cs).filter(id => S[id] && p.cs[id].m).map(id => ({ id, at: p.cs[id].m, how: how(id) }));
+  const learned = mastered.filter(x => x.how !== 'placement').sort((a, b) => b.at - a.at);
+  const working = Object.keys(p.cs).filter(id => S[id] && !p.cs[id].m && (p.cs[id].r + p.cs[id].w > 0 || p.cs[id].lv > 0)).map(id => ({ id, lv: p.cs[id].lv, r: p.cs[id].r, w: p.cs[id].w, t: p.cs[id].t })).sort((a, b) => b.t - a.t);
+  const hard = Object.keys(p.cs).filter(id => S[id] && (p.cs[id].r + p.cs[id].w) >= 4 && p.cs[id].w >= 2).map(id => ({ id, r: p.cs[id].r, w: p.cs[id].w, acc: p.cs[id].r / (p.cs[id].r + p.cs[id].w) })).filter(x => x.acc < 0.75).sort((a, b) => a.acc - b.acc);
+  const spots = Object.entries(p.mist || {}).filter(([id, m]) => S[id] && m && m.ok < 3).map(([id, m]) => ({ id, n: m.n | 0, ok: m.ok | 0, why: m.why || '' })).sort((a, b) => b.n - a.n);
+  /* grade level over time, from the dates concepts were mastered */
+  const starts = mastered.map(x => x.at).concat(Object.keys(log).map(k => new Date(k + 'T12:00').getTime()).filter(isFinite));
+  const trend = [];
+  if (starts.length) { const t0 = new Date(Math.min(...starts)), first = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate()), nDays = Math.round((today - first) / DAY) + 1, step = Math.max(1, Math.ceil(nDays / 90));
+    for (let i = 0; i < nDays; i += step) { const end = new Date(first.getFullYear(), first.getMonth(), first.getDate() + i, 23, 59, 59).getTime(); trend.push({ t: Math.min(end, now), ge: gradeLevel(p, null, Math.min(end, now)).ge }); }
+    if (!trend.length || trend[trend.length - 1].t < now - 60000) trend.push({ t: now, ge: ov.ge }); }
+  /* the placement check */
+  const placement = pre ? { done: placed, t: pre.t, grade: pre.grade, parts: pre.order.map(sid => { const x = pre.st[sid], s = STR.find(q => q.id === sid); const lg = x.log || [];
+    return { id: sid, name: s ? s.name : sid, done: !!x.done, start: x.done && s ? s.core[x.start] || null : null, asked: lg.length, right: lg.filter(e => e[2]).length, skipped: lg.filter(e => e[3]).length }; }) } : null;
+  const answered = Math.max(all.r + all.w, ever.n);
+  const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
+  return { now, grade, week: st.week, expect, placed, capG, overall, domains, pct, ceilPct, confidence, answered,
+    days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
+    learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement };
+}
+
 const API = { init, isExtra, strandOf, prereqs, cs, isMastered, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply,
-  capLen, DAY, STR, ORDER };
+  capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;
 })(typeof window !== 'undefined' ? window : this);

@@ -192,6 +192,19 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await until(() => resultsShown(p));
   check(await ev(p, id => window.COACH.isMastered(window.__mw.saves.riley, id), locked), 'testing out masters it');
   check(await ev(p, () => window.__storageWrites) === 0, 'nothing was written to browser storage');
+
+  /* 9b. parent view: Riley's report, from her online save */
+  await until(() => ev(p, () => window.__mw.net.idle()));
+  await ev(p, () => window.__mw.openParent('riley')); await wait(250);
+  check(await ev(p, () => !document.querySelector('#parent').hidden && document.querySelectorAll('#pvBody .pv-card').length >= 7), 'the parent view shows a report for Riley');
+  const rv = await ev(p, () => { const d = Object.values(window.__mw.saves.riley.log || {}); return { n: d.reduce((a, e) => a + (e.n || 0), 0), ok: d.reduce((a, e) => a + (e.ok || 0), 0), pre: d.reduce((a, e) => a + (e.pre || 0), 0), ms: d.reduce((a, e) => a + (e.ms || 0), 0), txt: document.querySelector('#pvBody').textContent }; });
+  check(rv.n > 10 && rv.ok > 5 && rv.pre > 10 && rv.ms > 0, 'answers, placement questions and time are logged by day (' + rv.n + ' answers, ' + rv.ok + ' right, ' + rv.pre + ' placement)');
+  check(/Grade level/.test(rv.txt) && /percentile/.test(rv.txt) && /Number Sense/.test(rv.txt) && /Data & Probability/.test(rv.txt) && /Placement check/.test(rv.txt), 'the report has grade levels, the percentile, every area and the placement check');
+  check(!/NaN|undefined|Infinity|\[object/.test(rv.txt), 'no broken numbers in the report');
+  check(await ev(p, () => document.querySelectorAll('#pvBody svg.pv-chart').length >= 1 && document.querySelectorAll('#pvBody [data-tip]').length >= 14), 'practice chart and area bars have hover tips');
+  await ev(p, () => document.querySelector('#pvTabs [data-kid="charlie"]').click()); await wait(150);
+  check(await ev(p, () => window.__mw.PV === 'charlie' && document.querySelector('#pvBody').textContent.includes('Charlie')), 'switching to Charlie');
+  check(await ev(p, () => window.__storageWrites) === 0, 'the parent view writes nothing to the device');
   await p.close();
 
   /* 10. Charlie (4th grade) starts further along; the saves come back on a fresh page */
@@ -250,6 +263,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     for (const el of scr.querySelectorAll('*')) { if (el.closest('.q-vis,.vis-wrap,details:not([open]) .chips')) continue; const r = el.getBoundingClientRect(); if (r.width && r.right > window.innerWidth + 1) { window.__wideEl = el.className || el.tagName; return true; } } return false; });
   check(!(await wide()), 'hub fits 360px (' + (await ev(p, () => window.__wideEl || '')) + ')');
   await ev(p, () => document.querySelectorAll('#map details').forEach(d => d.open = true)); await wait(100); check(!(await wide()), 'the full map fits 360px');
+  await ev(p, () => window.__mw.openParent('riley')); await wait(250); check(!(await wide()), 'parent view fits 360px (' + (await ev(p, () => window.__wideEl || '')) + ')');
   const sample = await ev(p, () => { const out = []; for (const s of window.COACH.STR) { out.push(s.list[0], s.list[Math.floor(s.list.length / 2)], s.list[s.list.length - 1]); } return out; });
   await ev(p, id => window.__mw.openLesson(id), sample[0]); await wait(120); check(!(await wide()), 'lesson fits 360px');
   const tooWide = [];

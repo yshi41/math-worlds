@@ -46,6 +46,15 @@ export function mergeState(mine, theirs, base) {
      clears it everywhere); settings follow this page */
   if (isObj(mine.round) && (!isObj(theirs.round) || num(mine.round.t) >= num(theirs.round.t))) out.round = clone(mine.round);
   if ('set' in mine) out.set = clone(mine.set);
+  /* the daily activity log for the parent report: each day's counters move by this page's difference */
+  out.log = clone(isObj(theirs.log) ? theirs.log : {});
+  const ml = isObj(mine.log) ? mine.log : {}, bl = isObj(base.log) ? base.log : {};
+  for (const day in ml) {
+    const m = ml[day]; if (!isObj(m)) continue;
+    const b = isObj(bl[day]) ? bl[day] : {}, t = isObj(out.log[day]) ? out.log[day] : {}, r = clone(t);
+    for (const f in m) if (typeof m[f] === 'number') r[f] = num(t[f]) + Math.max(0, delta(m[f], b[f]));
+    out.log[day] = r;
+  }
   out.updated = Date.now();
   return out;
 }
