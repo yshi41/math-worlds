@@ -8,13 +8,14 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 const MW=window.MWC, CO=window.COACH, S=MW.S;
 CO.init();
 
-const WK=['lagoon','candy','canopy','ocean','bows','boba','birds','cheer'];
+/* only two worlds now: the axolotl lagoon and the candy sweetshop */
+const WK=['lagoon','candy'];
 const WNAME={lagoon:'Lagoon',candy:'Sweetshop',canopy:'Rainforest',ocean:'Ocean',bows:'Bow Boutique',boba:'Boba Shop',birds:'Terror Birds',cheer:'Cheer Gym'};
 const WGRAD={lagoon:'linear-gradient(135deg,#CFF0F1,#9BDCE0)',candy:'linear-gradient(135deg,#FFF3F8,#FFD3E6)',canopy:'linear-gradient(135deg,#E4F3D6,#AFDA95)',ocean:'linear-gradient(135deg,#E3E7FF,#B9C3F5)',bows:'linear-gradient(135deg,#FFF0F6,#F8C8DD)',boba:'linear-gradient(135deg,#FFF6EC,#F5D9BD)',birds:'linear-gradient(135deg,#F6E9CF,#E6CFA3)',cheer:'linear-gradient(135deg,#FCE8F3,#E6D6FB)'};
 /* the players: Riley (3rd grade) and Charlie (4th grade) in the 2026-27 school year, plus Yan as the test account.
    The grade moves up each August (gy is the school year the grade is given for). It picks where the placement check
    begins and what the parent report compares with. */
-const KIDS=[{id:'charlie',name:'Charlie',theme:'candy',grade:4,gy:2026},{id:'riley',name:'Riley',theme:'lagoon',grade:3,gy:2026},{id:'yan',name:'Yan',theme:'birds',grade:4,gy:2026}];
+const KIDS=[{id:'charlie',name:'Charlie',theme:'candy',grade:4,gy:2026},{id:'riley',name:'Riley',theme:'lagoon',grade:3,gy:2026},{id:'yan',name:'Yan',theme:'lagoon',grade:4,gy:2026}];
 const gradeOf=(k,t)=>clamp(k.grade+CO.schoolTime(t||Date.now()).year-k.gy,2,12);
 const CHAR_COST=[0,60,120,200,300,420];
 const CUR_ICON={
@@ -60,13 +61,14 @@ function ambient(){const b=$('#bubbles');b.innerHTML='';for(let i=0;i<12;i++){co
   s.style.cssText=`left:${(Math.random()*100).toFixed(1)}%;width:${z.toFixed(0)}px;height:${z.toFixed(0)}px;animation-duration:${(10+Math.random()*12).toFixed(1)}s;animation-delay:-${(Math.random()*20).toFixed(1)}s;--c:${RAINBOW[i%6]}`;b.append(s)}}
 let shownWorld=null;
 function applyWorld(k,lv){CUR_WORLD=k;document.documentElement.setAttribute('data-world',k);
-  if(shownWorld!==k){shownWorld=k;$('#pageScene').innerHTML=buildScene();ambient()}
+  /* no scenery or floating bubbles behind the page: it stays plain for reading */
+  if(shownWorld!==k){shownWorld=k;$('#pageScene').innerHTML='';$('#bubbles').innerHTML=''}
   setSceneLevel($('#pageScene'),lv||1)}
 
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null;
-function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{}}}
+function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null}}
 /* a save from the first version (lessons and stars) keeps its treats and characters; the concept path and the
    placement check start fresh because the concepts are new */
 function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.assign(blank(),o);
@@ -74,13 +76,13 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   for(const id in b.cs){const c=b.cs[id];if(!S[id]||!c||typeof c!=='object')delete b.cs[id];else b.cs[id]=Object.assign({lv:0,st:0,ml:0,r:0,w:0,t:0,m:0,due:0,iv:0},c)}
   for(const id in b.mist)if(!S[id])delete b.mist[id];
   b.cur=Math.max(0,o.cur|0);b.games=Math.max(0,o.games|0);b.owned=Array.isArray(o.owned)?o.owned.filter(x=>typeof x==='string'&&x.includes(':')):[];
-  b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?o.pre:null;b.now=S[o.now]?o.now:null;
+  b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?CO.pretestFix(o.pre):null;b.apace=typeof o.apace==='number'&&isFinite(o.apace)?o.apace:null;b.now=S[o.now]?o.now:null;
   b.round=o.round&&typeof o.round==='object'?o.round:null;b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
   const lg={};if(o.log&&typeof o.log==='object')for(const d in o.log){const e=o.log[d];if(!/^\d{4}-\d\d-\d\d$/.test(d)||!e||typeof e!=='object')continue;const x={};for(const f in e)if(typeof e[f]==='number'&&isFinite(e[f]))x[f]=Math.max(0,e[f]);lg[d]=x}b.log=lg;
   delete b.stars;delete b.best;delete b.sk;return b}
 function P(){return saves[player]||(saves[player]=blank())}
 function kid(id){return KIDS.find(k=>k.id===id)||KIDS[0]}
-function lookOf(id){const p=saves[id];return p&&p.look&&WORLDS[p.look]?p.look:kid(id).theme}
+function lookOf(id){const p=saves[id];return p&&p.look&&WK.includes(p.look)?p.look:kid(id).theme}
 function owns(p,k,id){const L=charListFor(k);return L[0][0]===id||p.owned.includes(k+':'+id)}
 function charOf(p,k){const L=charListFor(k);const id=p&&p.char&&p.char[k];return id&&L.some(c=>c[0]===id)&&owns(p,k,id)?id:L[0][0]}
 /* the save service: the Math Worlds Worker. Progress lives only there, never in the browser. Each save names the revision
@@ -172,7 +174,7 @@ function renderMenu(){applyWorld('lagoon',3);const box=$('#kids');box.innerHTML=
     b.onclick=()=>{Snd.init();Snd.click();player=k.id;openHub()};box.append(b)})}
 
 function openHub(){RD=null;const p0=P();if(p0.set){if(typeof p0.set.snd==='boolean')Snd.on=p0.set.snd;if(typeof p0.set.voice==='boolean')Voice.on=p0.set.voice}show('hub');renderHub();const k=lookOf(player),p=P();
-  const lines=preDone(p)?[`Hi ${kid(player).name}! Ready for a trick?`,'Mistakes show us what to practice!',`Every 5 concepts grows the ${WNAME[k].toLowerCase()}!`,'Shortcuts make math fast!','Spot the pattern!']:[`Hi ${kid(player).name}! Let's find where to start.`];
+  const lines=preDone(p)?[`Hi ${kid(player).name}! Ready for a trick?`,'Mistakes show us what to practice!','Shortcuts make math fast!','Spot the pattern!']:[`Hi ${kid(player).name}! Let's find where to start.`];
   bubble($('#hubLine'),pickOne(lines))}
 function playConcept(id){if(!id)return;const p=P();if(!CO.started(p,id)&&!CO.isMastered(p,id))openLesson(id);else startLearn(id)}
 function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=sceneLevel(p);applyWorld(k,lv);
@@ -180,18 +182,18 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
   $('#statCur').innerHTML=`${CUR_ICON[k]} ${p.cur}`;$('#statStars').innerHTML=`${starSvg(true)} ${mc}`;$('#statStars').title='Concepts mastered';
   const ch=charOf(p,k);$('#hubHero').innerHTML=charSVG(ch,'happy');$('#hubName').textContent=`${kid(player).name} & ${charName(k,ch)}`;
   $('#lvTitle').textContent=`${WNAME[k]} level ${lv}`;
-  if(lv<10){$('#lvBar').style.width=clamp((mc-5*(lv-1))/5*100,0,100)+'%';$('#lvNext').textContent=`Next: ${WORLDS[k].levels[lv].l} at ${5*lv} concepts mastered`}else{$('#lvBar').style.width='100%';$('#lvNext').textContent='Your world is complete!'}
+  if(lv<10){$('#lvBar').style.width=clamp((mc-5*(lv-1))/5*100,0,100)+'%';$('#lvNext').textContent=`Next level at ${5*lv} concepts mastered`}else{$('#lvBar').style.width='100%';$('#lvNext').textContent='Your world is complete!'}
   /* placement check */
   const pc=$('#preCard'),done=preDone(p);pc.hidden=done;
   if(!done){const pre=p.pre,order=pre?pre.order:CO.pretestStart(gradeOf(kid(player))).order,started=pre&&pre.order.some(s=>pre.st[s].log.length);const prog=pre?CO.pretestProgress(pre):{done:0,total:order.length};
-    $('#preTitle').textContent=started?'Keep going with the placement check':'Placement check';
-    $('#preText').textContent=`A check of everything up to ${ord(gradeOf(kid(player))+1)} grade, in ${order.length} parts. It finds which concepts you already know, where each part should start, and how hard to make it. Have a pencil and paper ready. You can skip what you haven't learned, stop any time and come back.`;
+    const nm=checkName(pre),pg=pre?CO.pretestProgress(pre):null;$('#preTitle').textContent=started?'Keep going with the '+nm.toLowerCase():nm;
+    $('#preText').textContent=`${pre&&pre.by==='parent'?'A check-up your parent started. ':''}A check of everything up to ${ord(pre&&pre.cap?pre.cap:gradeOf(kid(player))+1)} grade, in ${pg?pg.blocks:3} blocks of about 20 minutes each. It finds which concepts you already know and where to start. Have a pencil and paper ready. You can skip what you haven't learned, and take a break between blocks.`;
     const nx=pre&&CO.pretestNext(JSON.parse(JSON.stringify(pre)));
     $('#preParts').innerHTML=order.map(sid=>{const s=CO.STR.find(x=>x.id===sid);return `<span class="pre-part${pre&&pre.st[sid].done?' done':nx&&nx.strand===sid?' now':''}">${s.short}</span>`}).join('');
-    $('#preBtn').textContent=started?`Continue (${prog.done} of ${prog.total} parts done)`:'Start the placement check'}
+    $('#preBtn').textContent=pg&&(started||pg.block>1)?`Start block ${pg.block} of ${pg.blocks} (about ${clamp(pg.estMin,5,25)} minutes)`:'Start the '+nm.toLowerCase()}
   /* up next */
   const cur=CO.current(p);
-  if(!done){$('#nextTitle').textContent='Placement check';$('#nextSub').textContent='Find out where to start';$('#nextBtn').onclick=startPre}
+  if(!done){const pg=p.pre?CO.pretestProgress(p.pre):null;$('#nextTitle').textContent=checkName(p.pre);$('#nextSub').textContent=pg?`Block ${pg.block} of ${pg.blocks}, about 20 minutes`:'Find out where to start';$('#nextBtn').onclick=startPre}
   else if(liveRound(p)){const r=liveRound(p),t=r.kind==='review'?'Review mix':r.kind==='fix'?'Tricky spot: '+conceptName(r.concept):r.kind==='test'?'Test out: '+conceptName(r.skill):conceptName(r.skill);
     $('#nextTitle').textContent='Continue where you left off';$('#nextSub').textContent=`${t} · ${r.kind==='fix'?(r.results||[]).length:r.mainDone} of ${r.mainTotal} done`;$('#nextBtn').onclick=resumeRound}
   else if(cur){const c=S[cur];$('#nextTitle').textContent=c.title;$('#nextSub').innerHTML=`Grade ${c.g} · ${esc(strandName(cur))} · ${pips(CO.levelsDone(p,cur))}`;$('#nextBtn').onclick=()=>{Snd.init();Snd.click();playConcept(cur)}}
@@ -237,7 +239,7 @@ $('#preBtn').onclick=()=>startPre();
 $('#reviewBtn').onclick=()=>startReview();
 $('#tSound').onclick=()=>{Snd.init();Snd.on=!Snd.on;$('#tSound').setAttribute('aria-pressed',String(Snd.on));Snd.click();P().set=Object.assign({},P().set,{snd:Snd.on});persist()};
 $('#tVoice').onclick=()=>{Voice.on=!Voice.on;P().set=Object.assign({},P().set,{voice:Voice.on});persist();$('#tVoice').setAttribute('aria-pressed',String(Voice.on));if(Voice.on)Voice.say('I will read the questions out loud.');else if(window.speechSynthesis)speechSynthesis.cancel()};
-$('#redoPre').onclick=()=>{const p=P();p.pre=CO.pretestStart(gradeOf(kid(player)));p.pre.t=Date.now();persist();renderHub();toast('The placement check starts fresh. Concepts you already mastered stay mastered.')};
+$('#redoPre').onclick=()=>{const p=P();p.pre=newCheck(p,player);persist();renderHub();toast('The placement check starts fresh. Concepts you already mastered stay mastered.')};
 
 /* ---------- concept intro ---------- */
 let LS=null,LS_EXVIS='';
@@ -295,7 +297,9 @@ function startTest(id){Snd.init();Snd.click();newRound({kind:'test',skill:id,mai
 function startReview(){Snd.init();Snd.click();newRound({kind:'review'});beginPlay()}
 function startFix(cid){Snd.init();Snd.click();newRound({kind:'fix',concept:cid});
   RD.queue=fixItems(cid).map(q=>({p:q,kind:'prac',concept:cid}));RD.fixTotal=RD.queue.length;RD.mainTotal=RD.fixTotal;beginPlay()}
-function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done){p.pre=CO.pretestStart(gradeOf(kid(player)));p.pre.t=Date.now()}newRound({kind:'pre'});beginPlay()}
+function newCheck(p,id,by){const pace=p.apace||1;return Object.assign(CO.pretestStart(gradeOf(kid(id)),{p:CO.masteredCount(p)?p:null,by:by||null,pace,short:pace>=1.6}),{t:Date.now()})}
+const checkName=pre=>pre&&pre.by==='parent'?'Assessment':'Placement check';
+function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done)p.pre=newCheck(p,player);newRound({kind:'pre'});beginPlay()}
 function beginPlay(){const p=P(),k=lookOf(player);applyWorld(k,sceneLevel(p));show('play');$('#playHero').innerHTML=charSVG(charOf(p,k),'neutral');
   $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):'Placement check';
   bubble($('#playBubble'),RD.kind==='pre'?'Do your best! It is fine to skip what you have not learned.':'You can do it!');nextQ()}
@@ -367,7 +371,7 @@ $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=c
   if(v==null){const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
-$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre);P().pre.t=Date.now();persist();afterPre(false,true)};
+$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask'||RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0);P().pre.t=Date.now();persist();afterPre(false,true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
 $('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
@@ -378,7 +382,7 @@ function submit(v,el){if(!RD||RD.phase!=='ask')return;const it=RD.cur,p=it.p;if(
 function award(n){if(n<=0)return;const p=P();p.cur+=n;RD.earned+=n;$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${p.cur}`}
 function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P();RD.phase='done';
   logAns(it.kind==='pre'?'pre':it.kind==='step'?'step':'q',first,true);
-  if(it.kind==='pre'){CO.pretestRecord(pl.pre,true);pl.pre.t=Date.now();award(2);Snd.soft();persist();afterPre(true);return}
+  if(it.kind==='pre'){CO.pretestRecord(pl.pre,true,Date.now()-RD.t0);pl.pre.t=Date.now();award(2);Snd.soft();persist();afterPre(true);return}
   let extra='';
   if(it.kind!=='step'){
     if(first){RD.streak++;RD.bestStreak=Math.max(RD.bestStreak,RD.streak)}
@@ -413,7 +417,7 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;Snd.wrong();setM
       if(spot){recordMiss(spot,it.diag.why);RD.missed[spot]=(RD.missed[spot]||0)+1;it.spot=spot}
       if(cid){const m=pl.mist[cid];if(m)m.ok=0}
       if(RD.kind==='fix'){RD.fixMiss++;const dp=CO.deeper(RD.concept);if(RD.fixMiss>=2&&dp&&!RD.deeperAdded){RD.deeperAdded=dp;if(!pl.mist[dp]||pl.mist[dp].ok>=3)pl.mist[dp]={n:1,ok:0,t:Date.now()}}}}}
-  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false);pl.pre.t=Date.now();persist();afterPre(false);return}
+  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0);pl.pre.t=Date.now();persist();afterPre(false);return}
   if(RD.tries===1){const why=it.diag&&it.diag.why;showFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${why?why:'Hint: '+(p.hint||p.how[0])}</div>${isPaper(p.skill)?'<div>Look back over your paper, one line at a time.</div>':''}`);
     if(KP){KP.raw='';kpRender()}bubble($('#playBubble'),'Try once more!');persist();return}
   /* second miss: show the worked shortcut, then break it down */
@@ -449,9 +453,11 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   else if(R0.kind==='fix'){const m=p.mist[R0.concept];sub='Tricky spot: '+conceptName(R0.concept);
     note=m&&m.ok>=3?'Fixed! That idea is solid now.':`${R0.fixRight} of ${R0.fixTotal} practice problems right the first time. Fixed after 3 in a row.`;
     if(R0.deeperAdded)note+=` Next, go one step back with “${conceptName(R0.deeperAdded)}”, which is in your tricky spots.`}
-  else if(R0.kind==='pre'){const pre=p.pre;sub='Placement check';
-    if(pre&&!CO.pretestNext(pre)){pre.done=true;const res=CO.pretestApply(p,pre);title='All placed!';note=`${res.mastered} concepts you already know are marked mastered. They'll come back now and then for review.`}
-    else{title='Saved!';note='Your placement check is saved. Pick up where you left off any time.'}}
+  else if(R0.kind==='pre'){const pre=p.pre;sub=checkName(pre);
+    if(pre&&!CO.pretestNext(pre)){const more=CO.pretestAdvance(pre);pre.t=Date.now();
+      if(!more){pre.done=true;const res=CO.pretestApply(p,pre);p.apace=Math.round((p.apace?(p.apace+pre.pace)/2:pre.pace)*100)/100;title='All done!';note=`${res.mastered} concepts you already know are marked mastered. They'll come back now and then for review.`}
+      else{const pg=CO.pretestProgress(pre);title=`Block ${pre.bi} of ${pg.blocks} done!`;note=`Take a break. The next block takes about ${clamp(pg.estMin,5,25)} minutes. Start it from the map whenever you're ready.`+(pre.adapted&&Date.now()-pre.adapted<60000?' The rest of the check is shorter now.':'')}}
+    else{title='Saved!';note='Your check is saved. Pick up where you left off any time.'}}
   RD=null;LAST=R0;endRound();persist();
   show('results');applyWorld(k,sceneLevel(p));$('#resHero').innerHTML=charSVG(charOf(p,k),'happy');$('#resTitle').textContent=title;$('#resSub').textContent=sub;
   $('#resStars').innerHTML=starsShown!=null?[0,1,2].map(i=>starSvg(i<starsShown)).join(''):'';
@@ -467,7 +473,7 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   const cur=CO.current(p),nb=$('#nextLessonBtn');nb.hidden=!cur||!preDone(p)||(R0.kind==='learn'&&!R0.masteredNow&&cur===R0.skill);
   nb.textContent=R0.masteredNow||R0.kind!=='learn'?'Next concept':'Up next';nb.onclick=()=>{Snd.click();playConcept(CO.current(P()))};
   $('#againBtn').hidden=(R0.kind==='pre'&&preDone(p))||!!R0.masteredNow||(R0.kind==='test'&&CO.isMastered(p,R0.skill));
-  $('#againBtn').textContent=R0.kind==='pre'?'Keep going':R0.kind==='fix'?'Practice again':R0.kind==='learn'?'Keep going':'Play again';
+  $('#againBtn').textContent=R0.kind==='pre'?'Next block':R0.kind==='fix'?'Practice again':R0.kind==='learn'?'Keep going':'Play again';
   if(starsShown)for(let i=0;i<starsShown;i++)setTimeout(()=>Snd.star(i),300+i*250);
   if(!early)setTimeout(()=>fxConfetti(R0.masteredNow||(R0.kind==='pre'&&preDone(p))?160:70),250);Snd.win()}
 let LAST=null;
@@ -515,7 +521,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   $('#pvTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{Snd.click();PV=b.dataset.kid;renderParent()});
   const out=[];const card=(h,body,cls)=>out.push(`<div class="card pv-card${cls?' '+cls:''}"><h3>${h}</h3>${body}</div>`);
   const head=`<div class="pv-head"><div><div class="pv-name">${esc(k.name)}</div><div class="pv-sub">${ord(grade)} grade · report for ${dLong(R.now)} · week ${Math.round(R.week)} of 36 in the school year</div></div></div>`;
-  if(!R.placed&&!R.answered){out.push(`<div class="card pv-card">${head}<p class="pv-p">${esc(k.name)} hasn't started yet. The report fills in once the placement check is done; it finds which concepts ${esc(k.name)} already knows.</p></div>`);$('#pvBody').innerHTML=out.join('');return}
+  if(!R.placed&&!R.answered){out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<p class="pv-p">${esc(k.name)} hasn't started yet. The report fills in once the placement check is done; it finds which concepts ${esc(k.name)} already knows.</p></div>`);$('#pvBody').innerHTML=out.join('');wireAssess(k);return}
   /* summary tiles */
   const dw=diffWords(O.diff),ceilO=O.ceil?'+':'';
   const tiles=[[fmtGE(O.ge)+ceilO,'Grade level',`${gradeWords(O.ge)}; the average ${ord(grade)} grader is at ${R.expect.toFixed(1)} now`],
@@ -529,7 +535,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   if(R.placed)sum+=` That is about the <b>${pctWord(R.pct.pct)} percentile</b> nationally${O.ceil?' or higher':''}.`;
   sum+=` Strongest: ${esc(strong[0].name)} (${fmtGE(strong[0].ge)}). Most room to grow: ${esc(weak[0].name)} (${fmtGE(weak[0].ge)})${weak[1].ge<strong[0].ge?` and ${esc(weak[1].name)} (${fmtGE(weak[1].ge)})`:''}.`;
   const conf={none:'There is no placement check yet, so the grade levels only count concepts mastered in practice.',low:'These numbers are rough for now: they rest mostly on the placement check. They firm up with every few hundred problems.',medium:'These numbers rest on the placement check and a fair amount of practice.',high:'These numbers rest on the placement check and a lot of practice.'}[R.confidence];
-  out.push(`<div class="card pv-card">${head}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p><p class="pv-p pv-soft">${conf}</p></div>`);
+  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p><p class="pv-p pv-soft">${conf}</p></div>`);
   /* grade level by domain */
   const lo=2,hi=Math.max(grade+3,Math.ceil(Math.max(...R.domains.map(d=>d.ge),O.ge)+0.5)),X=v=>((clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(2);
   const ticks=[];for(let g=lo;g<=hi;g++)ticks.push(`<span style="left:${X(g)}%">${g}</span>`);
@@ -572,14 +578,25 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   card('Needs attention',att.length?`<ul class="pv-list">${att.join('')}</ul>`:'<p class="pv-p pv-soft">Nothing stands out. Tricky spots (mistakes that point at an earlier idea) and concepts under 75% right show up here.</p>');
   /* placement */
   if(R.placement){const PL=R.placement,asked=PL.parts.reduce((a,x)=>a+x.asked,0),right=PL.parts.reduce((a,x)=>a+x.right,0),sk=PL.parts.reduce((a,x)=>a+x.skipped,0);
-    card('Placement check',`<p class="pv-p">${PL.done?'Finished':'Started'} ${PL.t?dShort(PL.t):''}: ${right} of ${asked} questions right${sk?`, ${sk} skipped as not learned yet`:''}. It checked up to ${ord(PL.grade+1)} grade.${asked>=8&&right/asked<0.5&&PL.done?' Under half right is low for the start of the check. If it was rushed, Redo placement check (in the game’s Settings) runs it again; concepts mastered so far stay mastered.':''}</p>
+    const bl=PL.bms.length?` Blocks took ${PL.bms.map(ms=>mins(ms)).join(', ')} (planned at about 20 minutes each${PL.short?'; shortened because blocks ran long':''}).`:'';
+    card(PL.by==='parent'?'Latest assessment':'Placement check',`<p class="pv-p">${PL.done?'Finished':'In progress, last worked on'} ${PL.t?dShort(PL.t):''}: ${right} of ${asked} questions right${sk?`, ${sk} skipped as not learned yet`:''}. It checked up to ${ord(PL.cap)} grade.${bl}${asked>=8&&right/asked<0.5&&PL.done?' Under half right is low for the start of the check. If it was rushed, Redo placement check (in the game’s Settings) runs it again; concepts mastered so far stay mastered.':''}</p>
       <table class="pv-table"><tr><th>Part</th><th>Right</th><th>Starts at</th></tr>${PL.parts.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.right} of ${x.asked}${x.skipped?` (${x.skipped} skipped)`:''}</td><td>${!x.done?'not finished':x.start?esc(conceptName(x.start))+` <small class="pv-soft">${ord(S[x.start].g)}</small>`:'all mastered'}</td></tr>`).join('')}</table>`)}
   card('How these numbers are worked out',`<ul class="pv-notes">
     <li><b>Grade level</b> = 2.0 (the start of 2nd grade) plus the share of each grade's Common Core concepts that are mastered. All of 2nd grade and half of 3rd gives 3.5. Extras beyond the Common Core don't count. The average student is at their grade plus the share of the school year gone (36 weeks from mid-August, breaks left out), so ${R.expect.toFixed(1)} for a ${ord(grade)} grader today.</li>
     <li><b>Mastered</b> means 3 right in a row, first try and no hint, at each of the 3 levels; or a test-out (5 hard ones in a row); or placed by the placement check.</li>
     <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
     <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
-  $('#pvBody').innerHTML=out.join('')}
+  $('#pvBody').innerHTML=out.join('');wireAssess(k)}
+/* a parent can start an assessment any time: the child gets it as the next thing in the game, in blocks of about
+   20 minutes, starting from what she has already mastered */
+function assessRow(k,p){const pre=p.pre;let st='';
+  if(pre&&!pre.done){const pg=CO.pretestProgress(pre);st=`<b>${checkName(pre)} in progress:</b> block ${pg.block} of ${pg.blocks} is next (${pg.done} of ${pg.total} parts done). ${esc(k.name)} sees it first thing in the game.`}
+  else st=pre&&pre.done?`Last ${checkName(pre).toLowerCase()}: ${dShort(pre.t)}.`:'No assessment yet.';
+  return `<div class="pv-assess"><p class="pv-p">${st}</p><button id="pvAssess" class="btn btn-sm" type="button">${pre&&!pre.done?'Restart the assessment':'Start a new assessment'}</button></div>`}
+let assessArm=0;
+function wireAssess(k){const b=$('#pvAssess');if(!b)return;b.onclick=()=>{Snd.click();
+  if(Date.now()-assessArm>4000){assessArm=Date.now();b.textContent=`Tap again to start it for ${k.name}`;return}assessArm=0;
+  const p=saves[k.id]||(saves[k.id]=blank());p.pre=newCheck(p,k.id,'parent');if(CLOUD)Net.schedule(k.id);toast(`Assessment ready. ${k.name} gets it next time she plays.`);renderParent()}}
 /* hover and tap tips for the report's charts */
 (()=>{const tip=document.createElement('div');tip.className='pv-tip';tip.hidden=true;document.body.append(tip);
   const showTip=e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(!t||screen!=='parent'){tip.hidden=true;return}tip.textContent=t.getAttribute('data-tip');tip.hidden=false;

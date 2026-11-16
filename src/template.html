@@ -334,6 +334,52 @@ sup{font-size:.62em;line-height:0}
 .lede,.trick p,.steps,.steps li,.feedback>div:not(.fb-h),.empty-note,.res-note,.kp-hint,.paper-note,.save-note,.spot small,.star-rules,.ls-status,.locked-note,.pre-card p,.bubble,.place small,.next-btn small,.btn small,.q-mode,.ls-std,.chip-t{font-weight:400!important}
 .lede,.trick p,.steps,.feedback{line-height:1.5}
 .q-text{font-weight:400}.q-text b{font-weight:700}
+/* two worlds, each with a calm, high-contrast scheme for reading: the axolotl lagoon (teal) and the candy sweetshop
+   (berry). Text is near-black on white (about 15:1), secondary text about 7:1, every button color carries white text
+   at 5:1 or better, and nothing moves behind the page. Dark mode uses soft greys with muted colors. */
+:root,:root[data-world]{
+  --bg:#F1F6F7; --bg-deep:#F1F6F7; --surface:#FFFFFF; --surface-2:#EEF4F5;
+  --ink:#162B31; --ink-soft:#44585E; --line:#CCDCDF;
+  --accent:#0E6670; --accent-ink:#0E6670;
+  --good:#1D7A4F; --good-soft:#E0F2E9; --bad:#B3342B; --bad-soft:#FBE5E2;
+  --sky:#1F5F99; --sky-soft:#E2ECF6;
+  --gold:#FFF1C2; --gold-deep:#D9A72E; --gold-ink:#4D3A00;
+  --shadow:0 1px 3px rgba(20,40,45,.08),0 4px 14px rgba(20,40,45,.06); --press:rgba(20,40,45,.28);
+}
+:root[data-world="candy"]{
+  --bg:#FAF3F6; --bg-deep:#FAF3F6; --surface:#FFFFFF; --surface-2:#F8EEF3;
+  --ink:#2E1A24; --ink-soft:#5E4552; --line:#E8D3DE;
+  --accent:#A3245E; --accent-ink:#A3245E;
+  --sky:#1F5F99; --sky-soft:#E2ECF6;
+  --shadow:0 1px 3px rgba(60,20,40,.08),0 4px 14px rgba(60,20,40,.06); --press:rgba(60,20,40,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]),:root:not([data-theme="light"])[data-world]{
+    color-scheme:dark;
+    --bg:#121A1C; --bg-deep:#121A1C; --surface:#1A2427; --surface-2:#223033;
+    --ink:#E4ECEE; --ink-soft:#A8B8BC; --line:#334447;
+    --accent:#1F6870; --accent-ink:#8CC4CA;
+    --good:#257A53; --good-soft:#1C3329; --bad:#B0453C; --bad-soft:#3A2220;
+    --sky:#2E5F8F; --sky-soft:#1D2C3A;
+    --gold:#3A3220; --gold-deep:#C9A13E; --gold-ink:#F0DFA8;
+    --shadow:0 1px 3px rgba(0,0,0,.35); --press:rgba(0,0,0,.5);
+  }
+  :root:not([data-theme="light"])[data-world="candy"]{
+    --bg:#1A1418; --bg-deep:#1A1418; --surface:#241C21; --surface-2:#2E242A;
+    --ink:#EFE6EA; --ink-soft:#BDAAB4; --line:#43353D;
+    --accent:#8A2F58; --accent-ink:#E0A3BF;
+  }
+}
+body{background:var(--bg)!important}
+#pageScene,#bubbles{display:none!important}
+.brand,.brand-big,.lv-title,.axo-name,.pre-title,.ls-title,.trick-h,.res-title,.levelbar .lb-lv,.ls-std.extra,.sq.q{color:var(--accent-ink)!important}
+.ls-std.extra,.sq.q{border-color:var(--accent-ink)}
+.topbar2{background:var(--surface)}
+.card{border:1px solid var(--line)}
+.chip.locked{opacity:1;color:var(--ink-soft);background:var(--surface);border-style:dotted}
+.pv-assess{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+.pv-assess .pv-p{margin:0;flex:1 1 260px}
+
 /* parent view */
 .parent-row{margin-top:18px}
 .pv-tabs{margin:0 0 14px}

@@ -38,7 +38,7 @@ E.reviewResult(p2, id2, false, t0); ok(p2.cs[id2].iv === 1 && E.isMastered(p2, i
 /* 3. placement: a kid who knows everything up to grade K places right after it in every strand */
 function place(grade, K, knowsFn) {
   const pre = E.pretestStart(grade); let asked = 0;
-  for (let nx; (nx = E.pretestNext(pre)) && asked < 400; asked++) E.pretestRecord(pre, knowsFn ? knowsFn(nx) : S[nx.skill].g <= K);
+  for (let k = 0; k < 600 && asked < 400; k++) { const nx = E.pretestNext(pre); if (!nx) { if (!E.pretestAdvance(pre)) break; continue; } E.pretestRecord(pre, knowsFn ? knowsFn(nx) : S[nx.skill].g <= K, 40000); asked++; }
   const p = blank(); const res = E.pretestApply(p, pre); return { pre, p, asked, res };
 }
 for (const [grade, K] of [[3, 2], [3, 3], [4, 3], [4, 4], [4, 2]]) {
@@ -58,6 +58,24 @@ const pre5 = E.pretestStart(3), sid5 = pre5.order[0];
 for (let k = 0; k < 60; k++) { const nx = E.pretestNext(pre5); if (!nx || nx.strand !== sid5) break; E.pretestRecord(pre5, nx.d === 1); }
 const p5 = blank(); E.pretestApply(p5, pre5); const s5 = E.STR.find(s => s.id === sid5).core[pre5.st[sid5].start];
 ok(!s5 || p5.cs[s5].lv === 1, 'medium right, hard wrong: the start concept begins at level 2');
+
+/* 3b. blocks of about 20 minutes; a slow kid gets a shorter check; a later assessment starts where she is */
+for (const g of [3, 4]) { const pre = E.pretestStart(g); ok(pre.blocks.length >= 2 && pre.blocks.flat().length === pre.order.length, 'grade ' + g + ': the check comes in ' + pre.blocks.length + ' blocks covering every part');
+  ok(E.pretestProgress(pre).estMin <= 24, 'grade ' + g + ': the first block is planned at about 20 minutes (' + E.pretestProgress(pre).estMin + ' min)'); }
+function run(grade, secs, K) { const pre = E.pretestStart(grade); let asked = 0, blocks = 0;
+  for (let k = 0; k < 800; k++) { const nx = E.pretestNext(pre); if (!nx) { blocks++; if (!E.pretestAdvance(pre)) break; continue; } E.pretestRecord(pre, S[nx.skill].g <= K, secs * 1000); asked++; }
+  return { pre, asked, blocks }; }
+const avg = run(3, 40, 2), slow = run(3, 150, 2);
+ok(!avg.pre.short, 'an average pace keeps the full check (' + avg.asked + ' questions, ' + avg.blocks + ' blocks)');
+ok(slow.pre.short && slow.pre.pace > 1.5, 'a kid who keeps taking over 20 minutes gets a shorter check (pace ' + slow.pre.pace.toFixed(2) + ')');
+ok(slow.asked < avg.asked, 'the shorter check asks fewer questions (' + slow.asked + ' vs ' + avg.asked + ')');
+const laterBlocks = slow.pre.bms.slice(slow.pre.bms.length > 3 ? 3 : 2); ok(laterBlocks.every(ms => ms <= E.BLOCK_MS * 1.45), 'after adapting, her blocks come back near 20 minutes (' + slow.pre.bms.map(x => Math.round(x / 60000)).join(', ') + ' min)');
+const sp = E.pretestStart(3, { pace: 2, short: true }); ok(sp.short && sp.blocks.length > E.pretestStart(3).blocks.length - 1, 'her slow pace carries into the next assessment');
+const pa = blank(); C.LIST.filter(c => !E.isExtra(c.id) && c.g <= 3).forEach(c => E.master(pa, c.id, 1));
+const re = E.pretestStart(3, { p: pa, by: 'parent' });
+ok(re.cap >= 4 && re.order.every(sid => { const s = E.STR.find(x => x.id === sid); return !E.isMastered(pa, s.core[re.st[sid].at]); }), 'a parent assessment starts at the first concept not yet mastered in each part');
+const old = { v: 2, grade: 3, st: JSON.parse(JSON.stringify(E.pretestStart(3).st)), order: E.pretestStart(3).order, done: false, t: 5 }; E.pretestFix(old);
+ok(Array.isArray(old.blocks) && old.blocks.flat().length === old.order.length && E.pretestNext(old), 'an older check without blocks is planned into blocks');
 
 /* 4. the coach: traps name the concept; general checks catch a forgotten carry or a place-value slip */
 let trapped = 0, generic = 0;

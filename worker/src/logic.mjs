@@ -46,6 +46,7 @@ export function mergeState(mine, theirs, base) {
      clears it everywhere); settings follow this page */
   if (isObj(mine.round) && (!isObj(theirs.round) || num(mine.round.t) >= num(theirs.round.t))) out.round = clone(mine.round);
   if ('set' in mine) out.set = clone(mine.set);
+  if (typeof mine.apace === 'number') out.apace = mine.apace;
   /* the daily activity log for the parent report: each day's counters move by this page's difference */
   out.log = clone(isObj(theirs.log) ? theirs.log : {});
   const ml = isObj(mine.log) ? mine.log : {}, bl = isObj(base.log) ? base.log : {};

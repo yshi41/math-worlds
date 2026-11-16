@@ -91,32 +91,87 @@ function spotFor(pl, diag, learning) { if (!diag || !S[diag.id] || diag.id === l
 function fixSet(id, R, k) { const ds = k === 2 ? [0, 1] : [0, 0, 1, 1, 2, 2]; return ds.map(d => C.gen(id, d, R)); }
 const deeper = id => prereqs(id)[0] || null;
 
-/* ---------- placement check ----------
-   For each strand with ideas up to one grade above the kid's, a binary search finds where to start. Each concept
-   tested asks a medium and a hard problem; both right moves up, a miss moves down. It starts at the kid's grade.
-   It searches the Common Core concepts only; extras stay on the path to be learned. */
-function capLen(st, grade) { let k = 0; while (k < st.core.length && S[st.core[k]].g <= grade + 1) k++; return k; }
-function pretestStart(grade) {
-  const st = {}, order = [];
-  STR.forEach(s => { const L = capLen(s, grade); if (!L) return; order.push(s.id); let e = s.core.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1;
-    st[s.id] = { lo: -1, hi: L, at: Math.max(0, e - (e > 2 ? 1 : 0)), step: 0, done: false, log: [] }; });
-  return { v: 2, grade, st, order, done: false, t: 0 };
+/* ---------- placement check and assessments ----------
+   For each strand with ideas up to one grade above the kid's (or higher, for a later assessment of a kid who is ahead),
+   a binary search finds where to start. Each concept tested asks a medium and a hard problem; both right moves up, a
+   miss moves down. The first check starts at the kid's grade; a later assessment starts at the first concept not yet
+   mastered in each strand. It searches the Common Core concepts only; extras stay on the path to be learned.
+   The check comes in blocks planned to take about 20 minutes for an average kid. The time each block really takes is
+   recorded; if a kid routinely takes longer, the rest of the check is planned for her pace and made shorter (one hard
+   problem per concept, and a coarser search), and her pace carries over to the next assessment. */
+const BLOCK_MS = 20 * 60000;
+function capLen(st, grade, cap) { const top = cap != null ? cap : grade + 1; let k = 0; while (k < st.core.length && S[st.core[k]].g <= top) k++; return k; }
+/* how long an average kid takes on one placement problem: about 35 s in her head, 75 s on paper, 90 s for a word problem */
+const avgSec = id => S[id].s === 'story' ? 90 : S[id].paper ? 75 : 35;
+function strandEstimate(pre, sid) {
+  const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s || st.done) return 0;
+  const span = Math.max(1, st.hi - st.lo - 1), probes = Math.max(1, Math.ceil(Math.log2(span + 1)) - (pre.short ? 1 : 0)), perConcept = pre.short ? 1 : 1.4;
+  return probes * perConcept * avgSec(s.core[Math.min(st.at, s.core.length - 1)]) * 1000;
 }
+/* the strands still to do, in blocks of about 20 minutes at this kid's pace */
+function planBlocks(pre, sids) {
+  const out = []; let cur = [], t = 0; const pace = Math.max(0.6, pre.pace || 1);
+  for (const sid of sids) { const e = strandEstimate(pre, sid) * pace; if (cur.length && t + e > BLOCK_MS * 1.1) { out.push(cur); cur = []; t = 0; } cur.push(sid); t += e; }
+  if (cur.length) out.push(cur);
+  /* no tiny last block: fold it into the one before when that stays near 20 minutes */
+  const est = b => b.reduce((x, sid) => x + strandEstimate(pre, sid) * pace, 0);
+  if (out.length > 1 && est(out[out.length - 1]) < BLOCK_MS * 0.35 && est(out[out.length - 2]) + est(out[out.length - 1]) <= BLOCK_MS * 1.3) out.splice(-2, 2, out[out.length - 2].concat(out[out.length - 1]));
+  return out;
+}
+/* opts: { p: the save (a later assessment starts at what is already mastered), by: 'parent', pace, short } */
+function pretestStart(grade, opts) {
+  opts = opts || {}; const p = opts.p, st = {}, order = [];
+  let cap = grade + 1;
+  if (p && p.cs) { const ge = gradeLevel(p, null); if (ge) cap = Math.min(12, Math.max(grade + 1, Math.floor(ge.ge) + 1)); }
+  STR.forEach(s => { const L = capLen(s, grade, cap); if (!L) return; let e;
+    if (p && p.cs) { e = s.core.findIndex(id => !isMastered(p, id)); if (e < 0 || e >= L) return; }
+    else { e = s.core.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1; e = Math.max(0, e - (e > 2 ? 1 : 0)); }
+    order.push(s.id); st[s.id] = { lo: -1, hi: L, at: e, step: 0, done: false, log: [], ms: 0 }; });
+  const pre = { v: 2, grade, cap, st, order, done: false, t: 0, by: opts.by || null, pace: opts.pace || 1, short: !!opts.short, bi: 0, bt: 0, bms: [], started: 0 };
+  pre.blocks = planBlocks(pre, order); return pre;
+}
+/* older saves: a check without blocks becomes one planned in blocks from where it is */
+function pretestFix(pre) {
+  if (!pre || pre.blocks) return pre;
+  pre.bi = 0; pre.bt = 0; pre.bms = []; pre.pace = pre.pace || 1; pre.short = !!pre.short; pre.cap = pre.cap || pre.grade + 1;
+  const left = pre.order.filter(s => pre.st[s] && !pre.st[s].done), done = pre.order.filter(s => pre.st[s] && pre.st[s].done);
+  pre.blocks = pre.done ? [pre.order] : (done.length ? [done] : []).concat(planBlocks(pre, left)); if (!pre.done && done.length) pre.bi = 1;
+  if (!pre.blocks.length) pre.blocks = [pre.order];
+  return pre;
+}
+const blockOf = pre => (pre.blocks && pre.blocks[pre.bi || 0]) || pre.order;
+/* the next question in the current block, or null when the block (or the whole check) is done */
 function pretestNext(pre) {
-  for (const sid of pre.order) { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || st.done || !s) continue;
-    return { strand: sid, skill: s.core[st.at], d: st.step === 0 ? 1 : 2 }; }
+  for (const sid of blockOf(pre)) { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || st.done || !s) continue;
+    return { strand: sid, skill: s.core[st.at], d: pre.short || st.step > 0 ? 2 : 1 }; }
   return null;
 }
-function settle(st) { st.step = 0; if (st.hi - st.lo <= 1) { st.done = true; st.start = st.hi; return; } st.at = Math.floor((st.lo + st.hi + 1) / 2); if (st.at <= st.lo) st.at = st.lo + 1; if (st.at >= st.hi) st.at = st.hi - 1; }
-function pretestRecord(pre, ok) {
-  const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand];
-  st.log.push([nx.skill, nx.d, ok ? 1 : 0]);
-  if (st.step === 0 && ok) { st.step = 1; return; }
-  if (ok && st.step === 1) st.lo = Math.max(st.lo, st.at); else { st.hi = Math.min(st.hi, st.at); if (ok === false && st.step === 1) st.half = st.at; }
-  settle(st);
+function settle(st, short) { st.step = 0; if (st.hi - st.lo <= (short ? 2 : 1)) { st.done = true; st.start = st.lo + 1; return; } st.at = Math.floor((st.lo + st.hi + 1) / 2); if (st.at <= st.lo) st.at = st.lo + 1; if (st.at >= st.hi) st.at = st.hi - 1; }
+function pretestRecord(pre, ok, ms) {
+  const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
+  st.log.push([nx.skill, nx.d, ok ? 1 : 0]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; if (!pre.started) pre.started = Date.now();
+  if (!pre.short && st.step === 0 && ok) { st.step = 1; return; }
+  if (ok) st.lo = Math.max(st.lo, st.at); else { st.hi = Math.min(st.hi, st.at); if (st.step === 1) st.half = st.at; }
+  settle(st, pre.short);
 }
-function pretestSkip(pre) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; st.log.push([nx.skill, nx.d, 0, 1]); st.hi = Math.min(st.hi, st.at); settle(st); }
-function pretestProgress(pre) { let done = 0; pre.order.forEach(s => { if (pre.st[s].done) done++; }); return { done, total: pre.order.length }; }
+function pretestSkip(pre, ms) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
+  st.log.push([nx.skill, nx.d, 0, 1]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
+/* a block is finished: record its time, adapt to the kid's pace, move on. Returns true when another block is left. */
+function pretestAdvance(pre) {
+  pretestFix(pre); const blk = blockOf(pre);
+  const est = blk.reduce((a, sid) => a + (pre.st[sid].log.length * avgSec(pre.st[sid].log[0] ? pre.st[sid].log[0][0] : STR.find(x => x.id === sid).core[0]) * 1000), 0);
+  const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0;
+  if (est > 0 && ms > 0) { const r = ms / est, n = pre.bms.length; pre.pace = ((pre.pace || 1) * (n - 1) + r) / n; }
+  const last3 = pre.bms.slice(-3), over = last3.filter(x => x > BLOCK_MS * 1.1).length;
+  if (!pre.short && (over >= 2 || ms > BLOCK_MS * 1.5)) { pre.short = true; pre.adapted = Date.now(); }
+  pre.bi = (pre.bi || 0) + 1;
+  const left = pre.order.filter(s => pre.st[s] && !pre.st[s].done);
+  if (!left.length) { pre.blocks = pre.blocks.slice(0, pre.bi); return false; }
+  pre.blocks = pre.blocks.slice(0, pre.bi).concat(planBlocks(pre, left));
+  return true;
+}
+function pretestProgress(pre) { pretestFix(pre); let done = 0; pre.order.forEach(s => { if (pre.st[s].done) done++; });
+  return { done, total: pre.order.length, block: Math.min((pre.bi || 0) + 1, pre.blocks.length), blocks: pre.blocks.length, estMin: Math.round(blockOf(pre).reduce((a, s) => a + strandEstimate(pre, s), 0) * Math.max(0.6, pre.pace || 1) / 60000) }; }
 /* what the placement means: every concept below the start in each strand is mastered (reviews spread over the next
    days); a start concept whose medium problem was right begins at the medium level */
 function pretestApply(p, pre, now) {
@@ -182,7 +237,7 @@ function schoolTime(date) {
 const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 function report(p, grade, now) {
   now = now || Date.now(); const st = schoolTime(now), expect = grade + st.week / 36;
-  const pre = p.pre, placed = !!(pre && pre.done), capG = (pre && pre.grade ? pre.grade : grade) + 1;
+  const pre = p.pre, placed = !!(pre && pre.done), capG = pre && pre.cap ? pre.cap : (pre && pre.grade ? pre.grade : grade) + 1;
   const core = LIST.filter(c => !isExtra(c.id));
   const how = id => { const s = p.cs[id]; if (!s || !s.m) return null; if (s.pl || (pre && pre.t && !(s.r + s.w) && Math.abs(s.m - pre.t) < 6e4)) return 'placement'; return s.to ? 'test' : 'practice'; };
   const ceilFor = strands => placed && core.filter(c => (!strands || strands.includes(c.s)) && c.g <= capG).every(c => isMastered(p, c.id));
@@ -212,7 +267,7 @@ function report(p, grade, now) {
     for (let i = 0; i < nDays; i += step) { const end = new Date(first.getFullYear(), first.getMonth(), first.getDate() + i, 23, 59, 59).getTime(); trend.push({ t: Math.min(end, now), ge: gradeLevel(p, null, Math.min(end, now)).ge }); }
     if (!trend.length || trend[trend.length - 1].t < now - 60000) trend.push({ t: now, ge: ov.ge }); }
   /* the placement check */
-  const placement = pre ? { done: placed, t: pre.t, grade: pre.grade, parts: pre.order.map(sid => { const x = pre.st[sid], s = STR.find(q => q.id === sid); const lg = x.log || [];
+  const placement = pre ? { done: placed, t: pre.t, grade: pre.grade, cap: capG, by: pre.by || null, bms: pre.bms || [], nBlocks: pre.blocks ? pre.blocks.length : 1, bi: pre.bi || 0, short: !!pre.short, adapted: pre.adapted || 0, pace: pre.pace || 1, parts: pre.order.map(sid => { const x = pre.st[sid], s = STR.find(q => q.id === sid); const lg = x.log || [];
     return { id: sid, name: s ? s.name : sid, done: !!x.done, start: x.done && s ? s.core[x.start] || null : null, asked: lg.length, right: lg.filter(e => e[2]).length, skipped: lg.filter(e => e[3]).length }; }) } : null;
   const answered = Math.max(all.r + all.w, ever.n);
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
@@ -222,7 +277,7 @@ function report(p, grade, now) {
 }
 
 const API = { init, isExtra, strandOf, prereqs, cs, isMastered, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
-  masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply,
+  masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;
 })(typeof window !== 'undefined' ? window : this);

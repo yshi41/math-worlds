@@ -50,20 +50,23 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => document.querySelector('#preBtn').click()); await wait(200);
   const first = await cur(p);
   check(first && first.kind === 'pre' && first.d === 1, 'the check starts with a medium problem (' + JSON.stringify(first && first.nx) + ')');
-  let asked = 0, stoppedOnce = false;
+  let asked = 0, stoppedOnce = false, blocksSeen = 0;
   for (let i = 0; i < 300; i++) {
     const c = await cur(p); if (!c || c.roundKind !== 'pre') break;
     if (c.phase !== 'ask') { await wait(60); continue; }
     asked++; await answer(p, G.grade[c.nx.skill] <= 2);
     if (asked === 7 && !stoppedOnce) { /* stop part way, come back: the check picks up where it left off */
       stoppedOnce = true; await until(() => cur(p).then(x => x && x.phase === 'ask'), 3000); await ev(p, () => document.querySelector('#quitBtn').click()); await wait(200);
-      check(await ev(p, () => !document.querySelector('#hub').hidden && /Continue/.test(document.querySelector('#preBtn').textContent)), 'stopping keeps the placement check to continue');
+      check(await ev(p, () => !document.querySelector('#hub').hidden && /Start block/.test(document.querySelector('#preBtn').textContent)), 'stopping keeps the placement check to continue');
       await ev(p, () => document.querySelector('#preBtn').click()); await wait(200);
     }
     await until(() => ev(p, () => { const R = window.__mw.RD; return !R || R.phase === 'ask' || !document.querySelector('#results').hidden; }), 4000);
-    if (await resultsShown(p)) break;
+    if (await resultsShown(p)) { if (await ev(p, () => window.__mw.saves.riley.pre.done)) break; blocksSeen++;
+      check(blocksSeen > 1 || await ev(p, () => /^Block 1 of [0-9]+ done/.test(document.querySelector('#resTitle').textContent) && document.querySelector('#againBtn').textContent === 'Next block'), 'a block ends with a break and Next block');
+      await ev(p, () => document.querySelector('#againBtn').click()); await wait(200); }
   }
   await until(() => resultsShown(p), 5000);
+  check(blocksSeen >= 1, 'the check came in blocks (' + (blocksSeen + 1) + ')');
   check(asked >= 25 && asked <= 110, 'the placement check is thorough but not endless (' + asked + ' questions)');
   const parts = await ev(p, () => document.querySelectorAll('#resPlaces .place').length);
   check(parts >= 8, 'the results list where each part starts (' + parts + ' parts)');
