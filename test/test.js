@@ -216,6 +216,19 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await until(() => ev(p, () => window.__mw.net.idle()));
   check(mock.store.charlie && mock.store.charlie.state.pre && mock.store.charlie.state.pre.by === 'parent' && !mock.store.charlie.state.pre.done, 'the assessment is saved online for Charlie');
   check(await ev(p, () => /Assessment in progress/.test(document.querySelector('#pvBody').textContent)), 'the parent view shows it in progress');
+  /* history charts with time spans, and the reset to the latest assessment */
+  await ev(p, () => document.querySelector('#pvTabs [data-kid="riley"]').click()); await wait(150);
+  check(await ev(p, () => /History/.test(document.querySelector('#pvBody').textContent) && document.querySelectorAll('#pvBody [data-range]').length === 5 && document.querySelectorAll('#pvBody svg.pv-chart').length >= 4), 'History card with 5 time spans and charts');
+  for (const r of ['7d', '3m', '1y', 'all']) { await ev(p, r => document.querySelector('#pvBody [data-range="' + r + '"]').click(), r); await wait(80);
+    check(await ev(p, r => document.querySelector('#pvBody [data-range="' + r + '"]').getAttribute('aria-pressed') === 'true' && !/NaN|undefined|Infinity/.test(document.querySelector('#pvBody').textContent) && !/NaN/.test(document.querySelector('#pvBody').innerHTML), r), 'history span ' + r + ' draws with no broken numbers'); }
+  check(await ev(p, () => !!document.querySelector('#pvReset')), 'the reset button is there for Riley');
+  await ev(p, () => document.querySelector('#pvReset').click()); await wait(50);
+  check(await ev(p, () => /Tap again/.test(document.querySelector('#pvReset').textContent)), 'the reset asks for a second tap');
+  await ev(p, () => document.querySelector('#pvReset').click()); await wait(150);
+  await until(() => ev(p, () => window.__mw.net.idle()));
+  { const st = mock.store.riley.state, ms = Object.values(st.cs).filter(s => s.m);
+    check(st.reset && st.reset.t && ms.length > 0 && ms.every(s => s.pl) && Array.isArray(st.asm) && st.asm.length >= 1, 'the reset is saved online: only placed concepts are mastered (' + ms.length + ')'); }
+  check(await ev(p, () => window.__storageWrites) === 0, 'the reset writes nothing to the device');
   await p.close();
 
   /* 9c. help lessons: missing a concept twice in a round brings a narrated video, a check, a step-by-step lesson and feedback */

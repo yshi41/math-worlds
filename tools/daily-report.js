@@ -35,7 +35,7 @@ function kidSection(k, p, day, now) {
   const helpToday = (p.help || []).filter(h => h.t >= start && h.t < end && S[h.id]);
   const spotsToday = Object.entries(p.mist || {}).filter(([id, m]) => S[id] && m && m.t >= start && m.t < end && m.ok < 3).map(([id, m]) => ({ id, n: m.n, why: m.why || '' }));
   const weekAgo = R.trend.length ? (R.trend.filter(t => t.t <= now - 7 * 864e5).pop() || R.trend[0]).ge : O.ge;
-  const pre = p.pre, preTxt = pre && !pre.done ? (() => { const pg = E.pretestProgress(pre); return `${pre.by === 'parent' ? 'Assessment' : 'Placement check'} in progress: ${pg.done} of ${pg.total} parts done, block ${pg.block} of ${pg.blocks} next.`; })() : '';
+  const pre = p.pre, preTxt = pre && !pre.done ? (() => { const pg = E.pretestProgress(pre); return `${pre.by === 'parent' ? 'Assessment' : 'Placement check'} in progress: ${pg.done} of ${pg.total} parts done, block ${pg.block} of ${pg.blocks} next.${p.reset && p.reset.t >= (pre.started || 0) ? ' Progress was reset to this assessment on ' + new Date(p.reset.t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '.' : ''}${E.report(p, gradeOf(k)).partial ? ' The numbers below come from the parts done so far and are worked out again when she finishes.' : ''}${pre.order.some(s => pre.st[s].redo && !pre.st[s].done) ? ' Parts she went through too fast are asked again.' : ''}`; })() : '';
   const preToday = (e.pre | 0);
   const played = (e.n | 0) + preToday + (e.hq | 0) > 0;
   /* plain words */

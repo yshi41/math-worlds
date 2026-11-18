@@ -90,6 +90,29 @@ her pace (her time over an average kid's time on the same questions), so a kid w
 a thinner check. It can run over several days, one block a day, for as long as it takes to find where she really is.
 Her pace carries over to the next assessment.
 
+A part answered faster than anyone can read it (under 7 seconds a question on average, skips included) was tapped
+through and tells nothing, so it is asked again once, from where it started, and that block does not count toward her
+pace. A kid can be set to start at a grade (`start` in `KIDS`; Charlie starts at 4th grade): her first check counts
+every Common Core concept below that grade as known and never searches lower. Memory checks come back to those
+concepts over the next week, so any that are not really known go back on the path.
+
+## Parent view: reset and history
+
+**Reset to this assessment** (two taps, next to Start a new assessment) rebuilds the kid's progress from the latest
+assessment alone (`COACH.resetToAssessment`): what it placed is mastered and nothing else. Parts she tapped through are
+opened again and come first the next time she plays; the report works from the parts done so far (once half are done)
+and is worked out again when she finishes. Practice after the assessment (memory checks, tricky spots, help lessons,
+practice blocks) is cleared and taken out of the daily log; treats, characters, world, settings and the assessment
+history stay. The save carries `reset.t`; the save service accepts a save with a newer reset even though it drops
+mastered concepts (never characters), refuses any save from before it, and merges a stale device onto the reset copy.
+Every accepted save is still kept in `mw_history`.
+
+**History** charts grade level (with the average student in her grade), the estimated national percentile, concepts
+mastered, problems answered (right first try, other practice, assessment questions) and minutes, over 7 days, 30 days,
+3 months, 1 year or all time (`COACH.history`): day by day up to a month, week by week up to about 6 months, month by
+month beyond. Each assessment adds a line to `asm` in the save (date, questions, right, grade level, percentile),
+updated after every block, shown as rings on the charts and in a table.
+
 ## The coach
 
 Every problem carries its worked shortcut (`how`), a break-down into smaller questions with the same numbers

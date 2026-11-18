@@ -15,7 +15,7 @@ const WGRAD={lagoon:'linear-gradient(135deg,#CFF0F1,#9BDCE0)',candy:'linear-grad
 /* the players: Riley (3rd grade) and Charlie (4th grade) in the 2026-27 school year, plus Yan as the test account.
    The grade moves up each August (gy is the school year the grade is given for). It picks where the placement check
    begins and what the parent report compares with. */
-const KIDS=[{id:'charlie',name:'Charlie',theme:'candy',grade:4,gy:2026},{id:'riley',name:'Riley',theme:'lagoon',grade:3,gy:2026},{id:'yan',name:'Yan',theme:'lagoon',grade:4,gy:2026}];
+const KIDS=[{id:'charlie',name:'Charlie',theme:'candy',grade:4,gy:2026,start:4},{id:'riley',name:'Riley',theme:'lagoon',grade:3,gy:2026},{id:'yan',name:'Yan',theme:'lagoon',grade:4,gy:2026}];
 const gradeOf=(k,t)=>clamp(k.grade+CO.schoolTime(t||Date.now()).year-k.gy,2,12);
 const CHAR_COST=[0,60,120,200,300,420];
 const CUR_ICON={
@@ -79,7 +79,7 @@ function applyWorld(k,lv){CUR_WORLD=k;document.documentElement.setAttribute('dat
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null;
-function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null,help:[],blk:null,ppace:null,bhist:[]}}
+function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null,help:[],blk:null,ppace:null,bhist:[],asm:[],reset:null}}
 /* a save from the first version (lessons and stars) keeps its treats and characters; the concept path and the
    placement check start fresh because the concepts are new */
 function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.assign(blank(),o);
@@ -89,6 +89,7 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   b.cur=Math.max(0,o.cur|0);b.games=Math.max(0,o.games|0);b.owned=Array.isArray(o.owned)?o.owned.filter(x=>typeof x==='string'&&x.includes(':')):[];
   b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?CO.pretestFix(o.pre):null;b.apace=typeof o.apace==='number'&&isFinite(o.apace)?o.apace:null;b.help=Array.isArray(o.help)?o.help.filter(h=>h&&typeof h==='object'&&S[h.id]&&h.t).slice(-60):[];b.now=S[o.now]?o.now:null;
   b.round=o.round&&typeof o.round==='object'?o.round:null;b.blk=o.blk&&typeof o.blk==='object'&&!Array.isArray(o.blk)?o.blk:null;b.ppace=typeof o.ppace==='number'&&isFinite(o.ppace)?o.ppace:null;b.bhist=Array.isArray(o.bhist)?o.bhist.filter(x=>x&&typeof x==='object'&&x.t0).slice(-30):[];b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
+  b.asm=Array.isArray(o.asm)?o.asm.filter(x=>x&&typeof x==='object'&&x.t0).slice(-50):[];b.reset=o.reset&&typeof o.reset==='object'&&typeof o.reset.t==='number'?o.reset:null;
   const lg={};if(o.log&&typeof o.log==='object')for(const d in o.log){const e=o.log[d];if(!/^\d{4}-\d\d-\d\d$/.test(d)||!e||typeof e!=='object')continue;const x={};for(const f in e)if(typeof e[f]==='number'&&isFinite(e[f]))x[f]=Math.max(0,e[f]);lg[d]=x}b.log=lg;
   delete b.stars;delete b.best;delete b.sk;return b}
 function P(){return saves[player]||(saves[player]=blank())}
@@ -216,7 +217,7 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
   if(lv<10){$('#lvBar').style.width=clamp((mc-5*(lv-1))/5*100,0,100)+'%';$('#lvNext').textContent=`Next level at ${5*lv} concepts mastered`}else{$('#lvBar').style.width='100%';$('#lvNext').textContent='Your world is complete!'}
   /* placement check */
   const pc=$('#preCard'),done=preDone(p);pc.hidden=done;
-  if(!done){const pre=p.pre,order=pre?pre.order:CO.pretestStart(gradeOf(kid(player))).order,started=pre&&pre.order.some(s=>pre.st[s].log.length);const prog=pre?CO.pretestProgress(pre):{done:0,total:order.length};
+  if(!done){const pre=p.pre,order=pre?pre.order:CO.pretestStart(gradeOf(kid(player)),{floor:floorOf(kid(player))}).order,started=pre&&pre.order.some(s=>pre.st[s].log.length);const prog=pre?CO.pretestProgress(pre):{done:0,total:order.length};
     const nm=checkName(pre),pg=pre?CO.pretestProgress(pre):null;$('#preTitle').textContent=started?'Keep going with the '+nm.toLowerCase():nm;
     $('#preText').textContent=`${pre&&pre.by==='parent'?'A check-up your parent started. ':''}A check of everything up to ${ord(pre&&pre.cap?pre.cap:gradeOf(kid(player))+1)} grade, in blocks of about 20 minutes (${pg?pg.blocks:3} for now). One block a day is fine: it takes as long as it needs to find exactly where you are. Have a pencil and paper ready. You can skip what you haven't learned, and take a break between blocks. The game won't say right or wrong as you go: you see how you did at the end of each block.`;
     const nx=pre&&CO.pretestNext(JSON.parse(JSON.stringify(pre)));
@@ -333,7 +334,9 @@ function startAudit(ids,focus){Snd.init();Snd.click();newRound({kind:'audit',ids
   RD.queue=[1,2].flatMap(d=>ids.map(id=>({p:mk(id,d),kind:'aud',aid:id})));RD.mainTotal=RD.queue.length;beginPlay()}
 function startFix(cid){Snd.init();Snd.click();newRound({kind:'fix',concept:cid});
   RD.queue=fixItems(cid).map(q=>({p:q,kind:'prac',concept:cid}));RD.fixTotal=RD.queue.length;RD.mainTotal=RD.fixTotal;beginPlay()}
-function newCheck(p,id,by){const pace=p.apace||1;return Object.assign(CO.pretestStart(gradeOf(kid(id)),{p:CO.masteredCount(p)?p:null,by:by||null,pace}),{t:Date.now()})}
+/* a kid set to start at a grade (KIDS start) gets a first check that counts everything below it as known */
+const floorOf=k=>k.start?Math.min(gradeOf(k),k.start+gradeOf(k)-k.grade):0;
+function newCheck(p,id,by){const pace=p.apace||1,m=CO.masteredCount(p);return Object.assign(CO.pretestStart(gradeOf(kid(id)),{p:m?p:null,by:by||null,pace,floor:m?0:floorOf(kid(id))}),{t:Date.now()})}
 const checkName=pre=>pre&&pre.by==='parent'?'Assessment':'Placement check';
 function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done)p.pre=newCheck(p,player);newRound({kind:'pre'});beginPlay()}
 const quiet=()=>!!RD&&(RD.kind==='pre'||RD.kind==='audit');
@@ -526,7 +529,8 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   else if(R0.kind==='pre'){const pre=p.pre;sub=checkName(pre);
     if(pre&&!CO.pretestNext(pre)){const more=CO.pretestAdvance(pre);pre.t=Date.now();
       if(!more){pre.done=true;const res=CO.pretestApply(p,pre);p.apace=Math.round((p.apace?(p.apace+pre.pace)/2:pre.pace)*100)/100;title='All done!';note=`${res.mastered} concepts you already know are marked mastered. They'll come back now and then for review.`}
-      else{const pg=CO.pretestProgress(pre);title=`Block ${pre.bi} of ${pg.blocks} done!`;note=`Take a break. The next block is planned at about ${clamp(pg.estMin,5,30)} minutes. Start it from the map whenever you're ready, today or another day.`}}
+      else{const pg=CO.pretestProgress(pre);title=`Block ${pre.bi} of ${pg.blocks} done!`;note=(pre.again&&pre.again.length?`Some parts went by too fast to count (${pre.again.map(s=>CO.STR.find(x=>x.id===s).name).join(', ')}), so they come again. Take your time and read each one. `:'')+`Take a break. The next block is planned at about ${clamp(pg.estMin,5,30)} minutes. Start it from the map whenever you're ready, today or another day.`}
+      CO.asmNote(p,pre)}
     else{title='Saved!';note='Your check is saved. Pick up where you left off any time.'}}
   /* the block: count the round; when its problems are done, the block ends, her pace is updated and the next block is sized */
   const bk=R0.kind!=='pre'?blkLive(p):null;let bEnd=false;
@@ -717,7 +721,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   const dw=diffWords(O.diff),ceilO=O.ceil?'+':'';
   const tiles=[[fmtGE(O.ge)+ceilO,'Grade level',`${gradeWords(O.ge)}; the average ${ord(grade)} grader is at ${R.expect.toFixed(1)} now`],
     [R.placed?`${pctWord(R.pct.pct)}`:'—','National percentile',R.placed?'estimate from NWEA 2025 national norms':'after the placement check'],
-    [String(R.mastered),'Concepts mastered',`${R.byPlacement} from the placement check, ${R.mastered-R.byPlacement} learned in the game${R.learnedWeek?`, ${R.learnedWeek} this week`:''}`],
+    [String(R.mastered),'Concepts mastered',`${R.byPlacement} from the placement check or assessments, ${R.mastered-R.byPlacement} learned in the game${R.learnedWeek?`, ${R.learnedWeek} this week`:''}`],
     [accTxt(R.month.ok,R.month.n),'Right first try',R.month.n?`last 30 days, ${R.month.n} problems`:'no practice problems yet'],
     [mins(R.week7.ms),'Time this week',`${R.week7.days} of the last 7 days`],
     [String(R.streak),'Day streak',R.streak===1?'day in a row':'days in a row']];
@@ -726,7 +730,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   if(R.placed)sum+=` That is about the <b>${pctWord(R.pct.pct)} percentile</b> nationally${O.ceil?' or higher':''}.`;
   sum+=` Strongest: ${esc(strong[0].name)} (${fmtGE(strong[0].ge)}). Most room to grow: ${esc(weak[0].name)} (${fmtGE(weak[0].ge)})${weak[1].ge<strong[0].ge?` and ${esc(weak[1].name)} (${fmtGE(weak[1].ge)})`:''}.`;
   const conf={none:'There is no placement check yet, so the grade levels only count concepts mastered in practice.',low:'These numbers are rough for now: they rest mostly on the placement check. They firm up with every few hundred problems.',medium:'These numbers rest on the placement check and a fair amount of practice.',high:'These numbers rest on the placement check and a lot of practice.'}[R.confidence];
-  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p><p class="pv-p pv-soft">${conf}</p></div>`);
+  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. These numbers come from the parts done so far and are worked out again when ${esc(k.name)} finishes it.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
   /* grade level by domain */
   const lo=2,hi=Math.max(grade+3,Math.ceil(Math.max(...R.domains.map(d=>d.ge),O.ge)+0.5)),X=v=>((clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(2);
   const ticks=[];for(let g=lo;g<=hi;g++)ticks.push(`<span style="left:${X(g)}%">${g}</span>`);
@@ -739,26 +743,8 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   if(R.placed){const P0=R.pct;card('National percentile (estimate)',`<p class="pv-p">About the <b>${pctWord(P0.pct)} percentile</b>${O.ceil?' or higher':''} among U.S. ${ord(grade)} graders at this point in the school year.</p>
     <p class="pv-p pv-soft">How: a grade level of ${fmtGE(O.ge)} matches a MAP Growth math score of about ${Math.round(P0.rit)}, the national average for students at that point in school. The national average for ${ord(grade)} graders now is ${Math.round(P0.mean)}, with a spread (standard deviation) of ${Math.round(P0.sd)}, so ${Math.round(P0.rit)} sits at the ${pctWord(P0.pct)} percentile.${R.ceilPct!=null?` The placement check went up to ${ord(R.capG)} grade, so for now the highest this can show is about the ${pctWord(R.ceilPct)} percentile; it rises as harder concepts are mastered.`:''}</p>
     <p class="pv-p pv-soft">This is an estimate from the game, not a test score. A school MAP or other standardized test is the real measure.</p>`)}
-  /* grade level over time */
   const CW=clamp(($('#pvBody').clientWidth||640)-36,300,640);
-  const span=R.trend.length?R.trend[R.trend.length-1].t-R.trend[0].t:0;
-  if(R.trend.length>=3&&span>=2*864e5){const T=R.trend,t0=T[0].t,t1=Math.max(T[T.length-1].t,t0+864e5),exp=T.map(q=>({t:q.t,ge:gradeOf(k,q.t)+CO.schoolTime(q.t).week/36}));
-    const all=T.concat(exp).map(q=>q.ge),y0=Math.floor(Math.min(...all)*2)/2-0.25,y1=Math.ceil(Math.max(...all)*2)/2+0.25,W=CW,H=200,L=34,B=24,xs=t=>L+(t-t0)/(t1-t0)*(W-L-12),ys=v=>8+(y1-v)/(y1-y0)*(H-8-B);
-    const path=a=>a.map((q,i)=>(i?'L':'M')+xs(q.t).toFixed(1)+' '+ys(q.ge).toFixed(1)).join(' ');
-    let grid='';for(let v=Math.ceil(y0);v<=y1;v++)grid+=`<line x1="${L}" x2="${W-12}" y1="${ys(v)}" y2="${ys(v)}" class="pv-grid"/><text x="${L-6}" y="${ys(v)+4}" text-anchor="end" class="pv-axt">${v}</text>`;
-    const pts=T.map(q=>`<circle cx="${xs(q.t).toFixed(1)}" cy="${ys(q.ge).toFixed(1)}" r="9" class="pv-hit" data-tip="${dShort(q.t)}: grade level ${q.ge.toFixed(1)}"/>`).join('');
-    card('Grade level over time',`<svg class="pv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grade level over time, from ${T[0].ge.toFixed(1)} to ${T[T.length-1].ge.toFixed(1)}">${grid}
-      <path d="${path(exp)}" class="pv-ref"/><path d="${path(T)}" class="pv-line"/>${pts}
-      <text x="${L}" y="${H-6}" class="pv-axt">${dShort(t0)}</text><text x="${W-12}" y="${H-6}" text-anchor="end" class="pv-axt">${dShort(t1)}</text></svg>
-      <div class="pv-legend"><span><i class="pv-key line"></i>${esc(k.name)}</span><span><i class="pv-key ref"></i>Average ${ord(grade)} grader</span></div>`)}
-  else card('Grade level over time','<p class="pv-p pv-soft">This chart starts once there are a few days of practice.</p>');
-  /* practice, last 14 days */
-  const D=R.days,mx=Math.max(10,...D.map(d=>d.n)),BW=CW,BH=170,bw=(BW-40)/14;
-  const bars=D.map((d,i)=>{const h=d.n/mx*(BH-40),x=34+i*bw,dt=new Date(d.k+'T12:00');return `<g data-tip="${dShort(dt)}: ${d.n} problems, ${accTxt(d.ok,d.n)} right first try, ${mins(d.ms)}"><rect x="${x}" y="8" width="${bw}" height="${BH-30}" class="pv-hitbar"/>${d.n?`<path d="M${(x+3).toFixed(1)} ${(BH-22).toFixed(1)} v${(-Math.max(0,h-4)).toFixed(1)} q0 -4 4 -4 h${(bw-14).toFixed(1)} q4 0 4 4 v${Math.max(0,h-4).toFixed(1)} z" class="pv-bar"/>`:''}<text x="${(x+bw/2).toFixed(1)}" y="${BH-6}" text-anchor="middle" class="pv-axt">${dt.toLocaleDateString('en-US',{weekday:'narrow'})}</text></g>`}).join('');
-  card('Practice, last 14 days',`<svg class="pv-chart" viewBox="0 0 ${BW} ${BH}" role="img" aria-label="Problems answered each day for the last 14 days"><line x1="34" x2="${BW-6}" y1="${BH-22}" y2="${BH-22}" class="pv-base"/><text x="28" y="${BH-22-(BH-40)+4}" text-anchor="end" class="pv-axt">${mx}</text><text x="28" y="${BH-18}" text-anchor="end" class="pv-axt">0</text>${bars}</svg>
-    <p class="pv-p pv-soft">Problems answered each day (placement questions not included).</p>
-    <table class="pv-table"><tr><th></th><th>Problems</th><th>Right first try</th><th>Time</th><th>Days</th></tr>
-    ${[['Last 7 days',R.week7],['Last 30 days',R.month],['All time',R.ever]].map(([n,s])=>`<tr><td>${n}</td><td>${s.n}</td><td>${accTxt(s.ok,s.n)}</td><td>${mins(s.ms)}</td><td>${s.days}</td></tr>`).join('')}</table>`);
+  out.push(histCard(k,p,grade,CW));
   /* now, mastered, attention */
   const cur=R.current,cl=id=>`<div>${esc(conceptName(id))} <small class="pv-soft">${ord(S[id].g)} grade · ${esc(strandName(id))}</small></div>`;
   card('Working on now',`${cur?`<p class="pv-p">Next on the path: <b>${esc(conceptName(cur))}</b> (${ord(S[cur].g)} grade, ${esc(strandName(cur))}).</p>`:''}
@@ -776,20 +762,65 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   if(R.placement){const PL=R.placement,asked=PL.parts.reduce((a,x)=>a+x.asked,0),right=PL.parts.reduce((a,x)=>a+x.right,0),sk=PL.parts.reduce((a,x)=>a+x.skipped,0);
     const bl=PL.bms.length?` Blocks took ${PL.bms.map(ms=>mins(ms)).join(', ')} (each planned at about 20 minutes; the rest is re-planned at her pace).`:'';
     card(PL.by==='parent'?'Latest assessment':'Placement check',`<p class="pv-p">${PL.done?'Finished':'In progress, last worked on'} ${PL.t?dShort(PL.t):''}: ${right} of ${asked} questions right${sk?`, ${sk} skipped as not learned yet`:''}. It checked up to ${ord(PL.cap)} grade.${bl}${asked>=8&&right/asked<0.5&&PL.done?' Under half right is low for the start of the check. If it was rushed, Redo placement check (in the game’s Settings) runs it again; concepts mastered so far stay mastered.':''}</p>
-      <table class="pv-table"><tr><th>Part</th><th>Right</th><th>Starts at</th></tr>${PL.parts.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.right} of ${x.asked}${x.skipped?` (${x.skipped} skipped)`:''}</td><td>${!x.done?'not finished':x.start?esc(conceptName(x.start))+` <small class="pv-soft">${ord(S[x.start].g)}</small>`:'all mastered'}</td></tr>`).join('')}</table>`)}
+      <table class="pv-table"><tr><th>Part</th><th>Right</th><th>Starts at</th></tr>${PL.parts.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.right} of ${x.asked}${x.skipped?` (${x.skipped} skipped)`:''}</td><td>${!x.done&&x.redo?'asked again: went by too fast'+(x.prev?` (${x.prev.n} in ${Math.max(1,Math.round(x.prev.ms/1000))} s)`:''):!x.done?'not finished':x.start?esc(conceptName(x.start))+` <small class="pv-soft">${ord(S[x.start].g)}</small>`:'all mastered'}</td></tr>`).join('')}</table>`)}
   card('How these numbers are worked out',`<ul class="pv-notes">
     <li><b>Grade level</b> = 2.0 (the start of 2nd grade) plus the share of each grade's Common Core concepts that are mastered. All of 2nd grade and half of 3rd gives 3.5. Extras beyond the Common Core don't count. The average student is at their grade plus the share of the school year gone (36 weeks from mid-August, breaks left out), so ${R.expect.toFixed(1)} for a ${ord(grade)} grader today.</li>
     <li><b>Mastered</b> means 3 right in a row, first try and no hint, at each of the 3 levels; or a test-out (5 hard ones in a row); or placed by the placement check. A concept that fails a memory check stops counting until it is mastered again.</li>
     <li><b>Practice</b> comes in blocks planned at about 20 minutes: a memory check when concepts are due, then the next concept on the path. The path never moves past a concept until it is mastered. A block is never cut off by the clock; it ends when its problems are done. How long it took (answering, at most 4 minutes a problem, and help lessons) compared with an average kid, and how hard the concept is (written methods and word problems take longer), set the size of the next block.</li>
     <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
     <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
-  $('#pvBody').innerHTML=out.join('');wireAssess(k)}
+  $('#pvBody').innerHTML=out.join('');wireAssess(k);wireReset(k);
+  $('#pvBody').querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{Snd.click();PVR=b.dataset.range;renderParent()})}
+/* ---------- history: charts over a chosen span ---------- */
+let PVR='30d';
+const RANGES=[['7d','7 days'],['30d','30 days'],['3m','3 months'],['1y','1 year'],['all','All']];
+const niceMax=v=>{if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;return (f<=1?1:f<=2?2:f<=5?5:10)*e};
+function histCard(k,p,grade,CW){const H=CO.history(p,grade,PVR),B=H.buckets,U=H.unit,W=CW,L=40,RP=12,T=10,BOT=24,xw=(W-L-RP)/B.length,cx=i=>L+xw*(i+.5);
+  const per=U==='day'?'day':U==='week'?'week':'month';
+  const when=o=>U==='month'?new Date(o.a).toLocaleDateString('en-US',{month:'long',year:'numeric'}):U==='week'?'Week of '+dShort(o.a):dShort(o.a);
+  const tick=o=>{const d=new Date(o.a);return U==='month'?d.toLocaleDateString('en-US',{month:'short'}):PVR==='7d'?d.toLocaleDateString('en-US',{weekday:'short'}):(d.getMonth()+1)+'/'+d.getDate()};
+  const every=Math.max(1,Math.ceil(B.length/(W<420?5:8))),xAxis=h=>B.map((o,i)=>i%every?'':`<text x="${cx(i).toFixed(1)}" y="${h-6}" text-anchor="middle" class="pv-axt">${tick(o)}</text>`).join('');
+  const hit=(i,h,tip)=>`<rect x="${(cx(i)-xw/2).toFixed(1)}" y="${T}" width="${Math.max(1,xw).toFixed(1)}" height="${h-T-BOT}" class="pv-hitbar" data-tip="${esc(tip)}"/>`;
+  const grid=(ys,lo,hi,step,fmt)=>{let g='';for(let v=lo;v<=hi+1e-9;v+=step)g+=`<line x1="${L}" x2="${W-RP}" y1="${ys(v).toFixed(1)}" y2="${ys(v).toFixed(1)}" class="pv-grid"/><text x="${L-6}" y="${(ys(v)+4).toFixed(1)}" text-anchor="end" class="pv-axt">${fmt(v)}</text>`;return g};
+  function line(get,o){const h=o.h||160,ys=v=>T+(o.hi-clamp(v,o.lo,o.hi))/(o.hi-o.lo)*(h-T-BOT);
+    const seg=(f,cls)=>{let d='',pen=false;B.forEach((q,i)=>{const v=f(q);if(v==null){pen=false;return}d+=(pen?'L':'M')+cx(i).toFixed(1)+' '+ys(v).toFixed(1);pen=true});return d?`<path d="${d}" class="${cls}"/>`:''};
+    const pts=B.map((q,i)=>{const v=get(q);return v==null?'':`<circle cx="${cx(i).toFixed(1)}" cy="${ys(v).toFixed(1)}" r="${B.length>40?2:3}" class="pv-pt"/>`}).join('');
+    const marks=(o.marks||[]).map(m=>{const i=B.findIndex(q=>m.t>=q.a&&m.t<q.b);return i<0?'':`<circle cx="${cx(i).toFixed(1)}" cy="${ys(m.v).toFixed(1)}" r="6" class="pv-asm"/>`}).join('');
+    return `<svg class="pv-chart" viewBox="0 0 ${W} ${h}" role="img" aria-label="${esc(o.name)}">${grid(ys,o.lo,o.hi,o.step,o.fmt)}${o.ref?seg(o.ref,'pv-ref'):''}${seg(get,'pv-line')}${pts}${marks}${B.map((q,i)=>hit(i,h,o.tip(q))).join('')}${xAxis(h)}</svg>`}
+  function bars(series,o){const h=o.h||150,tot=B.map(q=>series.reduce((a,s)=>a+s.get(q),0)),mx=niceMax(Math.max(o.min||1,...tot)),ys=v=>T+(1-v/mx)*(h-T-BOT),bw=Math.max(2,Math.min(28,xw*.7));
+    const bs=B.map((q,i)=>{let y=h-BOT,r='';series.forEach(s=>{const v=s.get(q);if(!v)return;const hh=v/mx*(h-T-BOT);y-=hh;r+=`<rect x="${(cx(i)-bw/2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${hh.toFixed(1)}" rx="2" class="pv-bar ${s.cls}"/>`});return `<g>${r}${hit(i,h,o.tip(q))}</g>`}).join('');
+    return `<svg class="pv-chart" viewBox="0 0 ${W} ${h}" role="img" aria-label="${esc(o.name)}">${grid(ys,0,mx,mx/2,v=>o.fmt(v))}<line x1="${L}" x2="${W-RP}" y1="${h-BOT}" y2="${h-BOT}" class="pv-base"/>${bs}${xAxis(h)}</svg>`}
+  const tabs=`<div class="pv-range" role="group" aria-label="Time span">${RANGES.map(([r,t])=>`<button type="button" class="tog" data-range="${r}" aria-pressed="${r===PVR}">${t}</button>`).join('')}</div>`;
+  const has=B.some(q=>q.ge!=null),A=H.asm,parts=[];
+  if(has){const vals=B.filter(q=>q.ge!=null).map(q=>q.ge).concat(B.map(q=>q.exp)).concat(A.map(a=>a.ge)),lo=Math.floor(Math.min(...vals)*2)/2,hi=Math.max(lo+1,Math.ceil(Math.max(...vals)*2)/2),step=hi-lo>3?1:.5;
+    const am=A.map(a=>({t:a.t,v:a.ge}));
+    parts.push(`<h4 class="pv-h4">Grade level</h4>${line(q=>q.ge,{lo,hi,step,fmt:v=>v.toFixed(step<1?1:0),ref:q=>q.exp,marks:am,name:'Grade level over time',tip:q=>q.ge==null?when(q)+': no grade level yet':`${when(q)}: grade level ${q.ge.toFixed(1)} (average ${ord(grade)} grader ${q.exp.toFixed(1)})`})}
+      <div class="pv-legend"><span><i class="pv-key"></i>${esc(k.name)}</span><span><i class="pv-key ref"></i>Average student in her grade</span>${A.length?'<span><i class="pv-key dot"></i>Assessment</span>':''}</div>`);
+    parts.push(`<h4 class="pv-h4">National percentile (estimate)</h4>${line(q=>q.pct,{lo:0,hi:100,step:25,fmt:v=>String(v),marks:A.map(a=>({t:a.t,v:a.pct})),name:'Estimated national percentile over time',tip:q=>q.pct==null?when(q)+': no estimate yet':`${when(q)}: about the ${pctWord(q.pct)} percentile`})}`);
+    const mm=Math.max(4,...B.map(q=>q.m||0))+1,ms=niceMax(mm/4),mx=ms*Math.ceil(mm/ms);
+    parts.push(`<h4 class="pv-h4">Concepts mastered</h4>${line(q=>q.m,{lo:0,hi:mx,step:ms,fmt:v=>String(Math.round(v)),name:'Concepts mastered over time',tip:q=>q.m==null?when(q)+': none yet':`${when(q)}: ${q.m} concepts mastered`})}`)}
+  else parts.push('<p class="pv-p pv-soft">Grade level, percentile and concepts mastered are charted once the placement check or an assessment has placed some concepts.</p>');
+  parts.push(`<h4 class="pv-h4">Problems each ${per}</h4>${bars([{get:q=>q.ok,cls:''},{get:q=>Math.max(0,q.n-q.ok),cls:'b'},{get:q=>q.pre,cls:'c'}],{name:'Problems answered each '+per,fmt:v=>String(Math.round(v)),min:10,tip:q=>`${when(q)}: ${q.n} practice problems (${accTxt(q.ok,q.n)} right first try), ${q.pre} assessment questions (${q.pok} right)`})}
+    <div class="pv-legend"><span><i class="pv-key box"></i>Right first try</span><span><i class="pv-key box b"></i>Other practice</span><span><i class="pv-key box c"></i>Assessment questions</span></div>`);
+  parts.push(`<h4 class="pv-h4">Minutes each ${per}</h4>${bars([{get:q=>q.ms/60000,cls:''}],{name:'Minutes spent each '+per,fmt:v=>String(Math.round(v)),min:10,tip:q=>`${when(q)}: ${mins(q.ms)}${q.days&&U!=='day'?` over ${q.days} day${q.days===1?'':'s'}`:''}`})}`);
+  const all=CO.history(p,grade,'all').tot,row=(n,s)=>`<tr><td>${n}</td><td>${s.n}</td><td>${accTxt(s.ok,s.n)}</td><td>${s.pre}${s.pre?` <small class="pv-soft">(${accTxt(s.pok,s.pre)})</small>`:''}</td><td>${mins(s.ms)} <small class="pv-soft">${s.days} day${s.days===1?'':'s'}</small></td></tr>`;
+  parts.push(`<table class="pv-table tight"><tr><th></th><th>Practice</th><th>Right 1st try</th><th>Assessment</th><th>Time</th></tr>${row(RANGES.find(r=>r[0]===PVR)[1]==='All'?'All time':'Last '+RANGES.find(r=>r[0]===PVR)[1],H.tot)}${PVR!=='all'?row('All time',all):''}</table>`);
+  const AL=(p.asm||[]).slice().reverse();
+  if(AL.length)parts.push(`<h4 class="pv-h4">Assessments</h4><table class="pv-table tight"><tr><th>Date</th><th>Right</th><th>Grade level</th><th>Percentile</th></tr>${AL.map(a=>`<tr><td>${dShort(a.t0)}${a.t-a.t0>864e5/2?'–'+dShort(a.t):''} <small class="pv-soft">${a.by==='parent'?'assessment':'placement'}${a.done?'':` · ${a.partsDone} of ${a.parts} parts`}</small></td><td>${a.ok} of ${a.n}</td><td>${fmtGE(a.ge)}</td><td>${pctWord(a.pct)}</td></tr>`).join('')}</table>`);
+  return `<div class="card pv-card"><h3>History</h3>${tabs}${parts.join('')}<p class="pv-p pv-soft">Each point is where things stood at the end of that ${per}. Grade level and percentile are worked out from the concepts mastered by then${p.reset?`, counted from the reset on ${dShort(p.reset.t)}`:''}; rings mark assessments.</p></div>`}
 /* a parent can start an assessment any time: the child gets it as the next thing in the game, in blocks of about
    20 minutes, starting from what she has already mastered */
 function assessRow(k,p){const pre=p.pre;let st='';
   if(pre&&!pre.done){const pg=CO.pretestProgress(pre);st=`<b>${checkName(pre)} in progress:</b> block ${pg.block} of ${pg.blocks} is next (${pg.done} of ${pg.total} parts done). ${esc(k.name)} sees it first thing in the game.`}
   else st=pre&&pre.done?`Last ${checkName(pre).toLowerCase()}: ${dShort(pre.t)}.`:'No assessment yet.';
-  return `<div class="pv-assess"><p class="pv-p">${st}</p><button id="pvAssess" class="btn btn-sm" type="button">${pre&&!pre.done?'Restart the assessment':'Start a new assessment'}</button></div>`}
+  const canReset=pre&&pre.order.some(s=>pre.st[s].log.length);
+  return `<div class="pv-assess"><p class="pv-p">${st}</p><button id="pvAssess" class="btn btn-sm" type="button">${pre&&!pre.done?'Restart the assessment':'Start a new assessment'}</button>${canReset?'<button id="pvReset" class="btn btn-sm btn-ghost" type="button">Reset to this assessment</button>':''}</div>`}
+let resetArm=0;
+/* the reset: progress rebuilt from the latest assessment alone (COACH.resetToAssessment); two taps, like starting one */
+function wireReset(k){const b=$('#pvReset');if(!b)return;b.onclick=()=>{Snd.click();const p=saves[k.id];if(!p||!p.pre)return;
+  if(Date.now()-resetArm>5000){resetArm=Date.now();b.textContent=`Tap again: rebuild ${k.name}'s progress from the ${dShort(p.pre.t||Date.now())} assessment only`;return}resetArm=0;
+  const r=CO.resetToAssessment(p);if(!r)return;saves[k.id]=normalize(r.p);if(CLOUD)Net.schedule(k.id);
+  toast(`Reset. ${r.mastered} concepts from the assessment are mastered${r.again.length?`; ${r.again.length} part${r.again.length===1?'':'s'} she went through too fast come again next time she plays`:''}.`);renderParent()}}
 let assessArm=0;
 function wireAssess(k){const b=$('#pvAssess');if(!b)return;b.onclick=()=>{Snd.click();
   if(Date.now()-assessArm>4000){assessArm=Date.now();b.textContent=`Tap again to start it for ${k.name}`;return}assessArm=0;

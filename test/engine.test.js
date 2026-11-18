@@ -177,4 +177,48 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   ok(first.every(s => pre.st[s].done) && (pre.bt || 0) > E.BLOCK_MS, 'a slow first block runs past 20 minutes and finishes its parts (' + k + ' questions)');
   ok(E.pretestAdvance(pre) && E.pretestNext(pre) && !pre.short, 'the next block follows, with the same thorough search');
 }
+/* a kid set to start at 4th grade: the first check never goes below 4th grade and counts 2nd and 3rd as known */
+{ const pre = E.pretestStart(4, { floor: 4 }); let k = 0;
+  ok(pre.floor === 4 && pre.order.every(sid => { const s = E.STR.find(x => x.id === sid), st = pre.st[sid]; return C.S[s.core[st.at]].g >= 4 && (st.lo < 0 || C.S[s.core[st.lo]].g < 4); }), 'floor 4: every part starts at a 4th-grade concept');
+  while (E.pretestNext(pre) && k < 400) { E.pretestRecord(pre, false, 30000); k++; if (!E.pretestNext(pre) && !E.pretestAdvance(pre)) break; }
+  const p = { cs: {}, mist: {} }; E.pretestApply(p, pre, 1e12);
+  const core = C.LIST.filter(c => !E.isExtra(c.id));
+  ok(core.filter(c => c.g < 4 && E.STR.some(s => s.core.includes(c.id))).every(c => E.isMastered(p, c.id)), 'floor 4: missing everything still leaves 2nd and 3rd grade mastered');
+  ok(!core.some(c => c.g >= 4 && E.isMastered(p, c.id)), 'floor 4: nothing from 4th grade up is mastered by missing it');
+  ok(E.pretestStart(4).floor === 0 && E.pretestStart(4, { floor: 4, p: p }).floor === 0, 'no floor without one, or on a later assessment'); }
+/* a part tapped through (under 7 s a question) is asked again once; the pace ignores that block */
+{ const pre = E.pretestStart(3), b0 = pre.blocks[0].slice(); let k = 0;
+  while (E.pretestNext(pre) && k < 200) { E.pretestSkip(pre, 1500); k++; }
+  const pace0 = pre.pace; ok(E.pretestAdvance(pre) && pre.again.length === b0.length && b0.every(s => !pre.st[s].done && pre.st[s].redo === 1 && pre.st[s].prev.n > 0), 'a block tapped through is asked again (' + pre.again.length + ' parts)');
+  ok(pre.pace === pace0, 'a tapped-through block does not change her pace');
+  k = 0; while (E.pretestNext(pre) && k < 400) { E.pretestSkip(pre, 1500); k++; if (!E.pretestNext(pre) && !E.pretestAdvance(pre)) break; }
+  ok(b0.every(s => pre.st[s].done && pre.st[s].redo === 1), 'only once: tapped through again, it stands'); }
+/* the parent's reset: progress from the latest assessment alone */
+{ const pre = E.pretestStart(3, { by: 'parent' }); pre.started = 1e12; let k = 0;
+  for (const sid of pre.blocks[0]) while (!pre.st[sid].done && k < 300) { E.pretestRecord(pre, k % 3 !== 2, 60000); k++; }
+  E.pretestAdvance(pre); for (const sid of pre.blocks[1] || []) while (!pre.st[sid].done && k < 600) { E.pretestSkip(pre, 900); k++; }
+  pre.t = 1e12 + 3600e3;
+  const p = { cur: 77, owned: ['lagoon:frog'], char: { lagoon: 'frog' }, look: 'candy', games: 3, pre, cs: { a_ten: { m: 5, r: 9, w: 0, lv: 2 }, x_order: { m: pre.t + 10, lx: pre.t + 99, at: pre.t + 99, r: 1, w: 3 } }, mist: { a_ten: { n: 2, ok: 0, t: 1 } },
+    log: { [E.dayKey(pre.t)]: { n: 10, ok: 6, ms: 5000, pre: k, pok: 3, ac: 1, al: 1 }, [E.dayKey(pre.t + 3 * E.DAY)]: { n: 8, ok: 8, ms: 900 } }, blk: { t0: pre.t + 5, t: pre.t + 50, day: E.dayKey(pre.t), n: 4, ok: 1, ms: 2000 }, bhist: [], help: [{ id: 'a_ten', t: 3 }] };
+  const r = E.resetToAssessment(p, pre.t + 5 * E.DAY), q = r.p;
+  ok(r.mastered > 0 && Object.values(q.cs).every(s => !s.m || s.pl), 'reset: only what the assessment placed is mastered (' + r.mastered + ')');
+  ok(!q.cs.x_order || !q.cs.x_order.m, 'reset: concepts mastered after the assessment are gone');
+  ok(r.again.length === (pre.blocks[1] || []).length && !q.pre.done && E.pretestNext(q.pre), 'reset: the tapped-through parts are asked again, first thing (' + r.again.join(', ') + ')');
+  ok(q.cur === 77 && q.owned[0] === 'lagoon:frog' && q.look === 'candy' && !Object.keys(q.mist).length && !q.help.length && !q.blk && q.reset.t === pre.t + 5 * E.DAY, 'reset: treats, characters and world stay; practice records are cleared');
+  const L0 = q.log[E.dayKey(pre.t)], L3 = q.log[E.dayKey(pre.t + 3 * E.DAY)];
+  ok(L0.n === 6 && L0.ok === 5 && L0.pre === k && L0.ac === 0 && L0.al === 0 && !L3.n, 'reset: practice after the assessment is taken out of the daily log');
+  ok(q.asm.length === 1 && q.asm[0].t0 === 1e12 && !q.asm[0].done && q.asm[0].ge > 2, 'reset: the assessment goes into the history');
+  const R = E.report(q, 3, pre.t + 5 * E.DAY); const dn = q.pre.order.filter(s => q.pre.st[s].done).length; ok(R.placed === (dn * 2 >= q.pre.order.length) && R.partial === R.placed, 'reset: the report works from the parts done so far once half are done (' + dn + ' of ' + q.pre.order.length + ')');
+  /* finishing the assessment runs the analysis again */
+  k = 0; while (E.pretestNext(q.pre) && k < 400) { E.pretestRecord(q.pre, true, 40000); k++; if (!E.pretestNext(q.pre) && !E.pretestAdvance(q.pre)) break; }
+  q.pre.done = true; const m0 = E.masteredCount(q); E.pretestApply(q, q.pre); E.asmNote(q, q.pre);
+  ok(E.masteredCount(q) > m0 && !E.report(q, 3).partial && q.asm.length === 1 && q.asm[0].done, 'finishing it adds what it placed and updates the history line'); }
+/* history: buckets by day, week and month */
+{ const now = new Date(2026, 10, 17, 18).getTime(), p = { cs: { a_ten: { m: now - 40 * E.DAY, lv: 2 }, a_fives: { m: now - 2 * E.DAY, lv: 2 } }, log: {} };
+  for (let i = 0; i < 60; i += 3) p.log[E.dayKey(now - i * E.DAY)] = { n: 10, ok: 7, ms: 60000, pre: i === 3 ? 5 : 0, pok: 0 };
+  const h7 = E.history(p, 3, '7d', now), h30 = E.history(p, 3, '30d', now), h3 = E.history(p, 3, '3m', now), hy = E.history(p, 3, '1y', now), ha = E.history(p, 3, 'all', now);
+  ok(h7.unit === 'day' && h7.buckets.length === 7 && h7.tot.n === 30 && h7.tot.pre === 5, '7 days: one bar a day, totals add up');
+  ok(h30.buckets.length === 30 && h3.unit === 'week' && hy.unit === 'month' && hy.buckets.length === 13 && ha.unit === 'week', 'longer spans group by week or month');
+  ok(h3.tot.n === hy.tot.n && hy.tot.n === 200, 'every day is counted once (' + hy.tot.n + ')');
+  ok(h30.buckets[0].m === 1 && h30.buckets[29].m === 2 && h30.buckets[29].ge > h30.buckets[0].ge && hy.buckets[0].ge === null, 'grade level and concepts climb as concepts are mastered, and start at the first one'); }
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');

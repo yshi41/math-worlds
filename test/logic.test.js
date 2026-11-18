@@ -51,5 +51,19 @@ const assert = require('assert');
   eq(lowersProgress({ cs: { a_ten: { m: 5 } }, cur: 0 }, { cs: { a_ten: { m: 5 } }, cur: 500 }), false, 'spending is allowed');
   eq(lowersProgress({ cs: {} }, { stars: { split: 3 } }), false, 'a first-version save with stars can move to concepts');
   eq(lowersProgress(out, theirs), false);
+  /* a parent's reset to the latest assessment */
+  { const before = { cur: 50, owned: ['lagoon:seal'], cs: { a_ten: { m: 5 }, c_coins: { m: 6 } }, asm: [{ t0: 1, t: 2 }] };
+    const reset = { cur: 50, owned: ['lagoon:seal'], cs: { a_ten: { m: 9, pl: 1 } }, reset: { t: 1000 }, asm: [{ t0: 1, t: 3 }] };
+    eq(lowersProgress(reset, before), false, 'a newer reset may drop mastered concepts');
+    eq(lowersProgress({ ...reset, owned: [] }, before), true, 'a reset never drops characters');
+    eq(lowersProgress(before, reset), true, 'a save from before the reset cannot undo it');
+    const other = { cur: 70, owned: ['lagoon:seal', 'candy:pig'], cs: { a_ten: { m: 5 }, c_coins: { m: 6 }, m_x9: { m: 7 } }, look: 'lagoon' };
+    const m1 = mergeState({ ...reset, look: 'candy' }, other, before);
+    ok(m1.reset.t === 1000 && !m1.cs.c_coins && !m1.cs.m_x9 && m1.cur === 70 && m1.owned.includes('candy:pig') && m1.look === 'candy', 'this page reset: the reset stands; the other device\'s treats and characters are kept');
+    const stale = { cur: 60, owned: ['lagoon:seal'], cs: { a_ten: { m: 5 }, c_coins: { m: 6 }, m_x9: { m: 8 } }, look: 'candy' };
+    const m2 = mergeState(stale, reset, before);
+    ok(m2.reset.t === 1000 && !m2.cs.c_coins && !m2.cs.m_x9 && m2.cur === 60 && m2.look === 'candy' && lowersProgress(m2, reset) === false, 'another device reset: this page\'s older progress is dropped, its treats kept');
+    const a = mergeState({ ...reset, asm: [{ t0: 1, t: 4 }, { t0: 9, t: 9 }] }, reset, reset);
+    eq(a.asm.map(x => x.t0 + ':' + x.t), ['1:4', '9:9'], 'assessment history merges by start time, newer copy wins'); }
   console.log('logic: ' + n + ' checks ok');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -489,6 +489,16 @@ g[data-tip]:hover .pv-bar{opacity:.8}
 .pv-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;color:var(--ink-soft);margin-top:6px}
 .pv-key{display:inline-block;width:22px;height:0;vertical-align:middle;margin-right:6px;border-top:3px solid var(--accent)}
 .pv-key.ref{border-top:2px dashed var(--ink-soft)}
+.pv-key.box{width:12px;height:12px;border:0;border-radius:3px;background:var(--accent)}
+.pv-key.box.b,.pv-bar.b{background:color-mix(in srgb,var(--accent) 40%,var(--surface));fill:color-mix(in srgb,var(--accent) 40%,var(--surface))}
+.pv-key.box.c{background:var(--sky)}.pv-bar.c{fill:var(--sky)}
+.pv-key.dot{width:9px;height:9px;border:2.5px solid var(--sky);border-radius:50%;background:var(--surface)}
+.pv-pt{fill:var(--accent)}
+.pv-asm{fill:none;stroke:var(--sky);stroke-width:2.5}
+.pv-range{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.pv-range .tog{min-height:34px;padding:4px 12px;font-size:.85rem}
+.pv-h4{margin:16px 0 4px;font-size:.95rem}
+.pv-table.tight{font-size:.82rem}.pv-table.tight th,.pv-table.tight td{padding:4px 3px}.pv-table.tight th{font-size:.68rem;letter-spacing:0}
 .pv-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem;font-variant-numeric:tabular-nums}
 .pv-table th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:4px 6px;border-bottom:2px solid var(--line)}
 .pv-table td{padding:6px;border-bottom:1px solid var(--line);font-weight:400;vertical-align:top}

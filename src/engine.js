@@ -182,17 +182,30 @@ function planBlocks(pre, sids) {
   if (out.length > 1 && est(out[out.length - 1]) < BLOCK_MS * 0.35 && est(out[out.length - 2]) + est(out[out.length - 1]) <= BLOCK_MS * 1.3) out.splice(-2, 2, out[out.length - 2].concat(out[out.length - 1]));
   return out;
 }
-/* opts: { p: the save (a later assessment starts at what is already mastered), by: 'parent', pace, short } */
+/* a kid set to start at a grade (floor): on the first check every Common Core concept below that grade counts as known
+   and the search never goes lower; memory checks still come back to those concepts over the next week */
+const floorIdx = (s, floor) => { if (!floor) return 0; const i = s.core.findIndex(id => S[id].g >= floor); return i < 0 ? s.core.length : i; };
+function firstAt(s, grade, L, f) { let e = s.core.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1; e = Math.max(0, e - (e > 2 ? 1 : 0)); return Math.min(L - 1, Math.max(e, f)); }
+/* opts: { p: the save (a later assessment starts at what is already mastered), by: 'parent', pace, short, floor } */
 function pretestStart(grade, opts) {
-  opts = opts || {}; const p = opts.p, st = {}, order = [];
+  opts = opts || {}; const p = opts.p, st = {}, order = [], floor = p && p.cs ? 0 : (opts.floor | 0);
   let cap = grade + 1;
   if (p && p.cs) { const ge = gradeLevel(p, null); if (ge) cap = Math.min(12, Math.max(grade + 1, Math.floor(ge.ge) + 1)); }
-  STR.forEach(s => { const L = capLen(s, grade, cap); if (!L) return; let e;
+  STR.forEach(s => { const L = capLen(s, grade, cap); if (!L) return; let e; const f = floorIdx(s, floor);
     if (p && p.cs) { e = s.core.findIndex(id => !isMastered(p, id)); if (e < 0 || e >= L) return; }
-    else { e = s.core.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1; e = Math.max(0, e - (e > 2 ? 1 : 0)); }
-    order.push(s.id); st[s.id] = { lo: -1, hi: L, at: e, step: 0, done: false, log: [], ms: 0 }; });
-  const pre = { v: 2, grade, cap, st, order, done: false, t: 0, by: opts.by || null, pace: opts.pace || 1, short: !!opts.short, bi: 0, bt: 0, bms: [], started: 0 };
+    else { if (f >= L) return; e = firstAt(s, grade, L, f); }
+    order.push(s.id); st[s.id] = { lo: f - 1, hi: L, at: e, at0: e, step: 0, done: false, log: [], ms: 0 }; });
+  const pre = { v: 2, grade, cap, st, order, done: false, t: 0, by: opts.by || null, pace: opts.pace || 1, short: !!opts.short, bi: 0, bt: 0, bms: [], started: 0, floor };
   pre.blocks = planBlocks(pre, order); return pre;
+}
+/* a part answered faster than anyone can read the questions (under 7 s a question on average, skips included) was
+   tapped through, so it tells us nothing: it is asked again once, from where it started */
+const RUSH_MS = 7000;
+function rushed(st) { const n = st && st.log ? st.log.length : 0; return n > 0 && (st.ms || 0) / n < RUSH_MS; }
+function strandReopen(pre, sid) {
+  const s = STR.find(x => x.id === sid), st = pre.st[sid]; if (!s || !st) return;
+  const L = capLen(s, pre.grade, pre.cap), f = floorIdx(s, pre.floor), e = st.at0 != null ? st.at0 : firstAt(s, pre.grade, L, f);
+  pre.st[sid] = { lo: f - 1, hi: L, at: Math.min(e, L - 1), at0: e, step: 0, done: false, log: [], ms: 0, redo: (st.redo | 0) + 1, prev: { n: st.log.length, ms: st.ms || 0, right: st.log.filter(x => x[2]).length } };
 }
 /* older saves: a check without blocks becomes one planned in blocks from where it is */
 function pretestFix(pre) {
@@ -213,20 +226,24 @@ function pretestNext(pre) {
 function settle(st, short) { st.step = 0; if (st.hi - st.lo <= (short ? 2 : 1)) { st.done = true; st.start = st.lo + 1; return; } st.at = Math.floor((st.lo + st.hi + 1) / 2); if (st.at <= st.lo) st.at = st.lo + 1; if (st.at >= st.hi) st.at = st.hi - 1; }
 function pretestRecord(pre, ok, ms) {
   const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
-  st.log.push([nx.skill, nx.d, ok ? 1 : 0]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now();
+  st.log.push([nx.skill, nx.d, ok ? 1 : 0, 0, Math.round(ms)]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now();
   if (!pre.short && st.step === 0 && ok) { st.step = 1; return; }
   if (ok) st.lo = Math.max(st.lo, st.at); else { st.hi = Math.min(st.hi, st.at); if (st.step === 1) st.half = st.at; }
   settle(st, pre.short);
 }
 function pretestSkip(pre, ms) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
-  st.log.push([nx.skill, nx.d, 0, 1]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
+  st.log.push([nx.skill, nx.d, 0, 1, Math.round(ms)]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
 /* a block is finished: record its time, adapt to the kid's pace, move on. Returns true when another block is left. */
 function pretestAdvance(pre) {
   pretestFix(pre); const blk = blockOf(pre);
   /* her pace: the time she took over the time an average kid takes on the same questions */
   const est = pre.be || blk.reduce((a, sid) => a + (pre.st[sid].log.length * avgSec(pre.st[sid].log[0] ? pre.st[sid].log[0][0] : STR.find(x => x.id === sid).core[0]) * 1000), 0);
   const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0; pre.be = 0;
-  if (est > 0 && ms > 0) { const r = ms / est, n = pre.bms.length; pre.pace = ((pre.pace || 1) * (n - 1) + r) / n; }
+  /* a block she tapped through says nothing about her pace */
+  if (est > 0 && ms > 0 && ms / est >= 0.25) { const r = ms / est, n = (pre.pn != null ? pre.pn : pre.bms.length - 1) + 1; pre.pn = n; pre.pace = ((pre.pace || 1) * (n - 1) + r) / n; }
+  /* parts she tapped through are asked again, once */
+  pre.again = blk.filter(sid => pre.st[sid] && pre.st[sid].done && !pre.st[sid].redo && rushed(pre.st[sid]));
+  pre.again.forEach(sid => strandReopen(pre, sid));
   /* the check is never shortened for a slow kid: the rest of it is planned at her pace, in more blocks if need be */
   pre.bi = (pre.bi || 0) + 1;
   const left = pre.order.filter(s => pre.st[s] && !pre.st[s].done);
@@ -240,12 +257,49 @@ function pretestProgress(pre) { pretestFix(pre); let done = 0; pre.order.forEach
    days); a start concept whose medium problem was right begins at the medium level */
 function pretestApply(p, pre, now) {
   now = now || Date.now(); const out = { mastered: 0, starts: {} };
+  if (pre.floor) STR.forEach(s => { const f = floorIdx(s, pre.floor);
+    for (let i = 0; i < f; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); cs(p, id).pl = 1; out.mastered++; } } });
   pre.order.forEach(sid => { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s) return;
     const upto = st.done ? st.start : st.lo + 1;
     for (let i = 0; i < upto; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); cs(p, id).pl = 1; out.mastered++; } }
     const sid2 = s.core[upto]; out.starts[sid] = sid2 || null;
     if (sid2 && st.half === upto) { const c = cs(p, sid2); if (!c.m && c.lv < 1) c.lv = 1; } });
   p.now = null; return out;
+}
+/* one line per assessment for the history: kept in the save, updated after every block */
+function asmNote(p, pre, now) {
+  if (!pre || !pre.st) return null; now = now || Date.now();
+  let n = 0, ok = 0, sk = 0, done = 0, again = 0; pre.order.forEach(sid => { const x = pre.st[sid]; (x.log || []).forEach(e => { n++; if (e[2]) ok++; if (e[3]) sk++; }); if (x.done) done++; if (x.redo) again++; });
+  const ge = gradeLevel(p, null).ge, st = schoolTime(now), grade = pre.grade || 3;
+  const e = { t0: pre.started || pre.t || now, t: now, by: pre.by || 'placement', done: !!pre.done, parts: pre.order.length, partsDone: done, again, n, ok, sk, ms: (pre.bms || []).reduce((a, b) => a + b, 0) + (pre.bt || 0),
+    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p) };
+  const L = (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t0 !== e.t0); L.push(e); L.sort((a, b) => a.t0 - b.t0); p.asm = L.slice(-50); return e;
+}
+/* the parent's reset: progress rebuilt from the latest assessment alone. What it placed is mastered and nothing else;
+   parts she tapped through are opened again and come first next time she plays, and when the assessment is finished the
+   analysis runs again. Practice after the assessment (memory checks, tricky spots, help lessons, blocks) is cleared and
+   taken out of the daily log; treats, characters, world, settings and the history of assessments stay. Returns
+   { p: the new save, mastered, again } or null when there is no assessment. The save service accepts it because it
+   carries a newer reset time. */
+function resetToAssessment(p, now) {
+  now = now || Date.now(); if (!p || !p.pre || !p.pre.st) return null;
+  const q = JSON.parse(JSON.stringify(p.pre)); pretestFix(q); const T = q.t || now;
+  const again = q.order.filter(sid => q.st[sid].done && !q.st[sid].redo && rushed(q.st[sid])); again.forEach(sid => strandReopen(q, sid));
+  const left = q.order.filter(sid => !q.st[sid].done);
+  if (left.length) { const bi = q.done ? q.blocks.length : (q.bi || 0); q.done = false; q.bi = bi; q.blocks = q.blocks.slice(0, bi).concat(planBlocks(q, left)); }
+  /* the daily log keeps the history, minus the practice done after the assessment */
+  const d0 = dayKey(T), csv = Object.values(p.cs || {}).filter(s => s && typeof s === 'object');
+  const post = { ac: csv.filter(s => s.at >= T).length, al: csv.filter(s => s.lx >= T).length }; post.ap = csv.filter(s => s.at >= T && !s.sh && !(s.lx >= T)).length;
+  const blocks = (Array.isArray(p.bhist) ? p.bhist : []).concat(p.blk ? [p.blk] : []).filter(b => b && (b.t || b.t0) > T);
+  const log = {}; for (const k in (p.log || {})) { const e = Object.assign({}, p.log[k]);
+    if (k > d0) { ['n', 'ok', 'ms', 'ac', 'ap', 'al', 'hq', 'hok'].forEach(f => delete e[f]); }
+    else if (k === d0) { blocks.filter(b => dayKey(b.t0) === k).forEach(b => { e.n = Math.max(0, (e.n | 0) - (b.n | 0)); e.ok = Math.max(0, (e.ok | 0) - (b.ok | 0)); e.ms = Math.max(0, (e.ms || 0) - (b.ms || 0)); });
+      ['ac', 'ap', 'al'].forEach(f => { if (e[f] != null) e[f] = Math.max(0, e[f] - post[f]); }); }
+    log[k] = e; }
+  const np = { cur: p.cur | 0, cs: {}, mist: {}, owned: (p.owned || []).slice(), char: Object.assign({}, p.char), look: p.look || null, games: p.games | 0, pre: q, now: null, round: { done: true, t: now },
+    set: p.set || null, log, apace: p.apace == null ? null : p.apace, help: [], blk: null, ppace: null, bhist: [], asm: (Array.isArray(p.asm) ? p.asm : []).slice(), reset: { t: now, from: q.started || T }, updated: now };
+  const res = pretestApply(np, q, T); asmNote(np, q, T);
+  return { p: np, mastered: res.mastered, again };
 }
 
 /* ---------- the parent report ----------
@@ -301,7 +355,8 @@ function schoolTime(date) {
 const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 function report(p, grade, now) {
   now = now || Date.now(); const st = schoolTime(now), expect = grade + st.week / 36;
-  const pre = p.pre, placed = !!(pre && pre.done), capG = pre && pre.cap ? pre.cap : (pre && pre.grade ? pre.grade : grade) + 1;
+  /* an assessment counts once it is finished, or once half its parts are (the rest re-runs the analysis when done) */
+  const pre = p.pre, placed = !!(pre && (pre.done || pre.order.filter(s => pre.st[s] && pre.st[s].done).length * 2 >= pre.order.length)), partial = !!(pre && placed && !pre.done), capG = pre && pre.cap ? pre.cap : (pre && pre.grade ? pre.grade : grade) + 1;
   const core = LIST.filter(c => !isExtra(c.id));
   const how = id => { const s = p.cs[id]; if (!live(s)) return null; if (s.pl || (pre && pre.t && !(s.r + s.w) && Math.abs(s.m - pre.t) < 6e4)) return 'placement'; return s.to ? 'test' : 'practice'; };
   const ceilFor = strands => placed && core.filter(c => (!strands || strands.includes(c.s)) && c.g <= capG).every(c => isMastered(p, c.id));
@@ -332,7 +387,7 @@ function report(p, grade, now) {
     if (!trend.length || trend[trend.length - 1].t < now - 60000) trend.push({ t: now, ge: ov.ge }); }
   /* the placement check */
   const placement = pre ? { done: placed, t: pre.t, grade: pre.grade, cap: capG, by: pre.by || null, bms: pre.bms || [], nBlocks: pre.blocks ? pre.blocks.length : 1, bi: pre.bi || 0, short: !!pre.short, adapted: pre.adapted || 0, pace: pre.pace || 1, parts: pre.order.map(sid => { const x = pre.st[sid], s = STR.find(q => q.id === sid); const lg = x.log || [];
-    return { id: sid, name: s ? s.name : sid, done: !!x.done, start: x.done && s ? s.core[x.start] || null : null, asked: lg.length, right: lg.filter(e => e[2]).length, skipped: lg.filter(e => e[3]).length }; }) } : null;
+    return { id: sid, name: s ? s.name : sid, done: !!x.done, redo: x.redo | 0, prev: x.prev || null, start: x.done && s ? s.core[x.start] || null : null, asked: lg.length, right: lg.filter(e => e[2]).length, skipped: lg.filter(e => e[3]).length }; }) } : null;
   /* memory checks */
   const csv = Object.keys(p.cs).filter(id => S[id]).map(id => [id, p.cs[id]]);
   const retention = { due: due(p, now).length, checked: csv.filter(([, s]) => s.at).length, pass: csv.reduce((a, [, s]) => a + (s.ap | 0), 0), shaky: csv.reduce((a, [, s]) => a + (s.as | 0), 0), lapses: csv.reduce((a, [, s]) => a + (s.al | 0), 0),
@@ -340,12 +395,36 @@ function report(p, grade, now) {
     recent: csv.filter(([, s]) => s.at).map(([id, s]) => ({ id, at: s.at, res: s.lx && s.lx === s.at ? 'lapse' : s.sh ? 'shaky' : 'pass' })).sort((a, b) => b.at - a.at).slice(0, 12) };
   const answered = Math.max(all.r + all.w, ever.n);
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
-  return { now, grade, week: st.week, expect, placed, capG, overall, domains, pct, ceilPct, confidence, answered,
+  return { now, grade, week: st.week, expect, placed, partial, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
     learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, retention, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
 
-const API = { init, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+/* the history charts: activity from the daily log, and grade level, percentile and concepts mastered at the end of
+   each day, week or month. range: '7d', '30d', '3m', '1y' or 'all'. Days up to a month are shown day by day, up to
+   about 6 months week by week (weeks start on Sunday), longer month by month. */
+function history(p, grade, range, now) {
+  now = now || Date.now(); const log = p.log || {}, td = new Date(now), day0 = new Date(td.getFullYear(), td.getMonth(), td.getDate());
+  const csl = Object.values(p.cs || {}).filter(s => live(s) && s.m > 0), firstM = csl.length ? Math.min(...csl.map(s => s.m)) : null;
+  let n = { '7d': 7, '30d': 30, '3m': 91, '1y': 365 }[range];
+  if (!n) { const ks = Object.keys(log).map(k => new Date(k + 'T12:00').getTime()).filter(isFinite).concat(firstM ? [firstM] : [], (Array.isArray(p.asm) ? p.asm : []).map(a => a && a.t0).filter(x => x > 0));
+    const t0 = ks.length ? new Date(Math.min(...ks)) : day0; n = Math.max(7, Math.round((day0 - new Date(t0.getFullYear(), t0.getMonth(), t0.getDate())) / DAY) + 1); }
+  const unit = n <= 31 ? 'day' : n <= 200 ? 'week' : 'month', start = new Date(day0.getFullYear(), day0.getMonth(), day0.getDate() - (n - 1)), B = [];
+  if (unit === 'day') for (let i = 0; i < n; i++) B.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+  else if (unit === 'week') for (let d = new Date(start.getFullYear(), start.getMonth(), start.getDate() - start.getDay()); d <= day0; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7)) B.push(d);
+  else for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d <= day0; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) B.push(d);
+  const end = new Date(day0.getFullYear(), day0.getMonth(), day0.getDate() + 1), yr = schoolTime(now).year;
+  const buckets = B.map((a, i) => { const b = B[i + 1] || end, o = { a: a.getTime(), b: b.getTime(), n: 0, ok: 0, pre: 0, pok: 0, ms: 0, days: 0 };
+    for (let d = new Date(Math.max(a, start)); d < b; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) { const e = log[dayKey(d)]; if (!e) continue;
+      o.n += e.n | 0; o.ok += e.ok | 0; o.pre += e.pre | 0; o.pok += e.pok | 0; o.ms += e.ms || 0; if ((e.n | 0) + (e.pre | 0)) o.days++; }
+    const t = Math.min(o.b - 1, now), sw = schoolTime(t), g = Math.max(2, grade - (yr - sw.year)); o.t = t; o.exp = g + sw.week / 36;
+    if (firstM && t >= firstM) { o.ge = gradeLevel(p, null, t).ge; o.pct = percentileFor(o.ge, g, sw.week).pct; o.m = csl.filter(s => s.m <= t).length; } else o.ge = o.pct = o.m = null;
+    return o; });
+  const tot = { n: 0, ok: 0, pre: 0, pok: 0, ms: 0, days: 0 }; buckets.forEach(o => { for (const f in tot) tot[f] += o[f]; });
+  return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
+}
+
+const API = { init, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

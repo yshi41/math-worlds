@@ -10,8 +10,25 @@ const delta = (a, b) => num(a) - num(b);
 
 export const KIDS = ['charlie', 'riley', 'yan'];
 
+/* when a parent reset the progress to the latest assessment (reset.t), the copy with the newer reset is the truth for
+   progress; the other copy only adds its treats, characters and choices */
+const resetT = o => num(isObj(o.reset) ? o.reset.t : 0);
+function afterReset(win, other, otherBase, choicesFrom) {
+  const out = clone(win);
+  out.cur = Math.max(0, num(win.cur) + Math.max(0, delta(other.cur, otherBase.cur)));
+  out.owned = [...new Set([...(Array.isArray(win.owned) ? win.owned : []), ...(Array.isArray(other.owned) ? other.owned : [])].filter(x => typeof x === 'string'))];
+  out.char = Object.assign({}, isObj(win.char) ? win.char : {}, isObj(choicesFrom.char) ? choicesFrom.char : {});
+  if ('look' in choicesFrom) out.look = choicesFrom.look;
+  if ('set' in choicesFrom) out.set = clone(choicesFrom.set);
+  out.updated = Date.now(); return out;
+}
+
 export function mergeState(mine, theirs, base) {
   mine = isObj(mine) ? mine : {}; theirs = isObj(theirs) ? theirs : {}; base = isObj(base) ? base : {};
+  /* this page reset after another device saved: the reset stands, that device's treats are kept */
+  if (resetT(mine) > resetT(theirs)) return afterReset(mine, theirs, base, mine);
+  /* another device reset after this page loaded: this page's progress from before the reset is dropped */
+  if (resetT(theirs) > resetT(mine)) return afterReset(theirs, mine, base, mine);
   const out = clone(theirs);
   out.cur = Math.max(0, num(theirs.cur) + delta(mine.cur, base.cur));
   out.games = num(theirs.games) + Math.max(0, delta(mine.games, base.games));
@@ -56,6 +73,9 @@ export function mergeState(mine, theirs, base) {
   /* help lessons: every lesson from both devices, by time, the last 60 */
   const hs = {}; for (const h of [...(Array.isArray(theirs.help) ? theirs.help : []), ...(Array.isArray(mine.help) ? mine.help : [])]) if (isObj(h) && num(h.t)) hs[h.id + '@' + h.t] = h;
   out.help = Object.values(hs).sort((a, b) => num(a.t) - num(b.t)).slice(-60);
+  /* the history of assessments: one line per assessment (by when it started), the newer copy of each */
+  const am = {}; for (const a of [...(Array.isArray(theirs.asm) ? theirs.asm : []), ...(Array.isArray(mine.asm) ? mine.asm : [])]) if (isObj(a) && num(a.t0) && (!am[a.t0] || num(a.t) >= num(am[a.t0].t))) am[a.t0] = a;
+  out.asm = Object.values(am).sort((a, b) => num(a.t0) - num(b.t0)).slice(-50);
   /* the daily activity log for the parent report: each day's counters move by this page's difference */
   out.log = clone(isObj(theirs.log) ? theirs.log : {});
   const ml = isObj(mine.log) ? mine.log : {}, bl = isObj(base.log) ? base.log : {};
@@ -69,9 +89,13 @@ export function mergeState(mine, theirs, base) {
   return out;
 }
 
-/* true when a save would throw away earned progress (a mastered concept, an unlocked character) */
+/* true when a save would throw away earned progress (a mastered concept, an unlocked character). A parent's reset to
+   the latest assessment (a newer reset.t) may drop mastered concepts; characters are never lost. */
 export function lowersProgress(next, cur) {
   if (!isObj(cur) || !isObj(next)) return false;
+  const owned0 = Array.isArray(next.owned) ? next.owned : [];
+  if (resetT(next) > resetT(cur)) return (Array.isArray(cur.owned) ? cur.owned : []).some(id => !owned0.includes(id));
+  if (resetT(next) < resetT(cur)) return true;
   const c = isObj(cur.cs) ? cur.cs : {}, n = isObj(next.cs) ? next.cs : {};
   for (const key in c) if (isObj(c[key]) && num(c[key].m) > 0 && !(isObj(n[key]) && num(n[key].m) > 0)) return true;
   const owned = Array.isArray(next.owned) ? next.owned : [];
