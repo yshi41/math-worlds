@@ -89,21 +89,45 @@ blocks are kept in `bhist` for the parent view.
 What the block does next depends on how the kid is doing:
 
 - A memory check at the start of each block (3 due concepts, 4 when 6 or more are due) and a short one (2) after each
-  concept is mastered, at most 6 concepts a block and none when fewer than 6 problems are left.
+  concept is mastered, at most 6 concepts a block and none when fewer than 6 problems are left. One or two of them are
+  earlier-grade concepts that are only assumed (see Earlier-grade spot checks below), at most 2 a block.
 - When she is struggling with the concept she is learning (under 60% right after 8 tries, or she dropped a level), the
   concepts it is built on are checked, even before they are due (each at most every 3 days).
 - Levels, tricky spots, break-downs and help lessons adapt within each round, as below.
 
 ## Memory checks
 
-Every mastered concept is checked again 1, 3, 9, 27 and 81 days after it is mastered (or 1 to 7 days after the
-placement check marks it mastered). A check is two problems per concept, medium then hard, mixed with the other
+Every concept mastered in the game is checked again 1, 3, 9, 27 and 81 days after it is mastered, then every 81 days.
+A check is two problems per concept, medium then hard, mixed with the other
 concepts being checked, with no hints and no feedback until the end, like an assessment. Both right: it held, and the
 next check waits three times as long. One right: wobbly, checked again tomorrow; wobbly twice counts as slipped. None
 right: slipped. A slipped concept stops counting as mastered (the parent report and grade level drop with it), goes back
 on the path ahead of anything new, opens on its lesson again, and has to be mastered again from the medium level (or
 the easy level if both were wrong). In the save it keeps `m` (first mastered, which the save service never drops) and
 gets `lx` (when it slipped); mastering it again clears `lx` and sets `rm`.
+
+A check answered faster than anyone can read it (under 7 seconds a problem on average) was tapped through. It does
+not count: nothing changes, the results say "Too fast to count", the parent view and the daily email note it, and the
+same concepts come back in a later block.
+
+### Earlier-grade spot checks
+
+Some concepts count as mastered without ever being practised in the game: those a placement check or assessment
+placed, and everything below the grade a kid is set to start at. They are assumed, not proven, so they are audited now
+and then rather than all at once (`COACH.earlyPick`):
+
+- at most 2 in a practice block (one or two as the block opens, one more after a concept is mastered), starting the
+  day after they were placed;
+- the strand checked least so far goes first, and within it the most advanced concept, so the checks work down from
+  the kid's grade;
+- both problems right: the idea has lasted. Its next check waits 27 days, and it vouches for the concept just before
+  it in the strand, which waits 81 days;
+- one right: wobbly, checked again tomorrow, as usual;
+- none right: it goes back on the path to be mastered again, and the concepts it is built on are checked next, to
+  find where the gap starts.
+
+For a kid who starts at 4th grade that is 88 concepts, covered in about 27 blocks if they all hold. The parent view's
+Memory checks card says how many are checked, vouched for and left.
 
 The path goes grade by grade and takes the strands in turn. Within a strand each concept needs the one before it.
 Some concepts also need one from another strand: making change needs counting up, and fractions of a number need
@@ -114,7 +138,7 @@ dividing. Any locked concept can be tested out of by getting 5 hard problems rig
 The first time a kid plays, a placement check runs a binary search in every strand that has concepts up to one grade
 above the kid's grade. Each concept it tests asks a medium problem and a hard problem: both right moves up, a miss moves
 down. The search starts near the kid's grade (Riley is in 3rd grade, Charlie in 4th). Concepts below where each
-strand settles are marked mastered, with their reviews spread over the next week. A concept whose medium problem was
+strand settles are marked mastered, and spot-checked a couple at a time from the next day on. A concept whose medium problem was
 right but whose hard problem was missed starts at level 2. The check saves as it goes and can be redone from Settings.
 
 The placement check and the assessments a parent starts never say right or wrong as they go. Every answer gets the
@@ -133,8 +157,8 @@ through and tells nothing, so it is asked again once, from where it started, and
 pace. A kid can be set to start at a grade (`start` in `KIDS`; Charlie starts at 4th grade). Every Common Core concept
 below that grade is marked mastered the first time she opens the game (`COACH.applyFloor`), so the map and the parent
 report start at that grade straight away; no check, first or later, searches lower, and a check already under way is
-moved up to it (`COACH.pretestFloor`). Memory checks come back to those concepts over the next week, so any that are
-not really known go back on the path.
+moved up to it (`COACH.pretestFloor`). Memory checks spot-check those concepts a couple at a time (Earlier-grade spot
+checks, above), so any that are not really known go back on the path.
 
 ## Parent view: reset and history
 

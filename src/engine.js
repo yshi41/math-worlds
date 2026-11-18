@@ -61,7 +61,10 @@ function record(p, id, ok, first, hinted, now) {
   return ev;
 }
 function master(p, id, now, dueIn) { const s = cs(p, id); now = now || Date.now(); if (!s.m) s.m = now; s.lx = 0; s.lv = 2; s.st = 0; s.ml = 0; s.iv = s.iv || 1; s.due = now + (dueIn != null ? dueIn : DAY); }
-function due(p, now) { now = now || Date.now(); return Object.keys(p.cs).filter(id => S[id] && live(p.cs[id]) && p.cs[id].due <= now).sort((a, b) => p.cs[a].due - p.cs[b].due); }
+/* assumed: counted as known without ever being practised or checked in the game (placed by a check, or below the grade
+   a kid starts at). These are spot-checked a few at a time (earlyPick), so they are not "due" like the rest. */
+const assumed = s => live(s) && !!s.pl && !s.at;
+function due(p, now) { now = now || Date.now(); return Object.keys(p.cs).filter(id => S[id] && live(p.cs[id]) && !assumed(p.cs[id]) && p.cs[id].due <= now).sort((a, b) => p.cs[a].due - p.cs[b].due); }
 function reviewResult(p, id, ok, now) {
   now = now || Date.now(); const s = cs(p, id); if (!live(s)) return;
   if (ok) { s.iv = Math.min(81, (s.iv || 1) * 3); s.due = now + s.iv * DAY; } else { s.iv = 1; s.due = now + DAY / 2; }
@@ -75,20 +78,45 @@ function masteredCount(p) { let k = 0; for (const id in p.cs) if (S[id] && live(
    tomorrow; shaky twice in a row counts as a lapse. None right: lapsed. A lapsed concept goes back on the path ahead of
    anything new and has to be mastered again (from the medium level if one was right, else from the easy level).
    When a kid is struggling with the concept she is learning, its foundations (the concepts it is built on) are
-   checked too, even before they are due: a forgotten foundation is often the real problem. */
+   checked too, even before they are due: a forgotten foundation is often the real problem.
+   Earlier-grade concepts that are only assumed (placed by a check, or below the grade a kid starts at) are audited
+   now and then, not all at once: at most EARLY_CAP in a block (earlyPick), starting the day after they were placed, from the strand checked least so far, its
+   most advanced concept first. Passing one shows the idea has lasted, so its next check waits 27 days, and it vouches
+   for the concept just before it in the strand (that one waits 81 days). Missing one sends it back on the path, and
+   the concepts it is built on are audited next, to find where the gap starts. */
+const EARLY_CAP = 2;
+function assumedList(p) { return Object.keys(p.cs).filter(id => S[id] && assumed(p.cs[id])); }
+function earlyPick(p, max, skip, now) {
+  /* not on the day they were placed: a spot check right after an assessment tells nothing */
+  skip = skip || []; const today = dayKey(now || Date.now()), A = assumedList(p).filter(id => !skip.includes(id) && dayKey(p.cs[id].m) !== today); if (!A.length || !(max > 0)) return [];
+  const gaps = []; for (const id in p.cs) if (S[id] && isLapsed(p, id)) for (const q of prereqs(id)) if (A.includes(q) && !gaps.includes(q)) gaps.push(q);
+  const cov = {}; for (const id in p.cs) if (S[id] && p.cs[id].pa) cov[S[id].s] = (cov[S[id].s] || 0) + 1;
+  const pos = {}; ORDER.forEach((id, i) => { pos[id] = i; });
+  const rest = A.filter(id => !gaps.includes(id)).sort((a, b) => (cov[S[a].s] || 0) - (cov[S[b].s] || 0) || S[b].g - S[a].g || pos[b] - pos[a]);
+  const out = gaps.slice(0, max), used = {}; out.forEach(id => { used[S[id].s] = 1; });
+  for (const id of rest) { if (out.length >= max) break; if (used[S[id].s]) continue; out.push(id); used[S[id].s] = 1; }
+  return out;
+}
+/* passing an assumed concept vouches for the Common Core concept just before it in its strand, if that is assumed too */
+function vouch(p, id, now) {
+  const st = STR.find(x => x.id === S[id].s), i = st ? st.core.indexOf(id) : -1, q = i > 0 ? st.core[i - 1] : null, s = q && p.cs[q];
+  if (s && assumed(s)) { s.at = now; s.pa = 2; s.iv = 81; s.due = now + 81 * DAY; }
+}
 const struggling = (p, id) => { const s = p.cs[id]; if (!s || live(s)) return false; const n = (s.r | 0) + (s.w | 0); return (n >= 8 && s.r / n < 0.6) || (s.dn | 0) >= 1; };
 function auditPick(p, now, max, focus, skip) {
   now = now || Date.now(); max = max == null ? 3 : max; skip = skip || []; const out = [];
   if (focus) for (const id of prereqs(focus)) { const s = p.cs[id]; if (live(s) && now - (s.at || 0) > 3 * DAY && !skip.includes(id) && !out.includes(id)) out.push(id); }
-  /* due ones: shaky first, then ones placed by the placement check and never checked, then the most overdue */
-  const rank = id => { const s = p.cs[id]; return (s.sh ? 0 : s.pl && !s.at ? 1 : 2) * 1e15 + s.due; };
+  /* due ones: shaky first, then the most overdue */
+  const rank = id => { const s = p.cs[id]; return (s.sh ? 0 : 1) * 1e15 + s.due; };
   for (const id of due(p, now).sort((a, b) => rank(a) - rank(b))) if (!skip.includes(id) && !out.includes(id)) out.push(id);
   return out.slice(0, max);
 }
 function auditResult(p, id, oks, now) {
   now = now || Date.now(); const s = cs(p, id); if (!live(s) || !oks || !oks.length) return null;
-  const right = oks.filter(Boolean).length; s.at = now;
-  if (right === oks.length) { s.ap = (s.ap | 0) + 1; s.sh = 0; s.iv = Math.min(81, Math.max(1, s.iv || 1) * 3); s.due = now + s.iv * DAY; return 'pass'; }
+  const right = oks.filter(Boolean).length, was = assumed(s); s.at = now; if (was) s.pa = 1;
+  if (right === oks.length) { s.ap = (s.ap | 0) + 1; s.sh = 0;
+    if (was) { s.iv = 27; s.due = now + 27 * DAY; vouch(p, id, now); } else { s.iv = Math.min(81, Math.max(1, s.iv || 1) * 3); s.due = now + s.iv * DAY; }
+    return 'pass'; }
   if (right > 0 && !s.sh) { s.sh = 1; s.as = (s.as | 0) + 1; s.iv = 1; s.due = now + DAY; return 'shaky'; }
   s.lx = now; s.al = (s.al | 0) + 1; s.sh = 0; s.lv = right > 0 ? 1 : 0; s.st = 0; s.ml = 0; s.pl = 0; s.iv = 0; s.due = 0;
   if (p.now === id) p.now = null; return 'lapse';
@@ -117,7 +145,10 @@ function blockNext(p, blk, now) {
   if (room > 0 && left >= 6) {
     const focus = cur && struggling(p, cur) && !fc.includes(cur) ? cur : null, start = !(blk.rounds | 0), after = !!blk.justMastered;
     if (focus) { const ids = auditPick(p, now, Math.min(3, room), focus, seen).filter(id => prereqs(focus).includes(id)); if (ids.length) return { kind: 'audit', ids, focus }; }
-    if (start || after) { const ids = auditPick(p, now, Math.min(start ? (due(p, now).length >= 6 ? 4 : 3) : 2, room), null, seen); if (ids.length) return { kind: 'audit', ids, focus: null }; }
+    if (start || after) { const nd = due(p, now).length, max = Math.min(start ? (nd >= 6 ? 4 : 3) : 2, room);
+      /* one or two earlier-grade concepts that are only assumed join the check, at most EARLY_CAP a block */
+      const e = earlyPick(p, Math.min(EARLY_CAP - (blk.early | 0), start ? (nd >= max - 1 ? 1 : 2) : 1, max), seen, now);
+      const ids = e.concat(auditPick(p, now, max - e.length, null, seen.concat(e))); if (ids.length) return { kind: 'audit', ids, focus: null, early: e.length }; }
   }
   if (cur) return { kind: 'learn', id: cur };
   if (masteredCount(p)) return { kind: 'review' };
@@ -406,12 +437,15 @@ function report(p, grade, now) {
     return { id: sid, name: s ? s.name : sid, done: !!x.done, redo: x.redo | 0, prev: x.prev || null, start: x.done && s ? s.core[x.start] || null : null, asked: lg.length, right: lg.filter(e => e[2]).length, skipped: lg.filter(e => e[3]).length }; }) } : null;
   /* memory checks */
   const csv = Object.keys(p.cs).filter(id => S[id]).map(id => [id, p.cs[id]]);
-  const retention = { due: due(p, now).length, checked: csv.filter(([, s]) => s.at).length, pass: csv.reduce((a, [, s]) => a + (s.ap | 0), 0), shaky: csv.reduce((a, [, s]) => a + (s.as | 0), 0), lapses: csv.reduce((a, [, s]) => a + (s.al | 0), 0),
+  const pas = csv.filter(([, s]) => s.pa);
+  const early = { left: assumedList(p).length, checked: pas.filter(([, s]) => s.pa === 1).length, vouched: pas.filter(([, s]) => s.pa === 2).length, slipped: pas.filter(([, s]) => (s.al | 0) > 0).length };
+  const retention = { early, due: due(p, now).length, checked: csv.filter(([, s]) => s.at).length, pass: csv.reduce((a, [, s]) => a + (s.ap | 0), 0), shaky: csv.reduce((a, [, s]) => a + (s.as | 0), 0), lapses: csv.reduce((a, [, s]) => a + (s.al | 0), 0),
     lapsed: csv.filter(([id]) => isLapsed(p, id)).map(([id, s]) => ({ id, at: s.lx, lv: s.lv })).sort((a, b) => b.at - a.at),
     recent: csv.filter(([, s]) => s.at).map(([id, s]) => ({ id, at: s.at, res: s.lx && s.lx === s.at ? 'lapse' : s.sh ? 'shaky' : 'pass' })).sort((a, b) => b.at - a.at).slice(0, 12) };
+  let fastChecks = 0; for (const k in log) fastChecks += (log[k] && log[k].ar) | 0; /* memory checks tapped through, which did not count */
   const answered = Math.max(all.r + all.w, ever.n);
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
-  return { now, grade, week: st.week, expect, placed, partial, capG, overall, domains, pct, ceilPct, confidence, answered,
+  return { now, grade, week: st.week, expect, placed, partial, fastChecks, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
     learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, retention, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
@@ -440,7 +474,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

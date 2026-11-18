@@ -141,10 +141,10 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   ok(ev.mastered && ev.refreshed && E.isMastered(p, b) && !p.cs[b].lx && p.cs[b].rm === T + 3 * E.DAY && p.cs[b].m === T, 'six in a row from the medium level masters it again');
   eq(E.masteredCount(p), before + 1, 'and it counts again');
   const r = E.report(p, 3, T + 3 * E.DAY); ok(r.retention.lapsed.length === 1 && r.retention.lapsed[0].id === c && r.retention.lapses === 2 && r.retention.pass === 1 && r.retention.shaky === 1, 'report: memory checks');
-  /* picking what to check: wobbly first, then placed-and-never-checked, then the most overdue */
+  /* picking what to check: wobbly first, then the most overdue; a placed concept never checked waits for a spot check */
   const q = blank(); const qs = []; for (let id; (id = E.current(q)) && qs.length < 8; ) { E.master(q, id, T, 0); qs.push(id); }
   q.cs[qs[0]].due = T - 5; q.cs[qs[1]].due = T - 9; q.cs[qs[2]].pl = 1; q.cs[qs[3]].sh = 1;
-  const pick = E.auditPick(q, T + 1, 3); eq(pick[0], qs[3], 'a wobbly one first'); eq(pick[1], qs[2], 'then a placed one never checked'); eq(pick.length, 3, 'up to the limit');
+  const pick = E.auditPick(q, T + 1, 3); eq(pick[0], qs[3], 'a wobbly one first'); eq(pick[1], qs[1], 'then the most overdue'); ok(!pick.includes(qs[2]) && !E.due(q, T + 1).includes(qs[2]), 'an assumed concept is not due: it waits for its spot check'); eq(pick.length, 3, 'up to the limit');
   /* foundations: struggling with a concept checks what it is built on, even before it is due */
   const f = blank(); let tgt = null; for (let id; (id = E.current(f)); ) { if (E.prereqs(id).length && E.prereqs(id).every(x => E.isMastered(f, x))) { tgt = id; break; } E.master(f, id, T, 50 * E.DAY); }
   ok(tgt, 'a concept with foundations (' + tgt + ')');
@@ -251,4 +251,28 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   ok(h30.buckets.length === 30 && h3.unit === 'week' && hy.unit === 'month' && hy.buckets.length === 13 && ha.unit === 'week', 'longer spans group by week or month');
   ok(h3.tot.n === hy.tot.n && hy.tot.n === 200, 'every day is counted once (' + hy.tot.n + ')');
   ok(h30.buckets[0].m === 1 && h30.buckets[29].m === 2 && h30.buckets[29].ge > h30.buckets[0].ge && hy.buckets[0].ge === null, 'grade level and concepts climb as concepts are mastered, and start at the first one'); }
+/* earlier-grade concepts that are only assumed (below the starting grade, or placed by a check) are audited a couple
+   at a time: most advanced first, strands in turn */
+{ const T = 1e12, p = blank(), nA = E.applyFloor(p, 4, T);
+  eq(E.assumedList(p).length, nA); ok(!E.due(p, T + 30 * E.DAY).length, 'assumed concepts are never all "due" at once');
+  ok(E.blockNext(p, { goal: 24, n: 0, rounds: 0, seen: [] }, T + 1).kind !== 'audit', 'not on the day they were placed');
+  const b0 = E.blockNext(p, { goal: 24, n: 0, rounds: 0, seen: [] }, T + E.DAY);
+  ok(b0.kind === 'audit' && b0.early === 2 && b0.ids.length === 2 && S[b0.ids[0]].s !== S[b0.ids[1]].s && b0.ids.every(id => S[id].g === 3), 'a block opens by checking 2 assumed concepts: 3rd grade first, two different strands (' + b0.ids.join(', ') + ')');
+  ok(E.blockNext(p, { goal: 24, n: 6, rounds: 1, seen: b0.ids, early: 2, justMastered: true }, T + E.DAY).kind !== 'audit', 'no more than 2 in a block');
+  ok(E.blockNext(p, { goal: 24, n: 6, rounds: 1, seen: b0.ids.slice(0, 1), early: 1, justMastered: true }, T + E.DAY).early === 1, 'one more after a concept is mastered, if only one was checked');
+  const a = b0.ids[0], st = E.STR.find(x => x.id === S[a].s), prev = st.core[st.core.indexOf(a) - 1];
+  eq(E.auditResult(p, a, [true, true], T + E.DAY + 2), 'pass'); ok(p.cs[a].pa === 1 && p.cs[a].iv === 27 && p.cs[a].due === T + E.DAY + 2 + 27 * E.DAY, 'passing one: it has lasted, next check in 27 days');
+  ok(prev && p.cs[prev].pa === 2 && p.cs[prev].iv === 81 && !E.assumedList(p).includes(prev), 'and it vouches for the concept just before it (' + prev + ', 81 days)');
+  const b = b0.ids[1]; eq(E.auditResult(p, b, [false, false], T + E.DAY + 3), 'lapse'); ok(E.isLapsed(p, b) && E.current(p) === b, 'missing one puts it back on the path first');
+  const under = E.prereqs(b).filter(x => E.assumedList(p).includes(x)), b1 = E.blockNext(p, { goal: 24, n: 0, rounds: 0, seen: [] }, T + 2 * E.DAY);
+  ok(b1.kind === 'audit' && (!under.length || b1.ids.includes(under[0])), 'what a missed concept is built on is checked next (' + under.join(', ') + ')');
+  const q = blank(), order = []; E.applyFloor(q, 4, T); for (let i = 0; i < 6; i++) { const e = E.earlyPick(q, 1, []); order.push(S[e[0]].s); E.auditResult(q, e[0], [true, true], T + i); }
+  ok(new Set(order).size === 6, 'strands take turns: six checks cover six strands (' + order.join(', ') + ')');
+  const rep = E.report(q, 4, T + 10).retention.early; ok(rep.checked === 6 && rep.vouched >= 4 && rep.left === nA - 6 - rep.vouched && rep.slipped === 0, 'the report counts what is checked (' + rep.checked + '), vouched for (' + rep.vouched + ') and left (' + rep.left + ')');
+  let blocks = 0; while (E.assumedList(q).length && blocks < 200) { E.earlyPick(q, 2, []).forEach(id => E.auditResult(q, id, [true, true], T + 100 + blocks)); blocks++; }
+  ok(blocks >= 15 && blocks <= 30, 'at 2 a block the whole sweep takes about ' + blocks + ' more blocks');
+  /* a kid placed by an assessment gets the same spot checks, on what the assessment placed */
+  const r = blank(), pre = E.pretestStart(3); let k = 0; while (E.pretestNext(pre) && k < 400) { E.pretestRecord(pre, k % 4 !== 3, 30000); k++; if (!E.pretestNext(pre) && !E.pretestAdvance(pre)) break; }
+  pre.done = true; const res = E.pretestApply(r, pre, T), br = E.blockNext(r, { goal: 24, n: 0, rounds: 0, seen: [] }, T + E.DAY);
+  ok(res.mastered > 4 && E.assumedList(r).length === res.mastered && br.kind === 'audit' && br.early === 2 && br.ids.every(id => r.cs[id].pl), 'concepts placed by an assessment are spot-checked the same way (' + res.mastered + ' placed)'); }
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');

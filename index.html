@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-18 17:20';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-18 18:00';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -18413,7 +18413,10 @@ function record(p, id, ok, first, hinted, now) {
   return ev;
 }
 function master(p, id, now, dueIn) { const s = cs(p, id); now = now || Date.now(); if (!s.m) s.m = now; s.lx = 0; s.lv = 2; s.st = 0; s.ml = 0; s.iv = s.iv || 1; s.due = now + (dueIn != null ? dueIn : DAY); }
-function due(p, now) { now = now || Date.now(); return Object.keys(p.cs).filter(id => S[id] && live(p.cs[id]) && p.cs[id].due <= now).sort((a, b) => p.cs[a].due - p.cs[b].due); }
+/* assumed: counted as known without ever being practised or checked in the game (placed by a check, or below the grade
+   a kid starts at). These are spot-checked a few at a time (earlyPick), so they are not "due" like the rest. */
+const assumed = s => live(s) && !!s.pl && !s.at;
+function due(p, now) { now = now || Date.now(); return Object.keys(p.cs).filter(id => S[id] && live(p.cs[id]) && !assumed(p.cs[id]) && p.cs[id].due <= now).sort((a, b) => p.cs[a].due - p.cs[b].due); }
 function reviewResult(p, id, ok, now) {
   now = now || Date.now(); const s = cs(p, id); if (!live(s)) return;
   if (ok) { s.iv = Math.min(81, (s.iv || 1) * 3); s.due = now + s.iv * DAY; } else { s.iv = 1; s.due = now + DAY / 2; }
@@ -18427,20 +18430,45 @@ function masteredCount(p) { let k = 0; for (const id in p.cs) if (S[id] && live(
    tomorrow; shaky twice in a row counts as a lapse. None right: lapsed. A lapsed concept goes back on the path ahead of
    anything new and has to be mastered again (from the medium level if one was right, else from the easy level).
    When a kid is struggling with the concept she is learning, its foundations (the concepts it is built on) are
-   checked too, even before they are due: a forgotten foundation is often the real problem. */
+   checked too, even before they are due: a forgotten foundation is often the real problem.
+   Earlier-grade concepts that are only assumed (placed by a check, or below the grade a kid starts at) are audited
+   now and then, not all at once: at most EARLY_CAP in a block (earlyPick), starting the day after they were placed, from the strand checked least so far, its
+   most advanced concept first. Passing one shows the idea has lasted, so its next check waits 27 days, and it vouches
+   for the concept just before it in the strand (that one waits 81 days). Missing one sends it back on the path, and
+   the concepts it is built on are audited next, to find where the gap starts. */
+const EARLY_CAP = 2;
+function assumedList(p) { return Object.keys(p.cs).filter(id => S[id] && assumed(p.cs[id])); }
+function earlyPick(p, max, skip, now) {
+  /* not on the day they were placed: a spot check right after an assessment tells nothing */
+  skip = skip || []; const today = dayKey(now || Date.now()), A = assumedList(p).filter(id => !skip.includes(id) && dayKey(p.cs[id].m) !== today); if (!A.length || !(max > 0)) return [];
+  const gaps = []; for (const id in p.cs) if (S[id] && isLapsed(p, id)) for (const q of prereqs(id)) if (A.includes(q) && !gaps.includes(q)) gaps.push(q);
+  const cov = {}; for (const id in p.cs) if (S[id] && p.cs[id].pa) cov[S[id].s] = (cov[S[id].s] || 0) + 1;
+  const pos = {}; ORDER.forEach((id, i) => { pos[id] = i; });
+  const rest = A.filter(id => !gaps.includes(id)).sort((a, b) => (cov[S[a].s] || 0) - (cov[S[b].s] || 0) || S[b].g - S[a].g || pos[b] - pos[a]);
+  const out = gaps.slice(0, max), used = {}; out.forEach(id => { used[S[id].s] = 1; });
+  for (const id of rest) { if (out.length >= max) break; if (used[S[id].s]) continue; out.push(id); used[S[id].s] = 1; }
+  return out;
+}
+/* passing an assumed concept vouches for the Common Core concept just before it in its strand, if that is assumed too */
+function vouch(p, id, now) {
+  const st = STR.find(x => x.id === S[id].s), i = st ? st.core.indexOf(id) : -1, q = i > 0 ? st.core[i - 1] : null, s = q && p.cs[q];
+  if (s && assumed(s)) { s.at = now; s.pa = 2; s.iv = 81; s.due = now + 81 * DAY; }
+}
 const struggling = (p, id) => { const s = p.cs[id]; if (!s || live(s)) return false; const n = (s.r | 0) + (s.w | 0); return (n >= 8 && s.r / n < 0.6) || (s.dn | 0) >= 1; };
 function auditPick(p, now, max, focus, skip) {
   now = now || Date.now(); max = max == null ? 3 : max; skip = skip || []; const out = [];
   if (focus) for (const id of prereqs(focus)) { const s = p.cs[id]; if (live(s) && now - (s.at || 0) > 3 * DAY && !skip.includes(id) && !out.includes(id)) out.push(id); }
-  /* due ones: shaky first, then ones placed by the placement check and never checked, then the most overdue */
-  const rank = id => { const s = p.cs[id]; return (s.sh ? 0 : s.pl && !s.at ? 1 : 2) * 1e15 + s.due; };
+  /* due ones: shaky first, then the most overdue */
+  const rank = id => { const s = p.cs[id]; return (s.sh ? 0 : 1) * 1e15 + s.due; };
   for (const id of due(p, now).sort((a, b) => rank(a) - rank(b))) if (!skip.includes(id) && !out.includes(id)) out.push(id);
   return out.slice(0, max);
 }
 function auditResult(p, id, oks, now) {
   now = now || Date.now(); const s = cs(p, id); if (!live(s) || !oks || !oks.length) return null;
-  const right = oks.filter(Boolean).length; s.at = now;
-  if (right === oks.length) { s.ap = (s.ap | 0) + 1; s.sh = 0; s.iv = Math.min(81, Math.max(1, s.iv || 1) * 3); s.due = now + s.iv * DAY; return 'pass'; }
+  const right = oks.filter(Boolean).length, was = assumed(s); s.at = now; if (was) s.pa = 1;
+  if (right === oks.length) { s.ap = (s.ap | 0) + 1; s.sh = 0;
+    if (was) { s.iv = 27; s.due = now + 27 * DAY; vouch(p, id, now); } else { s.iv = Math.min(81, Math.max(1, s.iv || 1) * 3); s.due = now + s.iv * DAY; }
+    return 'pass'; }
   if (right > 0 && !s.sh) { s.sh = 1; s.as = (s.as | 0) + 1; s.iv = 1; s.due = now + DAY; return 'shaky'; }
   s.lx = now; s.al = (s.al | 0) + 1; s.sh = 0; s.lv = right > 0 ? 1 : 0; s.st = 0; s.ml = 0; s.pl = 0; s.iv = 0; s.due = 0;
   if (p.now === id) p.now = null; return 'lapse';
@@ -18469,7 +18497,10 @@ function blockNext(p, blk, now) {
   if (room > 0 && left >= 6) {
     const focus = cur && struggling(p, cur) && !fc.includes(cur) ? cur : null, start = !(blk.rounds | 0), after = !!blk.justMastered;
     if (focus) { const ids = auditPick(p, now, Math.min(3, room), focus, seen).filter(id => prereqs(focus).includes(id)); if (ids.length) return { kind: 'audit', ids, focus }; }
-    if (start || after) { const ids = auditPick(p, now, Math.min(start ? (due(p, now).length >= 6 ? 4 : 3) : 2, room), null, seen); if (ids.length) return { kind: 'audit', ids, focus: null }; }
+    if (start || after) { const nd = due(p, now).length, max = Math.min(start ? (nd >= 6 ? 4 : 3) : 2, room);
+      /* one or two earlier-grade concepts that are only assumed join the check, at most EARLY_CAP a block */
+      const e = earlyPick(p, Math.min(EARLY_CAP - (blk.early | 0), start ? (nd >= max - 1 ? 1 : 2) : 1, max), seen, now);
+      const ids = e.concat(auditPick(p, now, max - e.length, null, seen.concat(e))); if (ids.length) return { kind: 'audit', ids, focus: null, early: e.length }; }
   }
   if (cur) return { kind: 'learn', id: cur };
   if (masteredCount(p)) return { kind: 'review' };
@@ -18758,12 +18789,15 @@ function report(p, grade, now) {
     return { id: sid, name: s ? s.name : sid, done: !!x.done, redo: x.redo | 0, prev: x.prev || null, start: x.done && s ? s.core[x.start] || null : null, asked: lg.length, right: lg.filter(e => e[2]).length, skipped: lg.filter(e => e[3]).length }; }) } : null;
   /* memory checks */
   const csv = Object.keys(p.cs).filter(id => S[id]).map(id => [id, p.cs[id]]);
-  const retention = { due: due(p, now).length, checked: csv.filter(([, s]) => s.at).length, pass: csv.reduce((a, [, s]) => a + (s.ap | 0), 0), shaky: csv.reduce((a, [, s]) => a + (s.as | 0), 0), lapses: csv.reduce((a, [, s]) => a + (s.al | 0), 0),
+  const pas = csv.filter(([, s]) => s.pa);
+  const early = { left: assumedList(p).length, checked: pas.filter(([, s]) => s.pa === 1).length, vouched: pas.filter(([, s]) => s.pa === 2).length, slipped: pas.filter(([, s]) => (s.al | 0) > 0).length };
+  const retention = { early, due: due(p, now).length, checked: csv.filter(([, s]) => s.at).length, pass: csv.reduce((a, [, s]) => a + (s.ap | 0), 0), shaky: csv.reduce((a, [, s]) => a + (s.as | 0), 0), lapses: csv.reduce((a, [, s]) => a + (s.al | 0), 0),
     lapsed: csv.filter(([id]) => isLapsed(p, id)).map(([id, s]) => ({ id, at: s.lx, lv: s.lv })).sort((a, b) => b.at - a.at),
     recent: csv.filter(([, s]) => s.at).map(([id, s]) => ({ id, at: s.at, res: s.lx && s.lx === s.at ? 'lapse' : s.sh ? 'shaky' : 'pass' })).sort((a, b) => b.at - a.at).slice(0, 12) };
+  let fastChecks = 0; for (const k in log) fastChecks += (log[k] && log[k].ar) | 0; /* memory checks tapped through, which did not count */
   const answered = Math.max(all.r + all.w, ever.n);
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
-  return { now, grade, week: st.week, expect, placed, partial, capG, overall, domains, pct, ceilPct, confidence, answered,
+  return { now, grade, week: st.week, expect, placed, partial, fastChecks, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
     learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, retention, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
@@ -18792,7 +18826,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;
@@ -19090,7 +19124,7 @@ const Net=(()=>{
 function persist(){if(RD&&player&&RD.kind!=='pre')saveRound();if(CLOUD&&player)Net.schedule(player)}
 /* the round in progress lives in the online save too, as recipes (seeds) rather than whole problems, so it can be
    picked up on another device exactly where it stopped */
-const ROUND_KEYS=['ready','sized','ids','focus','aud','refresh','reveals','helped','kind','skill','concept','mainTotal','mainDone','right','streak','bestStreak','earned','missed','inserted','results','fixMiss','fixRight','fixTotal','testRight','lvUps','deeperAdded','masteredNow','stop','rv3','rv7'];
+const ROUND_KEYS=['audMs','ready','sized','ids','focus','aud','refresh','reveals','helped','kind','skill','concept','mainTotal','mainDone','right','streak','bestStreak','earned','missed','inserted','results','fixMiss','fixRight','fixTotal','testRight','lvUps','deeperAdded','masteredNow','stop','rv3','rv7'];
 const itemRef=it=>it&&it.p&&it.p.ref?{r:it.p.ref,kind:it.kind,concept:it.concept||it.p.concept||null,aid:it.aid||null}:null;
 function saveRound(){const o={v:1,t:Date.now()};ROUND_KEYS.forEach(k=>{if(RD[k]!==undefined)o[k]=RD[k]});
   o.queue=RD.queue.map(itemRef).filter(Boolean);o.endQ=RD.endQ.map(itemRef).filter(Boolean);o.cur=RD.phase==='ask'?itemRef(RD.cur):null;P().round=o}
@@ -19136,7 +19170,7 @@ function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;b.ms+=clamp
 const probs=n=>n+' problem'+(n===1?'':'s');
 const doneToday=p=>!!(p.blk&&p.blk.done&&p.blk.day===CO.dayKey(Date.now()));
 function startBlock(){Snd.init();const p=P(),b=ensureBlock(),nx=CO.blockNext(p,b);b.justMastered=false;
-  if(nx.kind==='audit'){if(nx.focus)b.fc.push(nx.focus);startAudit(nx.ids,nx.focus);return}
+  if(nx.kind==='audit'){if(nx.focus)b.fc.push(nx.focus);b.early=(b.early|0)+(nx.early|0);startAudit(nx.ids,nx.focus);return}
   if(nx.kind==='learn'){Snd.click();playConcept(nx.id);return}
   if(nx.kind==='review'){startReview();return}
   b.done=true;b.t=Date.now();persist();openHub();toast('Today’s block is done. Great work!')}
@@ -19469,7 +19503,7 @@ function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;
 /* after an assessment answer: no word on right or wrong. The same tick, the same short note and the same pause either
    way, then the next question; how she did comes with the results at the end of the block. */
 /* a memory-check answer: kept for the end of the check, where each concept is judged on both of its problems */
-function auditAns(ok,skipped){const it=RD.cur,pl=P();RD.phase='done';(RD.aud[it.aid]||(RD.aud[it.aid]=[])).push(!!ok);CO.record(pl,it.p.skill,!!ok,true,false);RD.mainDone++;if(ok){RD.right++;award(2)}persist();afterPre(skipped)}
+function auditAns(ok,skipped){const it=RD.cur,pl=P();RD.phase='done';RD.audMs=(RD.audMs|0)+Math.max(0,Date.now()-RD.t0);(RD.aud[it.aid]||(RD.aud[it.aid]=[])).push(!!ok);CO.record(pl,it.p.skill,!!ok,true,false);RD.mainDone++;if(ok){RD.right++;award(2)}persist();afterPre(skipped)}
 function afterPre(skipped){const pre=RD.kind==='pre'?P().pre:null;
   const strandJustDone=pre&&pre.order.find(s=>pre.st[s].done&&!RD['done_'+s]);if(strandJustDone){RD['done_'+strandJustDone]=1}
   const sname=strandJustDone?CO.STR.find(s=>s.id===strandJustDone).name:'';
@@ -19491,10 +19525,15 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     if(!early&&R0.testRight>=5){CO.master(p,id);CO.cs(p,id).to=1;title='Tested out!';starsShown=3;note=`“${conceptName(id)}” is mastered.`}else{title=ST[2];note=early?'Stopped early. Try again any time.':'Not this time. All 5 need to be right on the first try, with no hints.'}}
   else if(R0.kind==='review'){sub='Review mix';p.games++}
   else if(R0.kind==='audit'){sub='Memory check';const lg=p.log[CO.dayKey(Date.now())]||(p.log[CO.dayKey(Date.now())]={n:0,ok:0,ms:0});
-    R0.ids.forEach(id=>delete AUD[id]);R0.ids.forEach(id=>{const a=R0.aud[id]||[];if(a.length<2)return;const r=CO.auditResult(p,id,a);if(!r)return;AUD[id]=r;lg.ac=(lg.ac|0)+1;if(r==='pass')lg.ap=(lg.ap|0)+1;if(r==='lapse')lg.al=(lg.al|0)+1});
+    /* a check answered faster than anyone can read it (under 7 s a problem on average) was tapped through: it does not
+       count, nothing changes, and the same ideas come back in a later block */
+    const nAns=Object.values(R0.aud||{}).reduce((a,x)=>a+x.length,0),rushMs=window.__mwRushMs!=null?window.__mwRushMs:CO.RUSH_MS,fast=nAns>0&&(R0.audMs|0)/nAns<rushMs;
+    R0.ids.forEach(id=>delete AUD[id]);
+    if(fast){lg.ar=(lg.ar|0)+1;R0.ids.forEach(id=>{const s=p.cs[id];if(s)(R0.aud[id]||[]).forEach(o=>{if(o)s.r=Math.max(0,(s.r|0)-1);else s.w=Math.max(0,(s.w|0)-1)})})}
+    else R0.ids.forEach(id=>{const a=R0.aud[id]||[];if(a.length<2)return;const r=CO.auditResult(p,id,a);if(!r)return;AUD[id]=r;lg.ac=(lg.ac|0)+1;if(r==='pass')lg.ap=(lg.ap|0)+1;if(r==='lapse')lg.al=(lg.al|0)+1});
     const ids=R0.ids.filter(id=>AUD[id]),n=r=>ids.filter(id=>AUD[id]===r).length,bk=blkLive(p);if(bk){bk.held=(bk.held|0)+n('pass');ids.filter(id=>AUD[id]==='lapse').forEach(id=>bk.lapsed.push(id))}
-    title=!ids.length?'Saved!':n('lapse')?'Memory check done':n('pass')===ids.length?'Still strong!':'Memory check done';
-    sub="Ideas you learned before";note=!ids.length?'Not finished, so nothing changed. It comes back next time.':(R0.focus?`These are the ideas “${conceptName(R0.focus)}” is built on. `:'')+(n('lapse')?`${n('lapse')===1?'One idea needs':n('lapse')+' ideas need'} a refresh. It goes back on your path, and you master it again before anything new.`:n('pass')===ids.length?'Everything you checked is still strong.':'Wobbly ones come back tomorrow.')}
+    title=fast?'Too fast to count':!ids.length?'Saved!':n('lapse')?'Memory check done':n('pass')===ids.length?'Still strong!':'Memory check done';
+    sub="Ideas you learned before";note=fast?'That went by too fast to count, so nothing changed. These come back another time. Read each one and take your time.':!ids.length?'Not finished, so nothing changed. It comes back next time.':(R0.focus?`These are the ideas “${conceptName(R0.focus)}” is built on. `:'')+(n('lapse')?`${n('lapse')===1?'One idea needs':n('lapse')+' ideas need'} a refresh. It goes back on your path, and you master it again before anything new.`:n('pass')===ids.length?'Everything you checked is still strong.':'Wobbly ones come back tomorrow.')}
   else if(R0.kind==='fix'){const m=p.mist[R0.concept];sub='Tricky spot: '+conceptName(R0.concept);
     note=m&&m.ok>=3?'Fixed! That idea is solid now.':`${R0.fixRight} of ${R0.fixTotal} practice problems right the first time. Fixed after 3 in a row.`;
     if(R0.deeperAdded)note+=` Next, go one step back with “${conceptName(R0.deeperAdded)}”, which is in your tricky spots.`}
@@ -19702,7 +19741,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   if(R.placed)sum+=` That is about the <b>${pctWord(R.pct.pct)} percentile</b> nationally${O.ceil?' or higher':''}.`;
   sum+=` Strongest: ${esc(strong[0].name)} (${fmtGE(strong[0].ge)}). Most room to grow: ${esc(weak[0].name)} (${fmtGE(weak[0].ge)})${weak[1].ge<strong[0].ge?` and ${esc(weak[1].name)} (${fmtGE(weak[1].ge)})`:''}.`;
   const conf={none:'There is no placement check yet, so the grade levels only count concepts mastered in practice.',low:'These numbers are rough for now: they rest mostly on the placement check. They firm up with every few hundred problems.',medium:'These numbers rest on the placement check and a fair amount of practice.',high:'These numbers rest on the placement check and a lot of practice.'}[R.confidence];
-  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. These numbers come from the parts done so far and are worked out again when ${esc(k.name)} finishes it.</p>`:''}${floorOf(k)?`<p class="pv-p pv-soft">${esc(k.name)} is set to start at ${ord(floorOf(k))} grade: every concept below that counts as known, and memory checks spot-check them over the first week.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
+  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. These numbers come from the parts done so far and are worked out again when ${esc(k.name)} finishes it.</p>`:''}${floorOf(k)?`<p class="pv-p pv-soft">${esc(k.name)} is set to start at ${ord(floorOf(k))} grade: every concept below that counts as known, and a memory check spot-checks one or two of them in each practice block.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
   /* grade level by domain */
   const lo=2,hi=Math.max(grade+3,Math.ceil(Math.max(...R.domains.map(d=>d.ge),O.ge)+0.5)),X=v=>((clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(2);
   const ticks=[];for(let g=lo;g<=hi;g++)ticks.push(`<span style="left:${X(g)}%">${g}</span>`);
@@ -19723,7 +19762,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
     ${R.working.length?`<ul class="pv-list">${R.working.slice(0,8).map(w=>`<li>${cl(w.id)}<span>level ${w.lv+1} of 3 · ${accTxt(w.r,w.r+w.w)} right</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing in progress yet.</p>'}
     <p class="pv-p pv-soft">${R.due} mastered concept${R.due===1?' is':'s are'} due for review.</p>`);
   {const BH=(p.bhist||[]).slice(-8).reverse();card('Practice blocks',BH.length?`<ul class="pv-list">${BH.map(x=>`<li><span>${dShort(x.t0)}: ${probs(x.n)}, ${x.n?Math.round(100*x.ok/x.n):0}% right first try</span><span>${Math.max(1,Math.round(x.ms/60000))} min</span></li>`).join('')}</ul><p class="pv-p pv-soft">Next block: about ${probs(CO.blockGoal(p))}. ${esc(k.name)} works at about ${(p.ppace||1).toFixed(1)}× the time an average kid takes; the next block is sized from that and the concept she is on.</p>`:'<p class="pv-p pv-soft">No practice blocks finished yet. Each is planned at about 20 minutes and sized to her pace.</p>')}
-  {const RT=R.retention;card('Memory checks',`<p class="pv-p">${RT.checked?`${RT.pass} passed, ${RT.shaky} a little wobbly, ${RT.lapses} needed a refresh.`:'No memory checks yet.'} ${RT.due} concept${RT.due===1?'':'s'} due for a check now.</p>${RT.lapsed.length?`<p class="pv-p"><b>Being mastered again:</b></p><ul class="pv-list">${RT.lapsed.map(x=>`<li>${cl(x.id)}<span>slipped ${dShort(x.at)}</span></li>`).join('')}</ul>`:''}${RT.recent.length?`<p class="pv-p"><b>Latest checks:</b></p><ul class="pv-list">${RT.recent.slice(0,8).map(x=>`<li>${cl(x.id)}<span>${x.res==='pass'?'held':x.res==='shaky'?'wobbly':'slipped'} · ${dShort(x.at)}</span></li>`).join('')}</ul>`:''}<p class="pv-p pv-soft">Each mastered concept is checked again 1, 3, 9, 27 and 81 days later: two problems, no hints, no feedback until the end. One that slipped goes back on the path ahead of anything new and must be mastered again. When ${esc(k.name)} struggles with a concept, the ideas it is built on are checked too.</p>`)}
+  {const RT=R.retention;card('Memory checks',`<p class="pv-p">${RT.checked?`${RT.pass} passed, ${RT.shaky} a little wobbly, ${RT.lapses} needed a refresh.`:'No memory checks yet.'} ${RT.due} concept${RT.due===1?'':'s'} due for a check now.</p>${RT.early.left+RT.early.checked+RT.early.vouched?`<p class="pv-p"><b>Earlier-grade spot checks:</b> ${RT.early.checked+RT.early.vouched+RT.early.left} concept${RT.early.checked+RT.early.vouched+RT.early.left===1?' was':'s were'} counted as known without being practised here (placed by a check, or below the starting grade). ${RT.early.checked} checked so far${RT.early.vouched?`, which also vouch for ${RT.early.vouched} just before them`:''}${RT.early.slipped?`; ${RT.early.slipped} needed a refresh`:''}. ${RT.early.left} still to check, one or two in each practice block, the most advanced first.</p>`:''}${R.fastChecks?`<p class="pv-p pv-soft">${R.fastChecks} memory check${R.fastChecks===1?' was':'s were'} answered too fast to count (under 7 seconds a problem). Nothing changed, and those ideas come back later.</p>`:''}${RT.lapsed.length?`<p class="pv-p"><b>Being mastered again:</b></p><ul class="pv-list">${RT.lapsed.map(x=>`<li>${cl(x.id)}<span>slipped ${dShort(x.at)}</span></li>`).join('')}</ul>`:''}${RT.recent.length?`<p class="pv-p"><b>Latest checks:</b></p><ul class="pv-list">${RT.recent.slice(0,8).map(x=>`<li>${cl(x.id)}<span>${x.res==='pass'?'held':x.res==='shaky'?'wobbly':'slipped'} · ${dShort(x.at)}</span></li>`).join('')}</ul>`:''}<p class="pv-p pv-soft">Each mastered concept is checked again 1, 3, 9, 27 and 81 days later: two problems, no hints, no feedback until the end. One that slipped goes back on the path ahead of anything new and must be mastered again. When ${esc(k.name)} struggles with a concept, the ideas it is built on are checked too.</p>`)}
   card('Recently mastered',R.learned.length?`<ul class="pv-list">${R.learned.slice(0,10).map(x=>`<li>${cl(x.id)}<span>${dShort(x.at)}${x.how==='test'?' · tested out':''}</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing mastered in practice yet. Concepts from the placement check are counted above.</p>');
   const att=R.spots.map(s=>`<li>${cl(s.id)}<span>tricky spot · missed ${s.n}× · ${s.ok} of 3 fixed</span>${s.why?`<small class="pv-soft">${esc(s.why)}</small>`:''}</li>`).concat(R.hard.filter(h=>!R.spots.some(s=>s.id===h.id)).slice(0,6).map(h=>`<li>${cl(h.id)}<span>${Math.round(h.acc*100)}% right first try (${h.r+h.w} tries)</span></li>`));
   card('Needs attention',att.length?`<ul class="pv-list">${att.join('')}</ul>`:'<p class="pv-p pv-soft">Nothing stands out. Tricky spots (mistakes that point at an earlier idea) and concepts under 75% right show up here.</p>');

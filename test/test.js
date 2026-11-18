@@ -23,7 +23,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     await p.setViewport(viewport || { width: 1100, height: 860 });
     await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
     await mock.attach(p);
-    await p.evaluateOnNewDocument(() => { window.__storageWrites = 0; for (const k of ['localStorage', 'sessionStorage']) { try { const s = window[k], set = s.setItem.bind(s); s.setItem = (...a) => { window.__storageWrites++; return set(...a); }; } catch (e) {} } });
+    await p.evaluateOnNewDocument(() => { window.__mwRushMs = 0; /* test answers are instant: memory checks still count */ window.__storageWrites = 0; for (const k of ['localStorage', 'sessionStorage']) { try { const s = window[k], set = s.setItem.bind(s); s.setItem = (...a) => { window.__storageWrites++; return set(...a); }; } catch (e) {} } });
     await p.goto(F); return p;
   };
   const ev = (p, f, ...a) => p.evaluate(f, ...a);
@@ -453,6 +453,33 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.t = Date.now(); pl.pre.bt = 2 * window.COACH.BLOCK_MS; window.__mw.startPre(); }); await wait(200);
   await answer(p, true);
   check(await until(() => ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask'), 4000) && await ev(p, () => document.querySelector('#results').hidden), 'an assessment block is not cut off at 20 minutes');
+  await p.close();
+
+  /* 15. earlier-grade spot checks: a kid who starts at 4th grade gets two assumed concepts checked as a block opens;
+     a check that is tapped through does not count; a check answered properly does */
+  const m15 = create();
+  p = await newPage(m15); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[0].click()); await wait(200);
+  const as15 = await ev(p, () => { const pl = window.__mw.saves.charlie, CO = window.COACH; pl.pre = CO.pretestStart(4, { floor: 4, p: pl }); pl.pre.done = true; CO.pretestApply(pl, pl.pre); Object.values(pl.cs).forEach(s => { if (s.m) s.m -= 2 * 864e5; }); /* placed two days ago */
+    window.__mw.openLesson('a_plus9'); document.querySelector('#lessonBack').click(); return CO.assumedList(pl).length; });
+  await wait(150);
+  check(as15 >= 80 && await ev(p, () => /memory check/i.test(document.querySelector('#nextSub').textContent)), 'Charlie has ' + as15 + ' assumed concepts, and her block opens with a memory check');
+  await ev(p, () => { window.__mwRushMs = null; document.querySelector('#nextBtn').click(); }); await wait(200);
+  const e15 = await ev(p, () => { const R = window.__mw.RD, pl = window.__mw.saves.charlie; return { kind: R && R.kind, ids: R && R.ids, ok: R && R.ids.every(id => pl.cs[id].pl && !pl.cs[id].at && window.MWC.S[id].g < 4), early: window.__mw.blk.early }; });
+  check(e15.kind === 'audit' && e15.ids.length === 2 && e15.ok && e15.early === 2, 'it checks two earlier-grade concepts she has never been checked on (' + JSON.stringify(e15) + ')');
+  for (let i = 0; i < 80 && !(await resultsShown(p)); i++) { if (await ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask')) await ev(p, () => document.querySelector('#skipBtn').click()); await wait(120); }
+  await until(() => resultsShown(p), 5000);
+  const f15 = await ev(p, ids => { const pl = window.__mw.saves.charlie, CO = window.COACH, lg = Object.values(pl.log || {}); return { title: document.querySelector('#resTitle').textContent, lapsed: ids.filter(id => CO.isLapsed(pl, id)).length, assumed: CO.assumedList(pl).length, ar: lg.reduce((a, e) => a + (e.ar || 0), 0), w: ids.reduce((a, id) => a + (pl.cs[id].w | 0), 0) }; }, e15.ids);
+  check(/too fast/i.test(f15.title) && f15.lapsed === 0 && f15.assumed === as15 && f15.ar === 1 && f15.w === 0, 'a check tapped through does not count: nothing slips (' + JSON.stringify(f15) + ')');
+  await ev(p, () => { window.__mwRushMs = 0; document.querySelector('#hubBtn').click(); }); await wait(150);
+  const ids15 = await ev(p, () => { const pl = window.__mw.saves.charlie, ids = window.COACH.earlyPick(pl, 2, window.__mw.blk.seen); window.__mw.startAudit(ids); return ids; }); await wait(150);
+  for (let i = 0; i < 80 && !(await resultsShown(p)); i++) { if (await ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask')) await answer(p, true); await wait(120); }
+  await until(() => resultsShown(p), 5000);
+  const g15 = await ev(p, ids => { const pl = window.__mw.saves.charlie, CO = window.COACH; return { title: document.querySelector('#resTitle').textContent, pa: ids.map(id => pl.cs[id].pa), iv: ids.map(id => pl.cs[id].iv), left: CO.assumedList(pl).length, rep: CO.report(pl, 4).retention.early }; }, ids15);
+  check(g15.pa.every(x => x === 1) && g15.iv.every(x => x === 27) && g15.left < as15 - 2 && g15.rep.checked === 2 && g15.rep.vouched >= 1, 'a check answered properly counts: both held, next check in 27 days, and each vouches for the one before it (' + JSON.stringify(g15) + ')');
+  await until(() => ev(p, () => window.__mw.net.idle()));
+  await ev(p, () => window.__mw.openParent('charlie')); await wait(250);
+  check(await ev(p, () => /Earlier-grade spot checks/.test(document.querySelector('#pvBody').textContent) && /too fast to count/.test(document.querySelector('#pvBody').textContent) && !/NaN|undefined/.test(document.querySelector('#pvBody').textContent)), 'the parent view reports the spot checks and the check that was too fast');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.slice(0, 5).join(' | '));
