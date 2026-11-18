@@ -130,8 +130,42 @@ sup{font-size:.62em;line-height:0}
 .stack .sk-op{color:var(--ink-soft)}
 .sk-q{color:var(--line)}
 .q-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.q-mode{justify-self:start;font-weight:800;font-size:.8rem;padding:3px 10px;border-radius:99px;border:2px dashed var(--line);color:var(--ink-soft);background:var(--surface)}
-.q-mode.paper{border-style:solid;border-color:var(--ink-soft);color:var(--ink)}
+/* the mode strip: in your head (blue, thought bubble) or pencil and paper (warm paper, pencil). Same words, color
+   and picture on every problem, lesson page and worksheet, so a child knows at a glance whether to pick up the pencil */
+:root{--paper-edge:#B98A1B;--paper-bg:#FFF4D2;--paper-ink:#4D3A00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper-edge:#8C7A45;--paper-bg:#2F2B1F;--paper-ink:#E6DCB8}}
+.q-mode{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;border:2px solid var(--line);background:var(--surface-2);color:var(--ink);min-width:0}
+.q-tags .q-mode{flex:1 1 100%}
+.q-mode .qm-ic{flex:0 0 auto;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.q-mode .qm-ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.q-mode .qm-t{display:grid;gap:1px;min-width:0}
+.q-mode b{font-weight:700!important;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase}
+.q-mode small{font-size:.8rem;color:var(--ink-soft)}
+.q-mode.head{background:var(--sky-soft);border-color:var(--sky)}
+.q-mode.head .qm-ic{background:var(--sky)}
+.q-mode.paper{background:var(--paper-bg);border-color:var(--paper-edge);color:var(--paper-ink)}
+.q-mode.paper .qm-ic{background:var(--paper-edge);color:var(--paper-bg)}
+.q-mode.paper small{color:var(--paper-ink)}
+.q-mode.pop{animation:modePop .6s cubic-bezier(.2,1.5,.4,1)}
+@keyframes modePop{0%{transform:scale(.95)}45%{transform:scale(1.04)}100%{transform:scale(1)}}
+.qcard{position:relative}
+.qcard.head{border-top:5px solid var(--sky)}
+.qcard.paper{border-top:5px solid var(--paper-edge)}
+/* a pencil-and-paper round starts by saying so */
+.q-ready{position:absolute;inset:0;z-index:5;background:var(--paper-bg);color:var(--paper-ink);border-radius:inherit;display:grid;place-content:center;justify-items:center;gap:10px;text-align:center;padding:20px}
+.q-ready[hidden]{display:none}
+.q-ready .qr-ic{width:72px;height:72px;border-radius:50%;background:var(--paper-edge);color:var(--paper-bg);display:grid;place-items:center}
+.q-ready .qr-ic svg{width:42px;height:42px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.q-ready b{font-size:1.4rem}
+.q-ready p{margin:0;max-width:26em;font-size:1.05rem}
+/* how a problem reads: a story one sentence to a line, the question marked, a sum on its own line, typing notes small */
+.ql{display:block}
+.ql+.ql{margin-top:.4em}
+.ql-say~.ql-ask{padding-left:.55em;border-left:4px solid var(--accent)}
+.ql-math{font-size:1.1em}
+.ql-note{font-size:.62em;color:var(--ink-soft)}
+.q-text.long{font-size:clamp(1.1rem,3.9vw,1.45rem);line-height:1.4}
+.hv-q .ql-note{font-weight:400}
 .q-mode:empty{display:none}
 .paper-note{margin:6px 0 0;font-weight:800;font-size:.85rem;color:var(--ink-soft)}
 /* the concept map, one card per grade */
@@ -637,7 +671,9 @@ g[data-tip]:hover .pv-bar{opacity:.8}
     <div class="play-top"><button id="quitBtn" class="btn btn-ghost btn-sm" type="button">Stop</button><div id="playTitle" class="play-title"></div><div id="dots" class="dots"></div><span class="stat" id="playCur"></span></div>
     <div class="play-grid">
       <div class="card qcard">
-        <div class="q-tags"><div id="qBadge" class="q-badge" hidden></div><div id="qMode" class="q-mode"></div></div>
+        <div id="qMode" class="q-mode" role="note"></div>
+        <div class="q-tags"><div id="qBadge" class="q-badge" hidden></div></div>
+        <div id="qReady" class="q-ready" hidden><div class="qr-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.4L16.6 4.2a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.4 18.8z"/><path d="M14.6 6.2l3.2 3.2"/></svg></div><b>Pencil and paper</b><p>These problems are worked out on paper. Get your pencil and paper ready.</p><button id="qReadyBtn" class="btn btn-big" type="button">I have them</button></div>
         <div class="q-row"><div id="qText" class="q-text"></div><button id="readBtn" class="icon-btn" type="button" aria-label="Read it to me"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button></div>
         <div id="qVis" class="q-vis"></div>
         <div id="answerArea" class="answer-area"></div>

@@ -182,18 +182,34 @@ function planBlocks(pre, sids) {
   if (out.length > 1 && est(out[out.length - 1]) < BLOCK_MS * 0.35 && est(out[out.length - 2]) + est(out[out.length - 1]) <= BLOCK_MS * 1.3) out.splice(-2, 2, out[out.length - 2].concat(out[out.length - 1]));
   return out;
 }
-/* a kid set to start at a grade (floor): on the first check every Common Core concept below that grade counts as known
-   and the search never goes lower; memory checks still come back to those concepts over the next week */
+/* a kid set to start at a grade (floor): every Common Core concept below that grade counts as known. applyFloor marks
+   them mastered straight away, so the map and the parent report start at that grade; a check never searches lower,
+   and pretestFloor gives the floor to a check that is already under way. Memory checks still come back to those
+   concepts over the next week, so one that is not really known goes back on the path. */
 const floorIdx = (s, floor) => { if (!floor) return 0; const i = s.core.findIndex(id => S[id].g >= floor); return i < 0 ? s.core.length : i; };
+function applyFloor(p, floor, now) {
+  now = now || Date.now(); let n = 0; if (!floor) return 0;
+  STR.forEach(s => { const f = floorIdx(s, floor); for (let i = 0; i < f; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); cs(p, id).pl = 1; n++; } } });
+  return n;
+}
+function pretestFloor(pre, floor) {
+  if (!pre || !pre.st || !floor || pre.floor === floor) return pre; pre.floor = floor;
+  pre.order.forEach(sid => { const s = STR.find(x => x.id === sid), st = pre.st[sid]; if (!s || !st) return; const f = floorIdx(s, floor), L = capLen(s, pre.grade, pre.cap);
+    if (st.done) { if (st.start < f) st.start = Math.min(f, L); return; }
+    if (st.lo < f - 1) st.lo = f - 1; if (st.at < f) { st.at = f; st.step = 0; }
+    if (st.hi <= st.lo + 1 || st.at >= st.hi) { st.done = true; st.start = Math.min(st.lo + 1, L); } });
+  return pre;
+}
 function firstAt(s, grade, L, f) { let e = s.core.findIndex(id => S[id].g >= grade); if (e < 0 || e >= L) e = L - 1; e = Math.max(0, e - (e > 2 ? 1 : 0)); return Math.min(L - 1, Math.max(e, f)); }
 /* opts: { p: the save (a later assessment starts at what is already mastered), by: 'parent', pace, short, floor } */
 function pretestStart(grade, opts) {
-  opts = opts || {}; const p = opts.p, st = {}, order = [], floor = p && p.cs ? 0 : (opts.floor | 0);
+  opts = opts || {}; const p = opts.p, st = {}, order = [], floor = opts.floor | 0;
   let cap = grade + 1;
   if (p && p.cs) { const ge = gradeLevel(p, null); if (ge) cap = Math.min(12, Math.max(grade + 1, Math.floor(ge.ge) + 1)); }
   STR.forEach(s => { const L = capLen(s, grade, cap); if (!L) return; let e; const f = floorIdx(s, floor);
-    if (p && p.cs) { e = s.core.findIndex(id => !isMastered(p, id)); if (e < 0 || e >= L) return; }
-    else { if (f >= L) return; e = firstAt(s, grade, L, f); }
+    if (f >= L) return;
+    if (p && p.cs) { e = s.core.findIndex(id => !isMastered(p, id)); if (e < 0 || e >= L) return; e = Math.max(e, f); }
+    else e = firstAt(s, grade, L, f);
     order.push(s.id); st[s.id] = { lo: f - 1, hi: L, at: e, at0: e, step: 0, done: false, log: [], ms: 0 }; });
   const pre = { v: 2, grade, cap, st, order, done: false, t: 0, by: opts.by || null, pace: opts.pace || 1, short: !!opts.short, bi: 0, bt: 0, bms: [], started: 0, floor };
   pre.blocks = planBlocks(pre, order); return pre;
@@ -424,7 +440,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

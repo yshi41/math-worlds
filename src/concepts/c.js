@@ -1056,7 +1056,7 @@ const DEFS = [
     const each = R.pick([2, 5, 10]), sym = R.pick(['⭐', '🍎', '⚽', '📚']), cnt = L.map(() => R.i(1, 7)), vals = cnt.map(c => c * each);
     const vis = table(L.map((l, k) => [l, sym.repeat(cnt[k])]).concat([['key', sym + ' = ' + each]]));
     const [i, j, k] = R.shuffle([0, 1, 2, 3]); const ans = vals[i] + vals[j] - vals[k]; if (ans <= 0) return null;
-    return { text: 'The picture graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. How many more ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + ' together than ' + B(ph(L[k])) + '?', vis, ans,
+    return { text: 'The picture graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + '. How many more is that than ' + B(ph(L[k])) + '?', vis, ans,
       how: [L[i] + ': ' + cnt[i] + ' × ' + each + ' = ' + vals[i] + '. ' + L[j] + ': ' + cnt[j] + ' × ' + each + ' = ' + vals[j] + '. ' + L[k] + ': ' + cnt[k] + ' × ' + each + ' = ' + vals[k] + '.',
             'Together: ' + vals[i] + ' + ' + vals[j] + ' = ' + (vals[i] + vals[j]) + '.', (vals[i] + vals[j]) + M + vals[k] + ' = ' + B(ans) + '.'],
       steps: [{ text: 'How many ' + ph(L[i]) + ' and ' + ph(L[j]) + ' together?', ans: vals[i] + vals[j] }, { text: 'How many ' + ph(L[k]) + '?', ans: vals[k] }, { text: B((vals[i] + vals[j]) + M + vals[k]) + ' = ?', ans }],
@@ -1222,8 +1222,8 @@ const DEFS = [
           how: ['Multiply the choices at each step.', a + ' × ' + b + ' × ' + c + ' = ' + (a * b) + ' × ' + c + ' = ' + B(ans) + '.'],
           steps: [{ text: 'Drinks and mains: ' + B(a + ' × ' + b) + ' = ?', ans: a * b }, { text: B((a * b) + ' × ' + c) + ' = ?', ans }],
           traps: [tr(a + b + c, 'd_countways', 'Each choice multiplies the number of meals.'), tr(a * b + c, 'd_countways', 'Multiply by the desserts too.')] }; }
-      const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels (a, e, i, o, u)', 5, 3], ['vowels (a, e, i, o, u)', 5, 2], ['colours (out of 4)', 4, 3], ['colours (out of 3)', 3, 4]]), ans = Math.pow(k[1], k[2]);
-      return { text: 'A code has ' + B(k[2] + ' spots') + ', and each spot can be any of ' + B(k[1] + ' ' + k[0]) + ' (repeats allowed). How many codes are there?', ans,
+      const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels', 5, 3], ['vowels', 5, 2], ['colours', 4, 3], ['colours', 3, 4]]), ans = Math.pow(k[1], k[2]);
+      return { text: 'A code has ' + B(k[2] + ' spots') + '. Each spot can be any of ' + B(k[1] + ' ' + k[0]) + '. Repeats are allowed. How many codes are there?', ans,
         how: ['Each of the ' + k[2] + ' spots has ' + k[1] + ' choices.', Array(k[2]).fill(k[1]).join(' × ') + ' = ' + B(num(ans)) + '.'],
         steps: [{ text: 'Choices for each spot?', ans: k[1] }, { text: 'How many codes?', ans }],
         traps: [tr(k[1] * k[2], 'd_countways', 'Multiply ' + k[1] + ' by itself ' + k[2] + ' times, not by ' + k[2] + '.'), tr(k[1] + k[2], 'd_countways', 'Each spot multiplies the choices.'), tr(Math.pow(k[1] - 1, k[2]), 'd_countways', 'Repeats are allowed, so every spot has all ' + k[1] + ' choices.')] };
@@ -1277,7 +1277,7 @@ const DEFS = [
       const n1 = d === 0 ? R.i(2, 12) : R.i(2, 8), n2 = d === 0 ? n1 : R.i(2, 8), k = nz(R, -4, 4), mid = R.i(70, 85); if (d === 1 && n1 === n2) return null;
       const A = d === 0 ? mid - k : mid - n2 * k, Bm = d === 0 ? mid + k : mid + n1 * k, t1 = n1 * A, t2 = n2 * Bm, N = n1 + n2, ans = (t1 + t2) / N; if (A > 100 || Bm > 100 || A < 40 || Bm < 40) return null;
       const g = R.pick([['students in class A', 'students in class B', 'test score', 'students'], ['players on the red team', 'players on the blue team', 'score', 'players'], ['girls', 'boys', 'long jump (in cm)', 'kids']]);
-      return { text: B(n1) + ' ' + g[0] + ' have a mean ' + g[2] + ' of ' + B(A) + '. ' + B(n2) + ' ' + g[1] + ' have a mean of ' + B(Bm) + '. What is the mean for all ' + N + ' ' + g[3] + '?', ans,
+      return { text: 'The mean ' + g[2] + ' of ' + B(n1) + ' ' + g[0] + ' is ' + B(A) + '. The mean for ' + B(n2) + ' ' + g[1] + ' is ' + B(Bm) + '. What is the mean for all ' + N + ' ' + g[3] + '?', ans,
         how: [W('total 1 = ' + n1 + ' × ' + A + ' = ' + t1, 'mean × how many'), 'total 2 = ' + n2 + ' × ' + Bm + ' = ' + t2, W('mean = (' + t1 + ' + ' + t2 + ') ÷ ' + N, 'all the points shared over everyone'), '= ' + B(ans)],
         steps: [{ text: 'Total for ' + g[0] + '?', ans: t1 }, { text: 'Total for ' + g[1] + '?', ans: t2 }, { text: 'Mean for all ' + N + '?', ans }],
         traps: [n1 !== n2 ? tr((A + Bm) / 2, 'd_weighted', 'The groups are different sizes, so the bigger group pulls the mean toward its own.') : null, tr(t1 + t2, 'd_mean', 'That is the total. Share it over all ' + N + ' students.'), tr((t1 + t2) / 2, 'd_weighted', 'Divide by the number of students, ' + N + ', not by 2.')] };

@@ -143,7 +143,7 @@ C.defs([
       if (d === 0) {
         const a = R.i(12, 98), b = R.i(3, 9); if (!okT(a)) return null;
         const ra = r10(a), ans = ra * b, other = ra > a ? ra - 10 : ra + 10;
-        return { text: 'Estimate ' + B(a + ' × ' + b) + ': round ' + a + ' to the nearest ten, then multiply.', ans,
+        return { text: 'Round ' + a + ' to the nearest ten. Then multiply. About how much is ' + B(a + ' × ' + b) + '?', ans,
           how: [a + ' rounds to ' + ra + ' (the ones digit ' + a % 10 + (a % 10 >= 5 ? ' is 5 or more, so round up).' : ' is less than 5, so round down).'),
             ra + ' × ' + b + ' is ' + ra / 10 + ' × ' + b + ' = ' + (ra / 10 * b) + ', with a zero on the end: ' + B(num(ans)) + '.'],
           steps: [st('Round ' + B(a) + ' to the nearest ten.', ra), st(B(ra + ' × ' + b) + ' = ?', ans)],
@@ -155,7 +155,7 @@ C.defs([
         if (!okT(b) || (d === 1 ? !okT(a) : (a % 10 === 0 || Math.floor(a / 10) % 10 === 5 || Math.floor(a / 10) % 10 === 0))) return null;
         const ra = d === 1 ? r10(a) : r100(a), rb = r10(b), za = d === 1 ? 1 : 2, fa = ra / Math.pow(10, za), fb = rb / 10, ans = ra * rb;
         const ob = rb > b ? rb - 10 : rb + 10;
-        return { text: 'Estimate ' + B(num(a) + ' × ' + b) + ': round ' + num(a) + ' to the nearest ' + (za === 1 ? 'ten' : 'hundred') + ' and ' + b + ' to the nearest ten, then multiply.', ans,
+        return { text: 'Round ' + num(a) + ' to the nearest ' + (za === 1 ? 'ten' : 'hundred') + '. Round ' + b + ' to the nearest ten. Then multiply. About how much is ' + B(num(a) + ' × ' + b) + '?', ans,
           how: [num(a) + ' rounds to ' + num(ra) + ' and ' + b + ' rounds to ' + rb + '.', 'Multiply the front digits: ' + fa + ' × ' + fb + ' = ' + fa * fb + '. Then put on all ' + zw(za + 1) + ': ' + B(num(ans)) + '.'],
           steps: [st('Round ' + B(num(a)) + ' to the nearest ' + (za === 1 ? 'ten.' : 'hundred.'), ra), st('Round ' + B(b) + ' to the nearest ten.', rb), st(B(num(ra) + ' × ' + rb) + ' = ?', ans)],
           traps: TR([tr(a * b, 'm_est', 'That is the exact answer. Round both numbers first; an estimate is quick.'), tr(ans * 10, 'm_tensxtens', 'Count the zeros: ' + num(ra) + ' and ' + rb + ' have ' + zw(za + 1) + ' between them.'),
@@ -164,7 +164,7 @@ C.defs([
       const dd = R.i(2, 9), q = R.i(2, 9), Dp = dd * 10, Np = dd * q * 100, off = R.i(-40, 40), offD = R.pick([-4, -3, -2, -1, 1, 2, 3, 4]);
       if (!off) return null;
       const N = Np + off, Dv = Dp + offD, ans = 10 * q;
-      return { text: 'Estimate ' + B(num(N) + ' ÷ ' + Dv) + ': round ' + num(N) + ' to the nearest hundred and ' + Dv + ' to the nearest ten, then divide.', ans,
+      return { text: 'Round ' + num(N) + ' to the nearest hundred. Round ' + Dv + ' to the nearest ten. Then divide. About how much is ' + B(num(N) + ' ÷ ' + Dv) + '?', ans,
         how: [num(N) + ' rounds to ' + num(Np) + ' and ' + Dv + ' rounds to ' + Dp + '.', 'Cross off a zero from each: ' + num(Np / 10) + ' ÷ ' + dd + '.',
           'Think ' + dd * q + ' ÷ ' + dd + ' = ' + q + ', so ' + num(Np / 10) + ' ÷ ' + dd + ' = ' + B(ans) + '.'],
         steps: [st('Round ' + B(num(N)) + ' to the nearest hundred.', Np), st('Round ' + B(Dv) + ' to the nearest ten.', Dp), st(B(num(Np) + ' ÷ ' + Dp) + ' = ?', ans)],
@@ -747,7 +747,7 @@ C.defs([
       }
       if (d === 2 && R.chance(.5)) {
         const A = R.i(2, 9), top = R.i(2, 6), Bv = A * top * top, ans = A * top;
-        return { text: 'In a multiply pattern, the terms ' + B(A + ', ?, ' + num(Bv)) + ' come one after another. What is the missing term? (All terms are positive.)', ans,
+        return { text: 'In a multiply pattern, the terms ' + B(A + ', ?, ' + num(Bv)) + ' come one after another. All terms are positive. What is the missing term?', ans,
           how: ['Call the multiplier r. The missing term is ' + A + ' × r, and ' + num(Bv) + ' is ' + A + ' × r × r.', 'So r × r = ' + num(Bv) + ' ÷ ' + A + ' = ' + top * top + ', and r = ' + top + '.', 'The missing term is ' + A + ' × ' + top + ' = ' + B(num(ans)) + '.'],
           steps: [st(B(num(Bv) + ' ÷ ' + A) + ' = ?', top * top), st('Which number times itself makes ' + top * top + '?', top), st(B(A + ' × ' + top) + ' = ?', ans)],
           traps: TR([tr((A + Bv) / 2, 'p_geo', 'Halfway is right for a same-jump pattern. Here each step multiplies by the same number.'), tr(top * top, 'w_roots', 'That is r × r. Find r, then multiply ' + A + ' by it.'), tr(A * top * top / 2, 'p_geo', 'Two equal multiplications get from ' + A + ' to ' + num(Bv) + '. Find one of them.')]) };

@@ -359,7 +359,7 @@ C.defs(ex([
       const fr = nums.map(v => Math.floor(v / P) * P), ad = nums.map(v => (Math.floor(v / u) % 10) * u);
       const F = total(fr), A = total(ad), ans = F + A, exact = total(nums), rnd = total(nums.map(v => Math.round(v / u) * u));
       const fw = big ? 'thousands' : 'hundreds', aw = big ? 'hundreds' : 'tens', dw = big ? 'tens and ones' : 'ones';
-      return { text: 'Front-end estimate ' + B(nums.map(num).join(' + ')) + ': add the ' + fw + ', then adjust with the ' + aw + ' (drop the ' + dw + ').', ans,
+      return { text: 'Add the ' + fw + ' first. Then add the ' + aw + '. Drop the ' + dw + '. About how much is ' + B(nums.map(num).join(' + ')) + '?', ans,
         how: ['Fronts: ' + fr.map(num).join(' + ') + ' = ' + num(F) + '.', 'Adjust with the ' + aw + ': ' + ad.map(num).join(' + ') + ' = ' + num(A) + '.',
           num(F) + ' + ' + num(A) + ' = ' + B(num(ans)) + '. (The exact total is ' + num(exact) + ', very close.)'],
         steps: [st('Add the ' + fw + ': ' + B(fr.map(num).join(' + ')) + ' = ?', F), st('Add the ' + aw + ': ' + B(ad.map(num).join(' + ')) + ' = ?', A), st(B(num(F) + ' + ' + num(A)) + ' = ?', ans)],
@@ -397,7 +397,7 @@ C.defs(ex([
       if (d === 0) {
         const N = R.i(120, 98765), s1 = dsum(N), r = droot(N);
         if (s1 < 10 && R.chance(.7)) return null;
-        return { text: 'What is the digit root of ' + B(num(N)) + '? Add the digits until one digit is left.', ans: r,
+        return { text: 'Add the digits until one digit is left. What is the digit root of ' + B(num(N)) + '?', ans: r,
           how: ['Add the digits: ' + digs(N).join(' + ') + ' = ' + s1 + '.', s1 >= 10 ? 'Still two digits, so again: ' + rootLine(s1) + '. The digit root is ' + B(r) + '.' : s1 + ' is one digit, so the digit root is ' + B(r) + '.'],
           steps: [st('Add the digits of ' + B(num(N)) + '.', s1)].concat(s1 >= 10 ? [st('Now add the digits of ' + B(s1) + ' until one digit is left.', r)] : []),
           traps: TR([s1 >= 10 ? tr(s1, 'fa_root', 'Keep going: add the digits of ' + s1 + ' too.') : null, tr(droot(Math.floor(N / 10)), 'fa_root', 'Add every digit, including the last one.'),
@@ -415,7 +415,7 @@ C.defs(ex([
       }
       const a = R.i(12, 98), b = R.chance(.5) ? R.i(12, 98) : R.i(102, 389), P = a * b, ra = droot(a), rb = droot(b), pr = ra * rb, r = droot(pr);
       const claim = P + R.pick([0, 0, 10, -10, 100, -100, 1]), rc = droot(claim), who = R.pick(NAMES);
-      return { text: who + ' worked out ' + B(num(a) + ' × ' + num(b) + ' = ' + num(claim)) + '. What digit root should the answer have? Use the digit roots of ' + num(a) + ' and ' + num(b) + '.', ans: r,
+      return { text: who + ' worked out ' + B(num(a) + ' × ' + num(b) + ' = ' + num(claim)) + '. Use the digit roots of ' + num(a) + ' and ' + num(b) + '. What digit root should the answer have?', ans: r,
         how: ['Digit roots: ' + num(a) + ' → ' + ra + ' and ' + num(b) + ' → ' + rb + '.', 'Multiply the roots: ' + ra + ' × ' + rb + ' = ' + pr + (pr >= 10 ? ', then ' + rootLine(pr) : '') + '.',
           who + '’s ' + num(claim) + ' has digit root ' + rc + (rc === r ? ', which matches, so it passes the check.' : ', not ' + r + ', so it must be wrong.') + ' The answer’s digit root is ' + B(r) + '.'],
         steps: [st('What is the digit root of ' + B(num(a)) + '?', ra), st('What is the digit root of ' + B(num(b)) + '?', rb), st('What is the digit root of ' + B(ra + ' × ' + rb) + '?', r)],
@@ -447,7 +447,7 @@ C.defs(ex([
       if (d === 0) {
         const v = pick(R.chance(.5), 105, 999); if (v == null) return null;
         const top = Math.floor(v / 10), o = v % 10, s = step7(v);
-        return { text: 'Do one step of the 7 test on ' + B(v) + ': chop off the last digit, double it, and take it away from what is left. What number do you get?', ans: s,
+        return { text: 'Try the 7 test on ' + B(v) + '. Chop off the last digit and double it. Take that away from what is left. What number do you get?', ans: s,
           how: ['Chop off the ' + o + ': ' + top + ' is left. Double the ' + o + ': ' + 2 * o + '.',
             top + M + 2 * o + ' = ' + B(s) + ', which ' + in7(s) + ', so ' + v + (s % 7 === 0 ? ' divides by 7.' : ' does not divide by 7.')],
           steps: [st('Chop off the last digit of ' + B(v) + '. What is left?', top), st('Double the last digit: ' + B('2 × ' + o) + ' = ?', 2 * o), st(B(top + M + 2 * o) + ' = ?', s)],
@@ -457,7 +457,7 @@ C.defs(ex([
         const v = pick(R.chance(.5), 1001, 9999); if (v == null) return null;
         const seq = [v]; let x = v; while (x >= 100) { x = step7(x); if (x < 0) return null; seq.push(x); }
         const fin = seq[seq.length - 1];
-        return { text: 'Use the 7 test on ' + B(num(v)) + ': chop, double, take away, and keep going until the number is under 100. What number do you end with?', ans: fin,
+        return { text: 'Use the 7 test on ' + B(num(v)) + '. Chop, double, take away. Keep going until the number is under 100. What number do you end with?', ans: fin,
           how: seq.slice(0, -1).map(line).map(s => s + '.').concat(['You end with ' + B(fin) + ', which ' + in7(fin) + ', so ' + num(v) + (fin % 7 === 0 ? ' divides by 7.' : ' does not divide by 7.')]),
           steps: seq.slice(0, -1).map(y => st('One step of the 7 test on ' + B(num(y)) + ': what do you get?', step7(y))),
           traps: TR([seq.length > 2 ? tr(seq[1], 'fa_div7', 'Keep going until the number is under 100.') : null, tr(Math.floor(v / 10) - (v % 10), 'fa_div7', 'Double the last digit before you take it away.'),
@@ -466,7 +466,7 @@ C.defs(ex([
       const c = R.i(0, 3), list = [];
       for (let i = 0; i < 3; i++) { const v = pick(i < c, 105, 999); if (v == null || list.includes(v)) return null; list.push(v); }
       const nums = R.shuffle(list);
-      return { text: 'How many of these divide by 7? ' + B(nums.join(', ')) + '. Use the 7 test on each.', ans: c,
+      return { text: 'Use the 7 test on each number. How many of these divide by 7? ' + B(nums.join(', ')), ans: c,
         how: nums.map(v => line(v) + ', which ' + in7(step7(v)) + '.').concat(['So ' + B(c) + ' of them ' + (c === 1 ? 'divides' : 'divide') + ' by 7.']),
         steps: nums.map(v => st('One step of the 7 test on ' + B(v) + ': what do you get?', step7(v))).concat([st('How many of the three end numbers are in the 7s?', c)]),
         traps: TR([c < 3 ? tr(c + 1, 'fa_div7', 'Check each end number: is it 0, 7, 14, 21, 28, 35, 42, 49, …?') : null, c > 0 ? tr(c - 1, 'fa_div7', 'Check each end number: is it 0, 7, 14, 21, 28, 35, 42, 49, …?') : null]) };
@@ -615,11 +615,11 @@ C.defs(ex([
       }
       if (d === 1) {
         const n = R.i(11, 16), e = n - 10, v = P(n), m = P(e);
-        if (R.chance(.5)) return { text: 'What is ' + B(pw(2, n)) + '? Start from ' + pw(2, 10) + ' = 1,024.', ans: v,
+        if (R.chance(.5)) return { text: 'Start from ' + pw(2, 10) + ' = 1,024. What is ' + B(pw(2, n)) + '?', ans: v,
           how: [pw(2, n) + ' = ' + pw(2, 10) + ' × ' + pw(2, e) + ', because ' + n + ' = 10 + ' + e + '.', '1,024 × ' + m + ' = ' + B(num(v)) + '.'],
           steps: [st(B(pw(2, e)) + ' = ?', m), st(B('1,024 × ' + m) + ' = ?', v)],
           traps: TR([tr(1000 * m, 'w_pow2', '1,024 is about 1,000, but this asks for the exact value.'), tr(1024 * e, 'w_exp', pw(2, e) + ' is ' + m + ', not ' + e + '.'), tr(v / 2, 'w_pow2', 'Check the power: ' + n + ' = 10 + ' + e + '.')]) };
-        return { text: B(pw(2, '?') + ' = ' + num(v)) + '. What is the power? (' + pw(2, 10) + ' = 1,024.)', ans: n,
+        return { text: 'Use ' + pw(2, 10) + ' = 1,024. ' + B(pw(2, '?') + ' = ' + num(v)) + '. What is the power?', ans: n,
           how: [num(v) + ' ÷ 1,024 = ' + m + ', and ' + m + ' = ' + pw(2, e) + '.', 'So ' + num(v) + ' = ' + pw(2, 10) + ' × ' + pw(2, e) + ' = ' + pw(2, n) + ': the power is ' + B(n) + '.'],
           steps: [st(B(num(v) + ' ÷ 1,024') + ' = ?', m), st(B(m) + ' is 2 to what power?', e), st('So 2 to what power is ' + B(num(v)) + '?', n)],
           traps: TR([tr(10 * e, 'w_rules', 'Multiplying powers adds the powers: 10 + ' + e + ', not 10 × ' + e + '.'), tr(e, 'w_pow2', 'That is the power for ' + m + '. Add the 10 from 1,024.'), tr(n + 1, 'w_pow2', 'Check: ' + num(v) + ' ÷ 1,024 = ' + m + '.')]) };
@@ -667,17 +667,17 @@ C.defs(ex([
     tip: 'Round each number to one digit, multiply the front digits, and count the zeros. Seconds in a year: 60 × 60 × 24 × 365 ≈ 60 × 60 × 20 × 400 = 28,800,000 ≈ 3 × 10⁷. The power is 7.',
     gen(d, R) {
       let f, parts;
-      if (d === 0) { f = [R.i(12, 95), R.i(110, 990)]; parts = R.chance(.5) ? ['A stadium has ', ' rows with ', ' seats in each row. About how many seats are there?'] : ['Estimate ', ' × ', '.']; }
+      if (d === 0) { f = [R.i(12, 95), R.i(110, 990)]; parts = R.chance(.5) ? ['A stadium has ', ' rows with ', ' seats in each row. Estimate the number of seats.'] : ['Estimate ', ' × ', '.']; }
       else if (d === 1) {
         const kind = R.i(0, 2);
-        if (kind === 0) { f = [R.i(150, 1900), R.i(6, 45), R.i(80, 450)]; parts = ['A school has ', ' students. Each reads ', ' books a year, and each book has ', ' pages. About how many pages is that?']; }
-        else if (kind === 1) { f = [R.i(12000, 950000), R.i(90, 400), R.i(7, 60)]; parts = ['A city has ', ' people. Each uses ', ' liters of water a day. About how many liters in ', ' days?']; }
+        if (kind === 0) { f = [R.i(150, 1900), R.i(6, 45), R.i(80, 450)]; parts = ['A school has ', ' students. Each reads ', ' books a year, and each book has ', ' pages. Estimate the number of pages.']; }
+        else if (kind === 1) { f = [R.i(12000, 950000), R.i(90, 400), R.i(7, 60)]; parts = ['A city has ', ' people. Each uses ', ' liters of water a day. Estimate the liters used in ', ' days.']; }
         else { f = [R.i(12, 95), R.i(110, 990), R.i(12, 95)]; parts = ['Estimate ', ' × ', ' × ', '.']; }
-      } else if (R.chance(.5)) { f = [R.i(62, 95), 60, 24, R.i(12, 365)]; parts = ['A heart beats about ', ' times a minute. There are ', ' minutes in an hour and ', ' hours in a day. About how many beats in ', ' days?']; }
+      } else if (R.chance(.5)) { f = [R.i(62, 95), 60, 24, R.i(12, 365)]; parts = ['A heart beats about ', ' times a minute. There are ', ' minutes in an hour and ', ' hours in a day. Estimate the beats in ', ' days.']; }
       else { f = [R.i(12, 95), R.i(110, 990), R.i(1100, 9800), R.i(12, 95)]; parts = ['Estimate ', ' × ', ' × ', ' × ', '.']; }
       const rs = f.map(oneDigit), Ls = rs.map(x => x.L), zs = rs.map(x => x.z), fp = Ls.reduce((a, b) => a * b, 1), Z = total(zs), len = String(fp).length, k = len - 1 + Z;
       const lead = num(fp / Math.pow(10, len - 1)), text = parts[0] + f.map((x, i) => B(num(x)) + parts[i + 1]).join('');
-      return { text: text + ' Round each number to one digit, multiply, and write the answer as about a × ' + pw(10, '?') + '. What is the power of 10?', ans: k,
+      return { text: text + ' Round each number to one digit and multiply to get about a × ' + pw(10, '?') + '. What is the power of 10?', ans: k,
         how: ['Round each number to one digit: ' + f.map((x, i) => num(x) + ' → ' + num(rs[i].L * Math.pow(10, rs[i].z))).join(', ') + '.',
           'Front digits: ' + Ls.join(' × ') + ' = ' + fp + '. Zeros: ' + zs.join(' + ') + ' = ' + Z + '.',
           fp + ' with ' + Z + ' zeros is ' + lead + ' × ' + pw(10, k) + ' (one digit before the point), so the power is ' + B(k) + '.'],

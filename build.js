@@ -28,4 +28,6 @@ const pages = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">
   + '<script>window.MW_CLOUD=window.MW_CLOUD||\'' + WORKER + '\';window.MW_BUILD=\'' + BUILD + '\';</script>\n'
   + '<style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>\n</head>\n<body>\n' + pagesBody + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(D, 'index.html'), pages);
+/* the page checks this to pick up a newer build by itself */
+fs.writeFileSync(path.join(D, 'version.json'), JSON.stringify({ build: BUILD }) + String.fromCharCode(10));
 console.log('index.html', pages.length, 'bytes, build', BUILD);

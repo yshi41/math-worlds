@@ -175,7 +175,7 @@ C.defs([
   gen(d, R) {
     if (d === 0) {
       const r = R.i(2, 5), c = R.i(2, 5), p = r * c;
-      return { text: 'How many dots? There are ' + B(r + ' rows of ' + c) + '.', vis: dotsSVG(r, c), ans: p,
+      return { text: 'There are ' + B(r + ' rows of ' + c) + '. How many dots are there?', vis: dotsSVG(r, c), ans: p,
         how: ['Each row has ' + c + ' dots, and there are ' + r + ' rows. That is ' + r + ' groups of ' + c + ': ' + X(r, c) + '.',
               'Count by ' + c + 's, once for each row: ' + list(c, r) + '. That is ' + B(p) + ' dots.'],
         steps: [{ text: 'How many dots are in one row?', ans: c, vis: dotsSVG(r, c) },
@@ -644,7 +644,7 @@ C.defs([
     }
     const m = R.pick([0, 30]), form = m ? R.i(0, 2) : R.i(0, 1);
     if (form === 1) return { type: 'time', ans: tm(h, m),
-      text: m ? 'The long hand points to the ' + B(6) + ' and the short hand is ' + B('halfway between the ' + h + ' and the ' + nx) + '. What time is it?'
+      text: m ? 'The long hand points to the ' + B(6) + '. The short hand is ' + B('halfway between the ' + h + ' and the ' + nx) + '. What time is it?'
               : 'The short hand points to the ' + B(h) + ' and the long hand points to the ' + B(12) + '. What time is it?',
       how: [hourSay(h, m), m ? 'The long hand on the 6 means half past: 30 minutes.' : 'The long hand on the 12 means o’clock.', 'It is ' + B(fmtT(h, m)) + '.'],
       steps: [{ text: m ? 'The long hand is on the 6. How many minutes past the hour is that?' : 'The long hand is on the 12. How many minutes past the hour is that?', ans: m, unit: 'minutes' },
@@ -1041,7 +1041,7 @@ C.defs([
       const ids = ['d', 'n', 'q'].filter(id => cnt[id]); if (!ids.length) return null; const id = R.pick(ids), c = COIN[id];
       const traps = [{ v: cnt[id] + 1, c: 'c_fewest', why: id === 'q' ? (cnt.q + 1) + ' quarters is ' + (25 * cnt.q + 25) + '¢, more than ' + t + '¢.' : 'Use the biggest coins first; that leaves less for the ' + c.many + '.' }];
       if (Math.floor(t / c.v) !== cnt[id]) traps.push({ v: Math.floor(t / c.v), c: 'c_fewest', why: 'Start with the biggest coin, the quarter, before the ' + c.many + '.' });
-      return { text: 'You make ' + B(fmtM(t)) + ' with the fewest coins you can (quarters, dimes, nickels and pennies). How many ' + B(c.many) + ' do you use?', ans: cnt[id],
+      return { text: 'You make ' + B(fmtM(t)) + ' with the fewest coins you can. You may use quarters, dimes, nickels and pennies. How many ' + B(c.many) + ' do you use?', ans: cnt[id],
         how: ['Biggest coin first, as many as fit: ' + coinNames(g) + '.', 'Count on to check: ' + countOn(g) + '. That uses ' + B(cnt[id]) + ' ' + plural(cnt[id], c.name, c.many) + '.'],
         steps: [{ text: 'How many quarters fit in ' + B(fmtM(t)) + '?', ans: cnt.q || 0 }, money('How much is left after the quarters?', t - 25 * (cnt.q || 0))], traps };
     }
@@ -1050,7 +1050,7 @@ C.defs([
     const g = greedy(t, allowed), cnt = {}; g.forEach(id => cnt[id] = (cnt[id] || 0) + 1);
     const kinds = COIN_ORDER.filter(id => cnt[id]), word = d === 2 ? 'bills and coins' : 'coins';
     let left = t; const parts = kinds.map(id => { const k = cnt[id], v = k * COIN[id].v; left -= v; return k + ' ' + plural(k, COIN[id].name, COIN[id].many) + ' (' + fmtM(v) + ')' + (left ? ', ' + fmtM(left) + ' left' : ''); });
-    const use = d === 0 ? ' Use dimes, nickels and pennies.' : d === 1 ? ' Use quarters, dimes, nickels and pennies.' : ' Use dollar bills, quarters, dimes, nickels and pennies.';
+    const use = d === 0 ? 'Use dimes, nickels and pennies. ' : d === 1 ? 'Use quarters, dimes, nickels and pennies. ' : 'Use dollar bills, quarters, dimes, nickels and pennies. ';
     const first = kinds[0], k0 = cnt[first], left0 = t - k0 * COIN[first].v, restN = g.length - k0;
     const steps = [{ text: 'How many ' + COIN[first].many + ' fit in ' + B(fmtM(t)) + '?', ans: k0 }];
     if (left0) steps.push(money('How much is left after ' + k0 + ' ' + plural(k0, COIN[first].name, COIN[first].many) + '?', left0), { text: 'What is the fewest number of coins for ' + B(fmtM(left0)) + '?', ans: restN }, { text: B(k0 + ' + ' + restN + ' = ?'), ans: g.length });
@@ -1059,7 +1059,7 @@ C.defs([
     if (cnt.q) traps.push({ v: g.length + 2, c: 'c_fewest', why: 'That amount works, but a quarter can take the place of dimes and a nickel.' });
     if (cnt.d) traps.push({ v: g.length + 1, c: 'c_fewest', why: 'That amount works, but one dime is fewer than 2 nickels.' });
     if (cnt.n) traps.push({ v: g.length + 4, c: 'c_fewest', why: 'That amount works, but one nickel is fewer than 5 pennies.' });
-    return { text: 'What is the fewest number of ' + word + ' that make ' + B(fmtM(t)) + '?' + use, ans: g.length,
+    return { text: use + 'What is the fewest number of ' + word + ' that make ' + B(fmtM(t)) + '?', ans: g.length,
       how: ['Biggest first, as many as fit: ' + parts.join('; ') + '.', 'Count them: ' + kinds.map(id => cnt[id]).join(' + ') + ' = ' + B(g.length) + ' ' + word + '.'],
       steps: steps.length > 1 ? steps : [], traps: traps.slice(0, 3) };
   } },
@@ -1154,7 +1154,7 @@ C.defs([
     else { paid = R.pick([1000, 2000]); price = R.i(paid / 200, paid / 100 - 1) * 100 + R.pick([99, 95, 65, 45, 15, 29, 79, 38, 52]); }
     const ans = paid - price, nd = Math.ceil(price / 100) * 100, a = nd - price, b = paid - nd, it = R.pick(SHOP);
     if (d > 0 && !b) return null;
-    const text = 'The ' + it[1] + ' costs ' + B(fmtD(price)) + '. You pay with ' + B(fmtD(paid)) + '. How much change do you get? Count up from the price on paper.';
+    const text = 'The ' + it[1] + ' costs ' + B(fmtD(price)) + '. You pay with ' + B(fmtD(paid)) + '. How much change do you get?';
     if (!a) return money(text, ans, { fmt: 'd', vis: tagsHTML([[...it, price]]),
       how: ['Count up the dollars from ' + fmtD(price) + ' to ' + fmtD(paid) + ': ' + Array.from({ length: b / 100 }, (_, i) => '$' + (price / 100 + i + 1)).join(', ') + '.', 'That is ' + (b / 100) + ' ' + plural(b / 100, 'dollar') + ': ' + B(fmtD(ans)) + '.'],
       traps: [{ v: ans + 100, c: 'c_change5', why: 'Count the jumps from dollar to dollar, not the numbers you say.' }, ans > 100 ? { v: ans - 100, c: 'c_change5', why: 'Count every dollar up to ' + fmtD(paid) + '.' } : null].filter(Boolean) });

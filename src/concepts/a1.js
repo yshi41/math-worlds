@@ -114,7 +114,7 @@ function roundProblem(v, to, cid, vis) {
 /* the smallest or biggest whole number that rounds to T */
 function roundReverse(T, to, big, cid) {
   const half = to / 2, ans = big ? T + half - 1 : T - half, [uw] = UNIT[to];
-  return { text: 'What is the ' + B(big ? 'biggest' : 'smallest') + ' whole number that rounds to ' + B(N(T)) + ' (to the nearest ' + uw + ')?', ans,
+  return { text: 'Round to the nearest ' + uw + '. What is the ' + B(big ? 'biggest' : 'smallest') + ' whole number that rounds to ' + B(N(T)) + '?', ans,
     how: ['Numbers from ' + N(T - half) + ' up to ' + N(T + half - 1) + ' round to ' + N(T) + '.',
       big ? N(T + half) + ' would round up to ' + N(T + to) + ', so the biggest is ' + B(N(ans)) + '.' : 'Halfway rounds up, so ' + N(T - half) + ' rounds up to ' + N(T) + '. The smallest is ' + B(N(ans)) + '.'],
     steps: [S('What number is halfway between ' + B(N(T - to)) + ' and ' + B(N(T)) + '?', T - half), S('What number is halfway between ' + B(N(T)) + ' and ' + B(N(T + to)) + '?', T + half), S((big ? 'Biggest' : 'Smallest') + ' number that rounds to ' + B(N(T)) + '?', ans)],
@@ -275,7 +275,7 @@ C.defs(polish([
       if (less) { t2 = R.i(1, 9); o2 = R.i(0, 9); o = R.i(0, 9); ans = o < o2 ? t2 : t2 - 1; }
       else { t2 = R.i(0, 8); o2 = R.i(0, 9); o = R.i(0, 9); ans = o > o2 ? t2 : t2 + 1; }
       const target = 100 * h + 10 * t2 + o2, word = less ? 'less than' : 'more than', works = ans === t2;
-      return { text: 'What is the ' + B(less ? 'biggest' : 'smallest') + ' digit that can go in the box so that ' + B(h + '□' + o) + ' is ' + word + ' ' + B(target) + '?', ans,
+      return { text: B(h + '□' + o) + ' is ' + word + ' ' + B(target) + '. What is the ' + B(less ? 'biggest' : 'smallest') + ' digit that can go in the box?', ans,
         how: ['Both numbers have ' + h + ' hundreds, so compare the tens next. The tens digit of ' + target + ' is ' + t2 + '.',
           works ? 'If the box is ' + t2 + ', the tens tie, so the ones decide: ' + o + ' is ' + word + ' ' + o2 + ', so ' + t2 + ' works. The answer is ' + B(ans) + '.'
             : 'If the box is ' + t2 + ', the tens tie and the ones ' + o + ' is not ' + word + ' ' + o2 + '. So the box must be ' + (less ? 'smaller' : 'bigger') + ': ' + B(ans) + '.'],
@@ -307,7 +307,7 @@ C.defs(polish([
     const v = lo + k * step, L = lo + Math.floor((v - lo) / lab) * lab, Rr = L + lab, fwd = v - L <= Rr - v, from = fwd ? L : Rr, j = Math.abs(v - from) / step;
     const list = []; for (let i = 1; i <= j; i++) list.push(N(from + (fwd ? i : -i) * step));
     const howStep = d === 2 ? 'From ' + N(lo) + ' to ' + N(hi) + ' is ' + (hi - lo) + ', split into ' + gaps + ' equal jumps, so each jump is ' + step + '.' : told ? 'Each jump is ' + step + '.' : 'From ' + N(L) + ' to ' + N(Rr) + ' is ' + lab + ' in ' + (lab / step) + ' jumps, so each jump is ' + step + '.';
-    return { text: 'What number goes where the ' + B('?') + ' is?' + (told ? ' Each jump is ' + B(step) + '.' : d === 2 ? ' Only the ends are labelled.' : ''), ans: v, vis: numLineSVG(lo, hi, step, [{ v, t: '?' }], lab),
+    return { text: (told ? 'Each jump is ' + B(step) + '. ' : d === 2 ? 'Only the ends are labelled. ' : '') + 'What number goes where the ' + B('?') + ' is?', ans: v, vis: numLineSVG(lo, hi, step, [{ v, t: '?' }], lab),
       how: [howStep, 'Count ' + (fwd ? 'on' : 'back') + ' from ' + N(from) + ' by ' + step + 's: ' + list.join(', ') + '. The ? is ' + B(N(v)) + '.'],
       steps: (told ? [] : [S('How much is each jump?', step)]).concat([S('How many jumps is the ? from ' + B(N(from)) + '?', j), S('Count ' + (fwd ? 'on' : 'back') + ' ' + j + ' ' + plural(j, 'jump') + ' of ' + step + ' from ' + B(N(from)) + '. Where do you land?', v)]),
       traps: traps([tp(fwd ? from + j : from - j, 'n_numline', 'Each jump is worth ' + step + ', not 1.'), tp(v + step, 'n_numline', 'Count the jumps again, one for each space between marks.'), tp(v - step, 'n_numline', 'Count the jumps again, one for each space between marks.'),
@@ -342,7 +342,7 @@ C.defs(polish([
     const ra = r(a), rb = r(b), plus = op === '+', ans = plus ? ra + rb : ra - rb, exact = plus ? a + b : a - b, o = plus ? add : sub, uw = to === 10 ? 'ten' : 'hundred';
     if (exact === ans) return null;
     const oa = ra === Math.floor(a / to) * to ? ra + to : ra - to, ob = rb === Math.floor(b / to) * to ? rb + to : rb - to;
-    return { text: 'About how much is ' + B(o(a, b)) + '? Round each number to the nearest ' + uw + ' first.', ans,
+    return { text: 'Round each number to the nearest ' + uw + '. About how much is ' + B(o(a, b)) + '?', ans,
       how: [N(a) + ' rounds to ' + N(ra) + '. ' + N(b) + ' rounds to ' + N(rb) + '.', o(ra, rb) + ' = ' + B(N(ans)) + '.', 'The exact answer is ' + N(exact) + ', so the estimate is close.'],
       steps: [S('Round ' + B(N(a)) + ' to the nearest ' + uw + '.', ra), S('Round ' + B(N(b)) + ' to the nearest ' + uw + '.', rb), S(qq(o(ra, rb)), ans)],
       traps: traps([tp(exact, 'n_estimate', 'That is the exact answer. Round each number first, then ' + (plus ? 'add' : 'take away') + '.'),
@@ -945,14 +945,14 @@ C.defs(polish([
         how: [{ below: 'One row down is +10: the tens digit goes up by 1.', above: 'One row up is ' + MINUS + '10: the tens digit goes down by 1.', right: 'One square right is +1.', left: 'One square left is ' + MINUS + '1.' }[dir], (mv > 0 ? add(s, mv) : sub(s, -mv)) + ' = ' + B(t) + '.'],
         traps: traps([tp(Math.abs(mv) === 10 ? s + mv / 10 : s + mv * 10, 'p_hundred', Math.abs(mv) === 10 ? 'Up and down change the tens: a row is 10, not 1.' : 'Left and right change the ones: a square is 1, not 10.'), tp(s - mv, 'p_hundred', Math.abs(mv) === 10 ? 'Down is bigger, up is smaller.' : 'Right is bigger, left is smaller.')]) }; }
     if (d === 1) { const v = R.chance(.5) ? 1 : -1, h = R.chance(.5) ? 1 : -1; let s; do { s = R.i(22, 79); } while (s % 10 === 0 || s % 10 === 1);
-      const t = s + 10 * v + h, words = (v > 0 ? 'down' : 'up') + ' and to the ' + (h > 0 ? 'right' : 'left');
-      return { text: 'On the hundred chart, start at ' + B(s) + ' and move one square ' + words + '. Where are you?', ans: t, vis: chartSVG(s, t),
+      const t = s + 10 * v + h, words = (v > 0 ? 'down' : 'up') + ' and one square ' + (h > 0 ? 'right' : 'left');
+      return { text: 'On the hundred chart, start at ' + B(s) + '. Move one square ' + words + '. Where are you?', ans: t, vis: chartSVG(s, t),
         how: ['One row ' + (v > 0 ? 'down is +10' : 'up is ' + MINUS + '10') + ', and one square ' + (h > 0 ? 'right is +1' : 'left is ' + MINUS + '1') + '.', 'That is ' + (10 * v + h > 0 ? '+' : MINUS) + Math.abs(10 * v + h) + ' in all: ' + (10 * v + h > 0 ? add(s, 10 * v + h) : sub(s, -(10 * v + h))) + ' = ' + B(t) + '.'],
         steps: [S('One row ' + (v > 0 ? 'down' : 'up') + ' from ' + B(s) + ' is?', s + 10 * v), S('Then one square ' + (h > 0 ? 'right' : 'left') + '. Where are you?', t)],
         traps: traps([tp(s + 10 * v, 'p_hundred', 'You moved the row. Now move one square to the side too.'), tp(s + h, 'p_hundred', 'You moved to the side. Now move one row too.'), tp(s + 10 * v - h, 'p_hundred', 'Right is +1 and left is ' + MINUS + '1.'), tp(s - 10 * v + h, 'p_hundred', 'Down is +10 and up is ' + MINUS + '10.')]) }; }
     const down = R.pick([-3, -2, 2, 3]), side = R.pick([-3, -2, 2, 3, 4]); let s; do { s = R.i(11, 90); } while (s + down * 10 < 1 || s + down * 10 > 100 || !okSide(s, side));
     const mid = s + down * 10, t = mid + side, rows = Math.abs(down) + ' rows ' + (down > 0 ? 'down' : 'up'), sq = Math.abs(side) + ' squares ' + (side > 0 ? 'right' : 'left');
-    if (R.chance(.35)) return { text: 'On the hundred chart you went ' + B(rows) + ' and ' + B(sq) + ', and landed on ' + B(t) + '. Where did you start?', ans: s, vis: chartSVG(t, s),
+    if (R.chance(.35)) return { text: 'On the hundred chart, you went ' + B(rows) + ' and ' + B(sq) + '. You landed on ' + B(t) + '. Where did you start?', ans: s, vis: chartSVG(t, s),
       how: ['Work backwards: undo each move.', 'Undo ' + sq + ': ' + (side > 0 ? sub(t, side) : add(t, -side)) + ' = ' + mid + '. Undo ' + rows + ': ' + (down > 0 ? sub(mid, 10 * down) : add(mid, -10 * down)) + ' = ' + B(s) + '.'],
       steps: [S('Undo ' + sq + '. Where are you?', mid), S('Undo ' + rows + '. Where are you?', s)],
       traps: traps([tp(t + down * 10 + side, 'p_hundred', 'This asks where you started, so undo the moves: go the other way.'), tp(t - side, 'p_hundred', 'Undo the rows too.'), tp(t - down * 10, 'p_hundred', 'Undo the squares too.')]) };
@@ -1089,7 +1089,7 @@ C.defs(polish([
     const [ri, ro] = rows[0], tableHow = ['When In goes up by 1, Out goes up by ' + k + ', so the rule starts with × ' + k + '.', ri + ' × ' + k + ' = ' + (k * ri) + ', and Out is ' + ro + ', so then ' + (c > 0 ? 'add ' + c : 'take away ' + (-c)) + '.'];
     const cStep = S(B((k * ri) + (c > 0 ? ' + ? = ' : ' ' + MINUS + ' ? = ') + ro), Math.abs(c));
     if (d === 1) { const x = R.i(6, 12), ans = f(x);
-      return { text: 'Find the two-step rule (× something, then + or ' + MINUS + ' something). What number comes out?', vis: ioTable(rows, [x, ans], false), ans,
+      return { text: 'The rule has two steps: first ×, then + or ' + MINUS + '. Find the rule. What number comes out?', vis: ioTable(rows, [x, ans], false), ans,
         how: tableHow.concat([x + ' × ' + k + ' ' + sg + ' = ' + (k * x) + ' ' + sg + ' = ' + B(ans) + '.']),
         steps: [S('How much does Out go up each time In goes up by 1?', k), cStep, S(qq(x + ' × ' + k + ' ' + sg), ans)],
         traps: traps([tp(k * x, 'p_twostep', 'Do the second step too: ' + sg + '.'), tp(x + (ro - ri), 'p_machine', 'Adding ' + (ro - ri) + ' fits only the first pair. Check every pair.'), tp(ans + k, 'p_twostep', 'Check the × step.'), tp(ans - k, 'p_twostep', 'Check the × step.')]), key: 'ts1' + rows.join(';') + x }; }
@@ -1128,7 +1128,7 @@ C.defs(polish([
         steps: [S('How many dots are in the new row?', n + 1), S(qq(add(t, n + 1)), t + n + 1)],
         traps: traps([tp(t + n, 'p_triangle', 'The new row has ' + (n + 1) + ' dots, one more than the last row.'), tp(t + n + 2, 'p_triangle', 'The new row has ' + (n + 1) + ' dots.'), tp(2 * t, 'p_triangle', 'Triangle numbers do not double. Add the new row.')]) }; }
     const n = R.i(11, 30), p = n * (n + 1), t = p / 2;
-    return { text: 'What is ' + B('1 + 2 + 3 + … + ' + n) + '? (It is the ' + ord(n) + ' triangle number.)', ans: t,
+    return { text: 'Find the ' + ord(n) + ' triangle number. ' + B('1 + 2 + 3 + … + ' + n + ' = ?'), ans: t,
       how: ['Two copies of the triangle fit together into a rectangle ' + n + ' by ' + (n + 1) + '.', n + ' × ' + (n + 1) + ' = ' + N(p) + '. Half of that is ' + B(N(t)) + '.'],
       steps: [S(qq(n + ' × ' + (n + 1)), p), S('Half of ' + B(N(p)) + ' = ?', t)],
       traps: traps([tp(p, 'p_triangle', 'Two triangles make the rectangle, so take half.'), tp(n * n % 2 === 0 ? n * n / 2 : null, 'p_triangle', 'The rectangle is ' + n + ' by ' + (n + 1) + ', not ' + n + ' by ' + n + '.'), tp(t - n, 'p_triangle', 'Count all the way up to ' + n + '.'), tp(t + n + 1, 'p_triangle', 'Stop at ' + n + '.')]) };

@@ -519,9 +519,9 @@ defs([
       fin = r + ' is not enough for another ' + c[3] + ', so drop the leftover: ' + B(q) + ' ' + c[2] + '.';
       traps = [tr(q + 1, 's_leftover', 'The ' + r + ' left over is not enough for a whole ' + c[3] + '.'), tr(r, 's_leftover', 'The remainder is what is left over, not how many ' + c[2] + '.')];
     } else if (kind === 'rem') {
-      const c = R.pick([['cookies are packed into bags of', 'cookies', 'bags'], ['cards are shared out, as many as possible, to', 'cards', 'friends'], ['pencils are put into cups of', 'pencils', 'cups']]);
+      const c = R.pick([['cookies are packed into bags of', 'cookies', 'bags'], ['cards are shared equally among', 'cards', 'friends'], ['pencils are put into cups of', 'pencils', 'cups']]);
       const shareCards = c[2] === 'friends';
-      text = B(N) + ' ' + c[0] + ' ' + B(s) + (shareCards ? ' friends equally' : '') + '. How many ' + c[1] + ' are left over?'; ans = r; unit = c[1];
+      text = B(N) + ' ' + c[0] + ' ' + B(s) + (shareCards ? ' friends. Each friend gets as many as possible' : '') + '. How many ' + c[1] + ' are left over?'; ans = r; unit = c[1];
       mean = shareCards ? 'Each friend gets ' + q + ', which uses ' + q * s + ' ' + c[1] + '.' : q + ' ' + c[2] + ' use ' + q * s + ' ' + c[1] + '.';
       fin = 'The question asks what is left, so the remainder is the answer: ' + B(r) + ' ' + c[1] + '.';
       traps = [tr(q, 's_leftover', 'That is how many ' + (shareCards ? 'each friend gets' : 'full ' + c[2]) + '. The question asks how many are left over.'), tr(s - r, 's_leftover', 'Left over means the remainder after making the equal groups.')];
@@ -836,7 +836,7 @@ defs([
     if (kind === 'toward') {
       const r1 = R.i(4, 14) * 5, r2 = R.i(4, 14) * 5, t = R.pick(d === 2 ? [1.5, 2.5, 3.5, 0.75, 1.25] : [1, 2, 3, 4, 1.5, 2.5]), D = (r1 + r2) * t;
       if (!Number.isInteger(D) || r1 === r2) return null;
-      return { text: 'Two towns are ' + B(D + ' km') + ' apart. ' + A + ' drives from one town toward the other at ' + B(r1 + ' km/h') + '. At the same time ' + Bn + ' drives from the other town toward ' + A + ' at ' + B(r2 + ' km/h') + '. How many hours until they meet?', ans: t, unit: 'hours',
+      return { text: 'Two towns are ' + B(D + ' km') + ' apart. ' + A + ' and ' + Bn + ' start at the same time and drive toward each other. ' + A + ' drives at ' + B(r1 + ' km/h') + '. ' + Bn + ' drives at ' + B(r2 + ' km/h') + '. How many hours until they meet?', ans: t, unit: 'hours',
         how: ['Toward each other, the gap closes at ' + r1 + ' + ' + r2 + ' = ' + (r1 + r2) + ' km each hour.', 'time = distance ÷ closing speed = ' + D + ' ÷ ' + (r1 + r2), 'time = ' + B(nm(t)) + ' hours'],
         steps: [st('How many km does the gap close each hour?', r1 + r2), st(B(D + ' ÷ ' + (r1 + r2)) + ' = ?', t)],
         traps: [tr(+(D / Math.abs(r1 - r2)).toFixed(4), 's_rate', 'Driving toward each other, both close the gap: add the speeds.'), tr(+(D / r1).toFixed(4), 's_rate', 'Both cars are moving. Use both speeds.'), tr(+(D / (r1 + r2) * 2).toFixed(4), 's_rate', 'Each hour the gap shrinks by both speeds together.')] };
@@ -845,7 +845,7 @@ defs([
       const r1 = R.i(3, 8), g = R.i(1, 4), r2 = r1 + g, h = kind === 'catch' ? R.i(1, 3) : R.pick([0.5, 1.5, 2]), hs = r1 * h, t = hs / g;
       if (!Number.isInteger(hs) || !Number.isInteger(t * 4) || t > 6) return null;
       const walk = r2 <= 5, v = walk ? 'walks' : 'bikes', u = 'miles per hour';
-      return { text: A + ' leaves home and ' + v + ' along a trail at ' + B(r1 + ' ' + u) + '. ' + B(nm(h) + ' ' + plural(h, 'hour')) + ' later, ' + Bn + ' starts from the same place at ' + B(r2 + ' ' + u) + '. How many hours after ' + Bn + ' starts does ' + Bn + ' catch up?', ans: t, unit: 'hours',
+      return { text: A + ' ' + v + ' along a trail at ' + B(r1 + ' ' + u) + '. ' + B(nm(h) + ' ' + plural(h, 'hour')) + ' later, ' + Bn + ' starts from the same place at ' + B(r2 + ' ' + u) + '. How many hours does it take ' + Bn + ' to catch up?', ans: t, unit: 'hours',
         how: ['Head start: ' + A + ' goes ' + r1 + ' × ' + nm(h) + ' = ' + nm(hs) + ' miles before ' + Bn + ' starts.', Bn + ' closes the gap by ' + mi(r2, r1) + ' = ' + g + ' ' + plural(g, 'mile') + ' each hour.', 'time = ' + nm(hs) + ' ÷ ' + g + ' = ' + B(nm(t)) + ' hours'],
         steps: [st('Head start: ' + B(r1 + ' × ' + nm(h)) + ' = ?', hs), st('Gap closed each hour: ' + B(mi(r2, r1)) + ' = ?', g), st(B(nm(hs) + ' ÷ ' + g) + ' = ?', t)],
         traps: [tr(+(hs / (r1 + r2)).toFixed(4), 's_rate', 'They go the same way, so ' + Bn + ' only gains the difference of the speeds.'), tr(t + h, 's_rate', 'Count the hours after ' + Bn + ' starts.'), tr(+(hs / r2).toFixed(4), 's_rate', A + ' keeps moving too. Use the difference of the speeds.')] };
@@ -1357,7 +1357,7 @@ defs([
     if (d === 0) {
       const pts = []; while (pts.length < 3) { const p = { x: R.i(1, 9), y: R.i(1, 9) }; if (!pts.some(q => q.x === p.x && q.y === p.y) && p.x !== p.y) pts.push(p); }
       pts.forEach((p, i) => { p.t = 'ABC'[i]; }); const { x, y } = pts[0], v = askX ? x : y;
-      return { text: 'What is the ' + B(cn + '-coordinate') + ' of point A?' + (askX ? ' (How far across?)' : ' (How far up?)'), ans: v, vis: gridSVG(pts, 0, 10),
+      return { text: (askX ? 'The x-coordinate tells how far across. ' : 'The y-coordinate tells how far up. ') + 'What is the ' + B(cn + '-coordinate') + ' of point A?', ans: v, vis: gridSVG(pts, 0, 10),
         how: ['Start at (0, 0). Go across to the line through A: x = ' + x + '.', 'Then go up to A: y = ' + y + '. A is at ' + P(x, y) + ', so ' + cn + ' = ' + B(v) + '.'],
         steps: [st('How far across from 0 is A?', x), st('How far up is A?', y)],
         traps: [tr(askX ? y : x, 'x_coord', 'x comes first and goes across; y comes second and goes up.'), tr(v + 1, 'x_coord', 'Count the jumps from 0 along the axis, not the lines.')] };

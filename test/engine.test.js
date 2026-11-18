@@ -185,7 +185,37 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   const core = C.LIST.filter(c => !E.isExtra(c.id));
   ok(core.filter(c => c.g < 4 && E.STR.some(s => s.core.includes(c.id))).every(c => E.isMastered(p, c.id)), 'floor 4: missing everything still leaves 2nd and 3rd grade mastered');
   ok(!core.some(c => c.g >= 4 && E.isMastered(p, c.id)), 'floor 4: nothing from 4th grade up is mastered by missing it');
-  ok(E.pretestStart(4).floor === 0 && E.pretestStart(4, { floor: 4, p: p }).floor === 0, 'no floor without one, or on a later assessment'); }
+  ok(E.pretestStart(4).floor === 0, 'no floor without one');
+  /* the floor is applied straight away, so she shows at 4th grade before the check is done */
+  const q = { cs: {}, mist: {} }, nq = E.applyFloor(q, 4, 1e12), below = core.filter(c => c.g < 4 && E.STR.some(s => s.core.includes(c.id)));
+  ok(nq === below.length && below.every(c => E.isMastered(q, c.id) && q.cs[c.id].pl) && !core.some(c => c.g >= 4 && E.isMastered(q, c.id)) && E.applyFloor(q, 4) === 0, 'applyFloor: 2nd and 3rd grade are known straight away (' + nq + ' concepts), once');
+  ok(Math.abs(E.report(q, 4, 1e12).overall.ge - 4) < 0.011, 'she shows at grade level 4.0 (' + E.report(q, 4, 1e12).overall.ge.toFixed(2) + ')');
+  const later = E.pretestStart(4, { floor: 4, p: q, by: 'parent' });
+  ok(later.floor === 4 && later.order.length > 5 && later.order.every(sid => { const s = E.STR.find(x => x.id === sid), st = later.st[sid], f = E.floorIdx(s, 4); return st.lo === f - 1 && st.at >= f; }), 'a later assessment keeps the floor');
+  /* a check already under way that had searched below the floor */
+  const old = E.pretestStart(4); let k2 = 0; for (const sid of old.blocks[0].slice(0, 2)) while (!old.st[sid].done && k2 < 100) { E.pretestRecord(old, false, 20000); k2++; }
+  const low = old.blocks[0].slice(0, 2).every(sid => old.st[sid].start < E.floorIdx(E.STR.find(x => x.id === sid), 4)); E.pretestFloor(old, 4);
+  ok(low && old.floor === 4 && old.order.every(sid => { const s = E.STR.find(x => x.id === sid), st = old.st[sid], f = E.floorIdx(s, 4); return st.done ? st.start >= Math.min(f, E.capLen(s, 4, old.cap)) : st.lo >= f - 1 && st.at >= f; }), 'pretestFloor: parts that settled lower now start at 4th grade; the rest search from 4th grade up');
+  const q2 = { cs: {}, mist: {} }; old.order.forEach(sid => { old.st[sid].done = true; if (old.st[sid].start == null) old.st[sid].start = old.st[sid].lo + 1; }); E.pretestApply(q2, old, 1e12);
+  ok(below.every(c => E.isMastered(q2, c.id)), 'finishing that check leaves everything below 4th grade mastered'); }
+/* how a problem reads: story lines, the question, sums on their own line, typing notes apart */
+{ const lay = t => C.layout({ text: t }), kinds = t => lay(t).parts.map(x => x.k).join(',');
+  ok(kinds('Jack had 30 crayons. Jack gave 11 to Ava. How many crayons does Jack have left?') === 'say,say,ask', 'a story: one sentence to a line, the question last');
+  ok(lay('What is 45 × 9?').html === '45 × 9 = ?' && lay('Work it out: 10 + 8 ÷ 2 = ?').html === '10 + 8 ÷ 2 = ?' && lay('9 × 6 = ?').html === '9 × 6 = ?', 'a bare sum always reads as a sum');
+  ok(kinds('What is 9x + 14 when x = 2?') === 'ask' && kinds('What is half of 18?') === 'ask' && kinds('What is the 2 in 24 worth?') === 'ask', 'questions with words stay questions');
+  ok(kinds('Add in columns: 36 + 47.') === 'say,math' && lay('Add in columns: 36 + 47.').parts[1].h === '36 + 47', 'a method, then the sum on its own line');
+  const sp = lay('How long is the spoon? Give the length in centimeters.');
+  ok(sp.parts.map(x => x.k).join() === 'ask,note' && sp.read.w === 5 && sp.read.s === 1, 'how to type the answer is a note, not part of the reading');
+  ok(kinds('Round 89 to the nearest ten.') === 'ask' && kinds('What number goes where the ? is?') === 'ask', 'one instruction or one question is left whole');
+  ok(kinds('The ratio of sunny to rainy days is 1 : 4. There are 35 days in all. How many are sunny?') === 'say,say,ask' && kinds('It is 9:00. What time will it be in 50 hours?') === 'say,ask', 'ratios and clock times do not split sentences');
+  ok(kinds('Solve the system:<br>x + y = 7<br>x − y = 5<br>What is y?') === 'say,math,math,ask', 'each equation of a system on its own line');
+  ok(kinds('Which number is the biggest? 0.8, 0.005, 0.801') === 'ask,math' && kinds('What number goes in the box? ? − 2 = 6') === 'ask,math', 'a list or equation after the question gets its own line');
+  ok(/class="ql ql-ask"/.test(lay('Sam has 4 cards. How many more does Sam need to have 10?').html), 'laid-out problems carry line classes for the page');
+  /* in your head or pencil and paper, by level */
+  ok(C.paperAt('s_join', 0) && C.paperAt('a_coladd', 0) && !C.paperAt('a_plus9', 2), 'word problems and written methods are paper; shortcuts are in your head');
+  ok(!C.paperAt('t_ampm', 0) && C.paperAt('t_ampm', 2) && !C.paperAt('d_mean', 0) && C.paperAt('d_mean', 2), 'some concepts are in your head when easy and on paper when hard');
+  ok(C.gen('d_mean', 0, C.makeR(5)).paper === false && C.gen('d_mean', 2, C.makeR(5)).paper === true && C.gen('s_ratio', 1, C.makeR(5)).paper === true, 'every problem says its mode');
+  ok(C.LIST.filter(c => c.mode).every(c => /^[hp]{3}$/.test(c.mode) && c.mode !== (c.paper || c.s === 'story' ? 'ppp' : 'hhh') || ['n_intadd', 'n_intsub', 'n_intmul', 'g_circle', 'x_rates2'].includes(c.id)), 'the mode table only lists concepts that differ by level (or change sides)'); }
 /* a part tapped through (under 7 s a question) is asked again once; the pace ignores that block */
 { const pre = E.pretestStart(3), b0 = pre.blocks[0].slice(); let k = 0;
   while (E.pretestNext(pre) && k < 200) { E.pretestSkip(pre, 1500); k++; }

@@ -332,6 +332,33 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(!tooWide.length, 'problems and explanations fit 360px (' + sample.length + ' concepts; too wide: ' + tooWide.join(', ') + ')');
   await p.close();
 
+  /* 12b. how a problem reads on the page, and the mode strip: in your head or pencil and paper */
+  p = await newPage(mock); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(150);
+  const showQ = async (id, d, seed) => { await ev(p, (id, d, seed) => { window.__mw.startLearn(id); const R = window.__mw.RD, q = window.MWC.gen(id, d, window.MWC.makeR(seed)); q.ref = { id, d, seed }; R.queue.unshift({ p: q, kind: 'main' }); R.ready = 0; window.__mw.answerRight(); document.querySelector('#nextQBtn').click(); }, id, d, seed); await wait(120); };
+  await showQ('s_twostep', 1, 11);
+  check(await ev(p, () => !document.querySelector('#qReady').hidden && /pencil and paper/i.test(document.querySelector('#qReady').textContent)), 'a pencil-and-paper round starts by asking for pencil and paper');
+  await ev(p, () => document.querySelector('#qReadyBtn').click()); await wait(60);
+  check(await ev(p, () => document.querySelector('#qReady').hidden && document.querySelector('#qMode').classList.contains('paper') && /Pencil and paper/.test(document.querySelector('#qMode').textContent) && document.querySelector('#play .qcard').classList.contains('paper')), 'a word problem shows the pencil-and-paper strip');
+  check(await ev(p, () => document.querySelectorAll('#qText .ql-say').length >= 2 && document.querySelectorAll('#qText .ql-ask').length === 1 && document.querySelector('#qText .ql:last-child').classList.contains('ql-ask')), 'a story is one sentence to a line with the question last');
+  await showQ('a_plus9', 1, 5);
+  check(await ev(p, () => document.querySelector('#qReady').hidden && document.querySelector('#qMode').classList.contains('head') && /In your head/.test(document.querySelector('#qMode').textContent) && !document.querySelector('#play .qcard').classList.contains('paper')), 'a shortcut shows the in-your-head strip, with no pencil prompt');
+  check(await ev(p, () => /= \?$/.test(document.querySelector('#qText').textContent.trim()) && !document.querySelector('#qText .ql')), 'a bare sum reads as a sum');
+  await showQ('g_length', 0, 7);
+  check(await ev(p, () => !!document.querySelector('#qText .ql-note') && /centimeters|inches/.test(document.querySelector('#qText .ql-note').textContent)), 'how to type the answer is a small note under the question');
+  await showQ('t_ampm', 0, 3); const m0 = await ev(p, () => document.querySelector('#qMode').className);
+  await showQ('t_ampm', 2, 3); await ev(p, () => { const r = document.querySelector('#qReady'); if (!r.hidden) document.querySelector('#qReadyBtn').click(); });
+  check(/head/.test(m0) && await ev(p, () => document.querySelector('#qMode').classList.contains('paper')), 'a concept can be in your head when easy and pencil and paper when hard');
+  check(await ev(p, () => window.__storageWrites) === 0, 'nothing written to the device');
+  await p.close();
+  /* 12c. Charlie is set to start at 4th grade: opening her map marks everything below it as known, saved online */
+  p = await newPage(mock); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[0].click()); await wait(200); await until(() => ev(p, () => window.__mw.net.idle()));
+  { const st = mock.store.charlie && mock.store.charlie.state, ms = st ? Object.values(st.cs || {}).filter(s => s.m).length : 0;
+    check(st && st.sg === 4 && ms >= 80 && (!st.pre || st.pre.done || st.pre.floor === 4), 'Charlie starts at 4th grade: ' + ms + ' concepts below it are known, and her check does not go lower');
+    check(await ev(p, () => Math.abs(window.COACH.report(window.__mw.saves.charlie, 4).overall.ge - 4) < 0.2), 'her report starts at about grade level 4.0'); }
+  await p.close();
+
   /* 13. a right answer is seen and heard in practice; an assessment gives no sign of right or wrong as it goes */
   const m13 = create();
   p = await newPage(m13); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));

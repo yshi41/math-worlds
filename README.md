@@ -13,6 +13,44 @@ The plan, with every concept's grade and strand, is in [docs/CONCEPTS.md](docs/C
 Every answer is typed on an on-screen keypad or a keyboard. The keypad only shows the extra keys a grade needs:
 `.`, `/` and `−` come in from 4th to 6th grade, and `r` for remainders.
 
+## How a problem reads
+
+Every problem is laid out the same way (`layout` in `src/core.js`), so a child takes it in one line at a time:
+
+- A story goes one short sentence to a line, and the question comes last with a mark beside it.
+- A bare sum always looks like a sum: "What is 45 × 9?" and "Work it out: 45 × 9" are both shown as `45 × 9 = ?`.
+  A method keeps its name and the sum goes on the next line ("Add in columns:" then `36 + 47`).
+- A sentence that only says how to type the answer ("Type a mixed number or a fraction.") is small print under the
+  question. It is not part of the math.
+- Long problems are set in a smaller size so the whole problem stays in view.
+
+`test/concepts.test.js` holds every concept in grades 2 to 8 to reading limits, over 200 problems a level:
+
+| Grade | Longest sentence | Words in a problem | Sentences |
+|-------|------------------|--------------------|-----------|
+| 2     | 13 words         | 28                 | 4         |
+| 3     | 13 words         | 34                 | 4         |
+| 4–5   | 16 words         | 42                 | 5         |
+| 6–8   | 20 words         | 50                 | 5         |
+
+Typing notes are not counted. There are no semicolons, no asides in brackets up to 5th grade (say it in a sentence),
+and nothing after the question except a typing note: an instruction such as "Round each number to the nearest ten."
+comes before the question it belongs to. Stories use one fact to a sentence, the same name each time and no pronouns.
+
+## In your head, or pencil and paper
+
+Every problem carries a mode strip at the top of the card: **In your head** (blue, a thought bubble, "No pencil
+needed") or **Pencil and paper** (warm paper color, a pencil, "Work it out on paper, then type your answer"). The card's
+top edge takes the same color, the strip pops when the mode changes from one problem to the next, a pencil-and-paper
+round starts with one screen asking for pencil and paper, and the map's "Up next" line and each concept's page say the
+mode too.
+
+The rule: in your head is a fact, a shortcut, or one step with numbers a child of that grade can hold (reading a
+picture, a clock or a graph counts). Pencil and paper is a written method, two or more steps to keep track of, a list
+to put in order, or numbers too big to hold; a word problem is always paper (draw it or write the number sentence).
+A concept is one or the other (`paper: true` where it is defined) unless `src/concepts/z_modes.js` gives it a letter
+for each level: `t_ampm: 'hpp'` is in your head at the easy level and on paper at the medium and hard levels.
+
 ## Common Core, plus extras
 
 Every concept is mapped to the Common Core math standards it practises, at the grade where Common Core puts it
@@ -92,9 +130,11 @@ Her pace carries over to the next assessment.
 
 A part answered faster than anyone can read it (under 7 seconds a question on average, skips included) was tapped
 through and tells nothing, so it is asked again once, from where it started, and that block does not count toward her
-pace. A kid can be set to start at a grade (`start` in `KIDS`; Charlie starts at 4th grade): her first check counts
-every Common Core concept below that grade as known and never searches lower. Memory checks come back to those
-concepts over the next week, so any that are not really known go back on the path.
+pace. A kid can be set to start at a grade (`start` in `KIDS`; Charlie starts at 4th grade). Every Common Core concept
+below that grade is marked mastered the first time she opens the game (`COACH.applyFloor`), so the map and the parent
+report start at that grade straight away; no check, first or later, searches lower, and a check already under way is
+moved up to it (`COACH.pretestFloor`). Memory checks come back to those concepts over the next week, so any that are
+not really known go back on the path.
 
 ## Parent view: reset and history
 

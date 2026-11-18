@@ -190,7 +190,7 @@ defs([
         traps: [tr(b - a, 'f_compunit', 'Compare by how many times more pieces, not by taking away.'), tr(b, 'f_compunit', 'That is how many ' + frac(1, b) + ' pieces fill the whole. You need just one ' + frac(1, a) + '.')] };
     }
     const k = R.i(4, 20), more = R.chance(0.5), ans = more ? k - 1 : k + 1;
-    return { text: 'What is the ' + B(more ? 'biggest' : 'smallest') + ' whole number for the box so that ' + fq('1', '?') + ' is ' + B(more ? 'bigger' : 'smaller') + ' than ' + frac(1, k) + '?', ans,
+    return { text: fq('1', '?') + ' is ' + B(more ? 'bigger' : 'smaller') + ' than ' + frac(1, k) + '. What is the ' + B(more ? 'biggest' : 'smallest') + ' whole number that can go in the box?', ans,
       how: [more ? 'For a bigger piece, cut the whole into fewer pieces: the bottom must be less than ' + k + '.' : 'For a smaller piece, cut the whole into more pieces: the bottom must be more than ' + k + '.', 'The ' + (more ? 'biggest whole number less' : 'smallest whole number more') + ' than ' + k + ' is ' + B(ans) + '.'],
       steps: [st('To make ' + fq('1', '?') + ' ' + (more ? 'bigger' : 'smaller') + ', should the bottom be less than ' + k + ' or more? Type 1 for less, 2 for more.', more ? 1 : 2), st('So what is the ' + (more ? 'biggest' : 'smallest') + ' whole number that works?', ans)],
       traps: [tr(more ? k + 1 : k - 1, 'f_compunit', 'More pieces means smaller pieces. Which way should the bottom go?'), tr(k, 'f_compunit', frac(1, k) + ' is equal to itself, not ' + (more ? 'bigger' : 'smaller') + '.')] };
@@ -1174,7 +1174,7 @@ defs([
     if (kind === 'last') {
       const list = []; ps.forEach(p => { for (let i = 0; i < f[p]; i++) list.push(p); });
       how[how.length - 1] = N + ' = ' + list.join(' × ') + '.';
-      return { text: B(N + ' = ' + list.slice(0, -1).join(' × ') + ' × ?') + ' (every factor is prime)', ans: big, how,
+      return { text: 'Every factor is prime. ' + B(N + ' = ' + list.slice(0, -1).join(' × ') + ' × ?'), ans: big, how,
         steps: [st(B(N + ' ÷ ' + list.slice(0, -1).reduce((x, y) => x * y, 1)) + ' = ?', big)],
         traps: [tr(big * list[0] < N ? big * list[0] : null, 'fa_primefact', 'Keep splitting until every factor is prime.'), tr(list.length > 2 ? big * list[list.length - 2] : null, 'fa_primefact', 'The ? is just one prime. The others are already written.')] };
     }

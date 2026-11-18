@@ -777,7 +777,7 @@ const DEFS = [
           steps: [st('The change: ' + B(k + ' × (' + MINUS + b + ')') + ' = ?', ch), st(B(num(-a) + ' + (' + num(ch) + ')') + ' = ?', ans)],
           traps: [tr(-a + b * k, 'n_intadd', 'Deeper means farther below 0: add a negative change.'), tr(-a - b, 's_signed', 'That is one dive. It dives ' + k + ' times.'), tr(a + b * k, 'n_intadd', 'Below the surface is negative.')] }; }
       const a = R.i(5, 40), c = R.i(6, 25), k = R.i(2, 5), ans = a - k * c; if (ans >= 0) return null;
-      return { text: who + ' has ' + B('$' + a) + ' in the bank and buys ' + B(k) + ' games that cost ' + B('$' + c) + ' each, paid from the account. What is the balance now, in dollars?', ans, unit: 'dollars',
+      return { text: who + ' has ' + B('$' + a) + ' in a bank account. ' + who + ' buys ' + B(k) + ' games for ' + B('$' + c) + ' each and pays from the account. What is the balance now, in dollars?', ans, unit: 'dollars',
         how: [W('spent = ' + k + ' × ' + c + ' = ' + k * c), W(a + ' ' + MINUS + ' ' + k * c + ' = ' + B(num(ans)), 'the account goes below 0')],
         steps: [st('How much is spent? ' + B(k + ' × ' + c) + ' = ?', k * c), st(B(a + ' ' + MINUS + ' ' + k * c) + ' = ?', ans)],
         traps: [tr(k * c - a, 'n_intsub', 'Spending more than you have leaves a negative balance.'), tr(a - c, 's_signed', 'That is after one game. There are ' + k + '.')] };
@@ -793,7 +793,7 @@ const DEFS = [
     }
     if (kind === 'rate') {
       const h = R.i(3, 8), per = R.i(2, 6), s = R.i(1, h * per - 1), e = h * per - s, ans = -per;
-      return { text: 'The temperature went from ' + B(s + DEG + 'C') + ' to ' + B(num(-e) + DEG + 'C') + ' in ' + B(h + ' hours') + ', changing by the same amount each hour. What was the change per hour?', ans, unit: DEG + 'C',
+      return { text: 'In ' + B(h + ' hours') + ' the temperature went from ' + B(s + DEG + 'C') + ' to ' + B(num(-e) + DEG + 'C') + '. It changed by the same amount each hour. What was the change each hour?', ans, unit: DEG + 'C',
         how: [W('change = ' + num(-e) + ' ' + MINUS + ' ' + s + ' = ' + num(-e - s), 'end ' + MINUS + ' start'), W('per hour = ' + num(-e - s) + ' ÷ ' + h + ' = ' + B(num(ans)))],
         steps: [st('Total change: ' + B(num(-e) + ' ' + MINUS + ' ' + s) + ' = ?', -e - s), st(B(num(-e - s) + ' ÷ ' + h) + ' = ?', ans)],
         traps: [tr(per, 'n_intmul', 'It got colder, so the change is negative.'), tr(isInt((s - e) / h) && s !== e ? (e - s) / h : null, 'n_intsub', 'From ' + s + ' down to ' + num(-e) + ' passes 0: ' + num(-e) + ' ' + MINUS + ' ' + s + '.'), tr(-e - s, 's_signed', 'That is the change over all ' + h + ' hours. Divide by ' + h + '.')] };
@@ -962,20 +962,20 @@ const DEFS = [
     if (trap) {
       const a = R.i(2, 9), b = a + R.i(2, 8), h = R.i(2, 10); if ((a + b) * h % 2) return null;
       A = (a + b) * h / 2; how1 = W('base = ½ × (' + a + ' + ' + b + ') × ' + h + ' = ' + A + ' ' + U2, 'trapezoid: half the sum of the parallel sides × height');
-      labs = { a: a + ' ' + U, b: b + ' ' + U, h: h + ' ' + U, L: L + ' ' + U }; vis = prismSVG('trap', labs); desc = 'a trapezoid base (parallel sides ' + B(a + ' ' + U) + ' and ' + B(b + ' ' + U) + ', height ' + B(h + ' ' + U) + ')';
+      labs = { a: a + ' ' + U, b: b + ' ' + U, h: h + ' ' + U, L: L + ' ' + U }; vis = prismSVG('trap', labs); desc = 'The base of this prism is a trapezoid. Its parallel sides are ' + B(a + ' ' + U) + ' and ' + B(b + ' ' + U) + ', and its height is ' + B(h + ' ' + U) + '.';
       bad = [[(a + b) * h, 'g_para', 'A trapezoid is half of (top + bottom) × height.'], [a * b * h / 2 === A ? null : a * b, 'g_para', 'Add the parallel sides, then multiply by the height and halve.']];
     } else {
       const b = R.i(3, 14), h = R.i(2, 12); if (b * h % 2) return null;
       A = b * h / 2; how1 = W('base = ½ × ' + b + ' × ' + h + ' = ' + A + ' ' + U2, 'triangle: half of base × height');
-      labs = { b: b + ' ' + U, h: h + ' ' + U, L: L + ' ' + U }; vis = prismSVG('tri', labs); desc = 'a triangle base (base ' + B(b + ' ' + U) + ', height ' + B(h + ' ' + U) + ')';
+      labs = { b: b + ' ' + U, h: h + ' ' + U, L: L + ' ' + U }; vis = prismSVG('tri', labs); desc = 'The base of this prism is a triangle with base ' + B(b + ' ' + U) + ' and height ' + B(h + ' ' + U) + '.';
       bad = [[b * h, 'g_tri', 'A triangle is half of base × height.']];
     }
     const V = A * L;
-    if (d === 1) return { text: 'This prism has ' + desc + ' and is ' + B(L + ' ' + U) + ' long. What is its volume?', ans: V, unit: U3, vis,
+    if (d === 1) return { text: desc + ' The prism is ' + B(L + ' ' + U) + ' long. What is its volume?', ans: V, unit: U3, vis,
       how: ['V = base area × length', how1, 'V = ' + A + ' × ' + L + ' = ' + B(num(V)) + ' ' + U3],
       steps: [st('Area of the base?', A), st(B(A + ' × ' + L) + ' = ?', V)],
       traps: bad.map(t => tr(t[0] == null ? null : t[0] * L, t[1], t[2])).concat([tr(A + L, 'g_volume', 'Multiply the base area by the length.')]) };
-    return { text: 'A prism has ' + desc + '. Its volume is ' + B(num(V) + ' ' + U3) + '. How long is it?', ans: L, unit: U, vis: prismSVG(trap ? 'trap' : 'tri', Object.assign({}, labs, { L: '? ' + U })),
+    return { text: desc + ' The volume of the prism is ' + B(num(V) + ' ' + U3) + '. How long is the prism?', ans: L, unit: U, vis: prismSVG(trap ? 'trap' : 'tri', Object.assign({}, labs, { L: '? ' + U })),
       how: ['V = base area × length', how1, W('length = ' + num(V) + ' ÷ ' + A + ' = ' + B(L) + ' ' + U, 'undo the × base area')],
       steps: [st('Area of the base?', A), st(B(num(V) + ' ÷ ' + A) + ' = ?', L)],
       traps: bad.map(t => tr(t[0] && isInt(V / t[0]) ? V / t[0] : null, t[1], t[2])).concat([tr(V - A, 'g_volume', 'Volume is base area × length, so divide.')]) };
@@ -999,7 +999,7 @@ const DEFS = [
     }
     const n = R.pick([20, 25, 40, 50]), p1 = R.i(3, n - 3), p2 = R.i(3, n - 3); if ((p1 + p2) % 2 || p1 === p2) return null;
     const pa = (p1 + p2) / 2, f = R.i(5, 40), N = n * f, ans = f * pa;
-    return { text: 'Two random samples of ' + B(n + ' ' + who) + ' were taken. In one, ' + B(p1) + ' ' + act + '; in the other, ' + B(p2) + '. Use the average of the samples: about how many of all ' + B(num(N) + ' ' + who) + ' ' + act + '?', ans,
+    return { text: 'Two random samples of ' + B(n + ' ' + who) + ' were taken. In the first, ' + B(p1) + ' ' + act + '. In the second, it was ' + B(p2) + '. Average the two samples. About how many of all ' + B(num(N) + ' ' + who) + ' ' + act + '?', ans,
       how: [W('average: (' + p1 + ' + ' + p2 + ') ÷ 2 = ' + pa + ' out of ' + n, 'samples vary, so average them'), W(num(N) + ' ÷ ' + n + ' = ' + f), W(f + ' × ' + pa + ' = ' + B(num(ans)))],
       steps: [st('Average of ' + p1 + ' and ' + p2 + '?', pa), st(B(num(N) + ' ÷ ' + n) + ' = ?', f), st(B(f + ' × ' + pa) + ' = ?', ans)],
       traps: [tr(f * p1, 'd_sample', 'Use both samples: average them first.'), tr(f * p2, 'd_sample', 'Use both samples: average them first.'), tr(f * (p1 + p2), 'd_mean', 'Average the two samples: add, then divide by 2.')] };
@@ -1014,11 +1014,11 @@ const DEFS = [
       const s = R.i(2, 8), k = d === 0 ? R.pick([1, 2, 3, 4]) : R.pick([1.5, 2.5, 3.5, 2, 3, 0.5]), D = dec(k * s), m1 = R.i(lo, hi);
       if (!isInt(D)) return null;
       const m2 = m1 + D;
-      if (d === 1 && R.chance(.45)) return { text: 'The mean ' + what + 's of two groups are ' + B(num(k) + ' MADs') + ' apart. Both groups have a MAD of ' + B(s + ' ' + u) + '. ' + A + ' has a mean of ' + B(m1 + ' ' + u) + ', and ' + Bn + ' has a higher mean. What is it?', ans: m2, unit: u,
+      if (d === 1 && R.chance(.45)) return { text: 'The mean ' + what + 's of two groups are ' + B(num(k) + ' MADs') + ' apart. Both groups have a MAD of ' + B(s + ' ' + u) + '. ' + A + ' has a mean of ' + B(m1 + ' ' + u) + '. ' + Bn + ' has a higher mean. What is the higher mean?', ans: m2, unit: u,
         how: [W('gap = ' + num(k) + ' × ' + s + ' = ' + D + ' ' + u, num(k) + ' MADs of ' + s + ' ' + u), W(m1 + ' + ' + D + ' = ' + B(m2) + ' ' + u)],
         steps: [st('The gap: ' + B(num(k) + ' × ' + s) + ' = ?', D), st(B(m1 + ' + ' + D) + ' = ?', m2)],
         traps: [tr(m1 + k, 'd_overlap', 'Each MAD is ' + s + ' ' + u + ', so the gap is ' + num(k) + ' × ' + s + '.'), tr(D, 'd_overlap', 'That is the gap between the means. Add it to ' + m1 + '.'), tr(m1 - D, 'd_overlap', 'The second mean is higher: add the gap.')] };
-      return { text: A + ' has a mean ' + what + ' of ' + B(m1 + ' ' + u) + ', and ' + Bn + ' has a mean of ' + B(m2 + ' ' + u) + '. Both have a mean absolute deviation (MAD) of ' + B(s + ' ' + u) + '. How many MADs apart are the means?', ans: k,
+      return { text: A + ' has a mean ' + what + ' of ' + B(m1 + ' ' + u) + '. ' + Bn + ' has a mean of ' + B(m2 + ' ' + u) + '. Both have a mean absolute deviation (MAD) of ' + B(s + ' ' + u) + '. How many MADs apart are the means?', ans: k,
         how: [W('difference of means = ' + m2 + ' ' + MINUS + ' ' + m1 + ' = ' + D + ' ' + u), W(D + ' ÷ ' + s + ' = ' + B(num(k)), 'how many MADs fit in the gap')],
         steps: [st('Difference of the means?', D), st(B(D + ' ÷ ' + s) + ' = ?', k)],
         traps: [tr(D, 'd_overlap', 'That is the gap in ' + u + '. Divide it by the MAD.'), tr(isInt(s / D * 1000) ? dec(s / D) : null, 'd_overlap', 'Divide the gap by the MAD, not the MAD by the gap.'), tr(dec(D * s), 'd_overlap', 'Divide the gap by the MAD to count how many MADs fit.')] };
@@ -1221,7 +1221,7 @@ const DEFS = [
       how: ['The solution is where the lines cross. Read it from the grid: ' + pt + '.', 'Check: ' + y1s(m1, b1) + ', and ' + y1s(m2, b2) + '. Both work.', 'So ' + word + ' = ' + B(num(ans)) + '.'],
       steps: [st('Read the crossing point. What is x?', X), st('What is y?', Y)], traps };
     const k = m1.n - m2.n, rhs1 = (m1.n === 0 ? num(b1) : mS(m1) + 'x' + (b1 ? ' ' + signed(b1) : '')), rhs2 = (m2.n === 0 ? num(b2) : mS(m2) + 'x' + (b2 ? ' ' + signed(b2) : ''));
-    return { text: 'The lines ' + B(e1) + ' and ' + B(e2) + ' cross between grid points. What is the ' + B(word) + ' of the crossing point? Find it exactly.', ans, vis,
+    return { text: 'The lines ' + B(e1) + ' and ' + B(e2) + ' cross between grid points. What is the exact ' + B(word) + ' of the crossing point?', ans, vis,
       how: [W(rhs1 + ' = ' + rhs2, 'at the crossing both lines have the same y'), W(k + 'x = ' + num(b2 - b1) + ', so x = ' + num(X), 'x-terms to one side, numbers to the other'), W('y = ' + y1s(m1, b1), 'put x into the first equation'), 'So ' + word + ' = ' + B(num(ans)) + '.'],
       steps: [st('Set them equal and collect: ' + B(k + 'x = ?'), b2 - b1), st('x = ?', X), st('y = ?', Y)], traps };
   } },

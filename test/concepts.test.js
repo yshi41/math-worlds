@@ -40,8 +40,30 @@ function checkProblem(id, p, where) {
   if (!C.eqAns(p, back)) fail(id, where + ': typing the answer (' + raw + ') is not accepted', p);
   const all = [p.text, p.vis || '', p.howVis || '', ...(p.how || []), p.hint || ''].join(' ');
   if (BAD.test(strip(all))) fail(id, where + ': text has ' + strip(all).match(BAD)[0], p);
+  readable(id, p, where);
   if (/(^|[\s=(\[,:+×÷])-\s?\d/.test(strip(p.text + ' ' + (p.how || []).join(' ') + ' ' + (p.traps || []).map(t => t.why || '').join(' ')))) warn(id, where + ': hyphen used as a minus sign (use C.MINUS or C.num): ' + strip(p.text).slice(0, 80));
   return true;
+}
+/* reading limits, grades 2 to 8 (C.layout): how many words a sentence may have, how many words and sentences a whole
+   problem may have (notes on how to type the answer are not counted), no semicolons, no asides in brackets up to 5th
+   grade, and nothing but a typing note after the question. A problem must also say whether it is in your head or on
+   paper, and a word problem is always paper. */
+const READ = g => g <= 3 ? { max: 13, w: g === 2 ? 28 : 34, s: 4 } : g <= 5 ? { max: 16, w: 42, s: 5 } : { max: 20, w: 50, s: 5 };
+function readable(id, p, where) {
+  const c = C.S[id]; if (!c) return;
+  if (typeof p.paper !== 'boolean') fail(id, where + ': no mode (in your head or pencil and paper)', p);
+  if (c.s === 'story' && !p.paper) fail(id, where + ': a word problem must be pencil and paper', p);
+  if (!p.html || !Array.isArray(p.parts) || !p.parts.length || !p.read) return fail(id, where + ': not laid out', p);
+  if (c.g > 8) return;
+  const L = READ(c.g), r = p.read, main = p.parts.filter(x => x.k !== 'note'), t = main.map(x => C.bare(x.h)).join(' ');
+  if (r.max > L.max) fail(id, where + ': a sentence of ' + r.max + ' words (limit ' + L.max + ' in grade ' + c.g + ')', p);
+  if (r.w > L.w) fail(id, where + ': ' + r.w + ' words to read (limit ' + L.w + ' in grade ' + c.g + ')', p);
+  if (r.s > L.s) fail(id, where + ': ' + r.s + ' sentences (limit ' + L.s + ' in grade ' + c.g + ')', p);
+  if (/ step /.test(where)) return; /* break-down steps are short prompts: only the length limits apply */
+  if (/;/.test(t)) fail(id, where + ': semicolon: use two sentences', p);
+  if (c.g <= 5 && /\([^()]*[A-Za-z]{3,}[^()]*\)/.test(t)) fail(id, where + ': an aside in brackets: say it in a sentence', p);
+  const ai = main.map(x => x.k).lastIndexOf('ask');
+  if (ai >= 0 && main.slice(ai + 1).some(x => x.k === 'say')) fail(id, where + ': text after the question: put the question last', p);
 }
 const ids = C.LIST.filter(c => !ONLY || owner[c.id] === ONLY).map(c => c.id);
 if (SHOW) {

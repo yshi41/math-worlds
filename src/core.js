@@ -353,6 +353,55 @@ function hashStr(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h
 const TYPES = ['num', 'frac', 'money', 'time', 'rem'];
 /* a hyphen typed as a minus sign (= -4, (-2), divide by -1) becomes the real minus sign, so negatives read clearly */
 const minusFix = t => typeof t === 'string' ? t.replace(/(^|[\s=(\[,+×÷>])-(\s?\d)/g, '$1' + MINUS + '$2') : t;
+/* ---------- how a problem reads ----------
+   Every problem is laid out the same way, so a child can take it in one line at a time:
+   - a story goes one short sentence to a line (kind 'say');
+   - the question stands on its own line and is marked (kind 'ask');
+   - a bare sum, equation or list of numbers sits on its own line (kind 'math'). "What is 45 × 9?" and
+     "Work it out: 45 × 9" both become "45 × 9 = ?", so a sum always looks like a sum;
+   - a sentence that only says how to type the answer is set apart in small print (kind 'note').
+   layout(p) fills p.parts, p.html (what the game shows) and p.read { w: words to read, s: sentences, max: the
+   longest sentence }, leaving p.text as it was written. test/concepts.test.js holds every concept to reading limits
+   for its grade. */
+const bare = h => String(h).replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
+const wordList = h => bare(h).match(/[A-Za-z][A-Za-z'’-]*/g) || [];
+const mathy = h => { const t = bare(h); return t.length > 0 && t.length <= 80 && !/[A-Za-z]{2,}/.test(t); };
+const NOTE_RX = /^\(?(?:Type\b|Give (?:the|a|an|it|your)\b|Write (?:any remainder|the answer|your answer)\b|Use r for\b|A fraction is fine|An improper fraction or a mixed number is fine|If \S+ is prime, type)/;
+const KEEP_LABEL = /^(?:Set|Bag|Rule|Pattern|Class|Group|Team|Box|Line|Runner|Function|Point|Store|Pack) \S+:$/;
+function sentencesOf(html) {
+  const out = [];
+  String(html).split(/\s*<br\s*\/?>\s*/).forEach(seg => seg.replace(/(\S[.?!…][”")]?(?:<\/[a-z]+>)*)\s+(?=[A-Z0-9$(“"]|\?(?:\s|$)|<span class="fr"|<b>|<sup class="rt-k">|√)/g, '$1\u0001').split('\u0001')
+    .forEach(s => { s = s.trim(); if (s) out.push(s); }));
+  return out;
+}
+function layout(p) {
+  const text = String(p.text); p.html = text; p.parts = [{ k: 'ask', h: text }]; p.read = { w: wordList(text).length, s: 1, max: wordList(text).length };
+  if (/<(?:table|svg|div|ul|ol|p)\b/.test(text)) return p;
+  const parts = [];
+  for (const s of sentencesOf(text)) {
+    const t = bare(s); let m;
+    if (NOTE_RX.test(t)) parts.push({ k: 'note', h: s });
+    else if ((m = s.match(/^(?:What is|Work it out:|Calculate:?)\s+(.+?)\??$/)) && mathy(m[1]) && /[+×÷−|√=]|<sup/.test(m[1])) {
+      const b = m[1].trim(); parts.push({ k: 'math', h: /=$/.test(bare(b)) ? b + ' ?' : /[=?]/.test(bare(b)) ? b : b + ' = ?' });
+    }
+    else if ((m = s.match(/^([^:<]*[A-Za-z]:)\s+(.+?)\.?$/)) && mathy(m[2]) && !KEEP_LABEL.test(m[1])) { parts.push({ k: 'say', h: m[1] }); parts.push({ k: 'math', h: m[2] }); }
+    else if (mathy(s) && !/:$/.test(t)) parts.push({ k: 'math', h: s.replace(/\.$/, '') });
+    else parts.push({ k: /\?[”")]?$/.test(t) ? 'ask' : 'say', h: s });
+  }
+  if (!parts.length) return p;
+  /* an instruction with no question mark ("Round 89 to the nearest ten.") is the question */
+  if (!parts.some(x => x.k === 'ask' || x.k === 'math')) { const last = parts.filter(x => x.k === 'say').pop(); if (last) last.k = 'ask'; }
+  const main = parts.filter(x => x.k !== 'note'), read = main.filter(x => x.k !== 'math');
+  p.parts = parts;
+  p.read = { w: read.reduce((a, x) => a + wordList(x.h).length, 0), s: read.length, max: Math.max(0, ...read.map(x => wordList(x.h).length)) };
+  p.html = parts.length === 1 ? parts[0].h : parts.map(x => '<span class="ql ql-' + x.k + '">' + x.h + '</span>').join('');
+  return p;
+}
+/* in your head, or pencil and paper? A concept is one or the other (paper: true, and every word problem), unless
+   modes() gives it a letter for each level: 'hhp' is in your head at the easy and medium levels and on paper at the
+   hard level. A problem can also say so itself (paper: true or false from its maker). */
+function modes(map) { for (const id in map) { if (!S[id]) throw new Error('modes: no concept ' + id); if (!/^[hp]{3}$/.test(map[id])) throw new Error('modes: bad mode for ' + id); S[id].mode = map[id]; } }
+function paperAt(id, d) { const c = S[id]; if (!c) return false; return c.mode ? c.mode[Math.max(0, Math.min(2, d | 0))] === 'p' : !!(c.paper || c.s === 'story'); }
 function finish(p, id, d) {
   p.skill = id; p.d = d; p.type = p.type || 'num'; p.how = (p.how || []).map(minusFix); p.text = minusFix(p.text); if (p.hint) p.hint = minusFix(p.hint);
   if (p.traps) p.traps.forEach(t => { if (t) t.why = minusFix(t.why); });
@@ -360,6 +409,8 @@ function finish(p, id, d) {
   if (p.type === 'frac' && p.ans && p.ans.d < 0) p.ans = { n: -p.ans.n, d: -p.ans.d };
   p.say = p.say || sayOf(p.text);
   p.key = p.key || (p.text + '|' + hashStr(p.vis || ''));
+  p.paper = p.paper != null ? !!p.paper : paperAt(id, d);
+  layout(p);
   return p;
 }
 function gen(id, d, R) {
@@ -456,6 +507,6 @@ const API = { makeR, n, num, B, MINUS, pad2, fmtT, fmtM, fmtD, plural, sum, sign
   frac, mixed, pw, rt, PI, DEG, ord, term, poly, NAMES, ITEMS, par, T, minHops, compHow, mulHow, breakHow, seqProblem, constSeq, skipGen,
   seqHTML, hopsSVG, tenFrame, dotsSVG, rowDots, groupsSVG, blocksSVG, chartSVG, roundLine, ioTable, clockSVG, COIN, COIN_ORDER, coinSVG, coinsRow,
   greedy, coinNames, countOn, tagsHTML, rectSVG, triSVG, barSVG, fracBarSVG, numLineSVG, plotSVG, angleSVG, table, stackHTML,
-  STRANDS, S, LIST, defs, STD, standards, align, regrade, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
+  STRANDS, S, LIST, defs, STD, standards, align, regrade, modes, paperAt, layout, bare, wordList, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.MWC = API;
 })(typeof window !== 'undefined' ? window : this);
