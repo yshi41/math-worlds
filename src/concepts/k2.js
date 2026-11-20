@@ -1066,7 +1066,7 @@ const DEFS = [
     return { text: 'A bag has ' + B(r + ' red') + ', ' + B(b + ' blue') + ' and ' + B(g + ' green') + ' marbles. You pick one, put it back, and do this ' + B(N + ' times') + '. About how many times should you pick ' + (pick[0] === 'not green' ? 'a marble that is not green' : 'a ' + pick[0] + ' marble') + '?', ans,
       how: [W('P(' + pick[0] + ') = ' + pick[1] + ' out of ' + T + ' = ' + frac(pick[1], T), pick[0] === 'not green' ? r + ' red + ' + b + ' blue' : T + ' marbles in all'), W(frac(pick[1], T) + ' of ' + N + ' = ' + ofS(N, T, pick[1]) + ' = ' + B(ans))],
       steps: [st('How many marbles in all?', T), st(B(N + ' ÷ ' + T) + ' = ?', N / T), st(B((N / T) + ' × ' + pick[1]) + ' = ?', ans)],
-      traps: [tr(isInt(N / 3) ? N / 3 : null, 'd_prob', 'The colors are not equally likely: count the marbles of each colour.'), tr(isInt(N * pick[1] / (T - pick[1])) ? N * pick[1] / (T - pick[1]) : null, 'd_prob', 'Compare with all ' + T + ' marbles, not just the others.'), tr(N - ans, 'd_complement', 'That is about how many times the other marbles come up.')] };
+      traps: [tr(isInt(N / 3) ? N / 3 : null, 'd_prob', 'The colors are not equally likely: count the marbles of each color.'), tr(isInt(N * pick[1] / (T - pick[1])) ? N * pick[1] / (T - pick[1]) : null, 'd_prob', 'Compare with all ' + T + ' marbles, not just the others.'), tr(N - ans, 'd_complement', 'That is about how many times the other marbles come up.')] };
   } },
 
 { id: 'd_experiment', s: 'data', g: 7, title: 'Probability from a tally', pre: ['f_simplify'], cc: ['7.SP.C.7b', '7.SP.C.6'],

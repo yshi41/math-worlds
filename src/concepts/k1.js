@@ -223,7 +223,7 @@ function digitProblem(R, p, bigger, cc) {
   const how = ['Compare ' + boxStr + ' with ' + tS + ' place by place, from the left.' + (pos > 1 ? ' The places before the box match.' : ''),
     'Try ' + same + ' in the box (the same ' + pn + ' digit): ' + decFull(sameV, p) + ' is ' + (sameV > t ? 'bigger' : sameV < t ? 'smaller' : 'the same') + ', so ' + same + (sameOK ? ' works.' : ' does not work.'),
     sameOK ? 'Try ' + (bigger ? same - 1 : same + 1) + ': ' + decFull(valWith(bigger ? same - 1 : same + 1), p) + ' is ' + (bigger ? 'smaller' : 'bigger') + '. So the answer is ' + B(ans) + '.' : 'So go one ' + (bigger ? 'up' : 'down') + ': ' + ans + ' gives ' + decFull(valWith(ans), p) + '. The answer is ' + B(ans) + '.'];
-  return { text: 'What is the ' + B(bigger ? 'smallest' : 'biggest') + ' digit that can go in the box to make ' + B(boxStr) + (bigger ? ' bigger than ' : ' smaller than ') + B(tS) + '?', ans, how,
+  return { text: 'What is the ' + B(bigger ? 'smallest' : 'biggest') + ' digit for the box so ' + B(boxStr) + (bigger ? ' is bigger than ' : ' is smaller than ') + B(tS) + '?', ans, how,
     steps: [st('Try ' + same + ' in the box. Type the number you get.', sameV / P10(p)), st('What is the ' + (bigger ? 'smallest' : 'biggest') + ' digit that works?', ans)],
     traps: [tr(sameOK ? (bigger ? ans + 1 : ans - 1) : same, cc, sameOK ? 'Check the next places: with the same ' + pn + ' digit the later digits decide.' : 'With the same ' + pn + ' digit, look at the next places: they decide.'), tr(bigger ? 9 : 0, cc, 'The question asks for the ' + (bigger ? 'smallest' : 'biggest') + ' digit that works.')] };
 }
@@ -598,7 +598,7 @@ defs([
       how: ['The right part is ' + w + ' ' + MINUS + ' ' + w1 + ' = ' + w2 + ' cm wide.', 'Its area: ' + h + ' × ' + w2 + ' = ' + B(A2) + ' square cm.'],
       steps: [st('How wide is the right part? ' + B(mi(w, w1)) + ' = ?', w2), st(B(h + ' × ' + w2) + ' = ?', A2)],
       traps: [tr(A, 'g_areasplit', 'That is the whole rectangle. Find only the right part.'), tr(h * w1, 'g_areasplit', 'That is the left part.'), tr(h + w2, 'g_area', 'Area multiplies: ' + h + ' rows of ' + w2 + '.')] };
-    return { text: 'A rectangle is ' + B(h + ' cm') + ' tall and has an area of ' + B(A + ' square cm') + '. It is split into two parts. The left part is ' + B(h + ' cm by ' + w1 + ' cm') + '. What is the area of the ' + B('right') + ' part?', ans: A2, unit: 'square cm', vis: splitRectSVG(h, w1, w2, { l2: '?', in2: '?' }),
+    return { text: 'A rectangle has an area of ' + B(A + ' square cm') + '. It is split in two. The left part is ' + B(h + ' cm by ' + w1 + ' cm') + '. What is the area of the ' + B('right') + ' part?', ans: A2, unit: 'square cm', vis: splitRectSVG(h, w1, w2, { l2: '?', in2: '?' }),
       how: ['Left part: ' + h + ' × ' + w1 + ' = ' + A1 + ' square cm.', 'The two parts make ' + A + ': ' + mi(A, A1) + ' = ' + B(A2) + ' square cm.'],
       steps: [st('Left part: ' + B(h + ' × ' + w1) + ' = ?', A1), st(B(mi(A, A1)) + ' = ?', A2)],
       traps: [tr(A1, 'g_areasplit', 'That is the left part. The right part is what is left of ' + A + '.'), tr(A - w1 > 0 ? A - w1 : null, 'g_areasplit', 'Take away the left part\'s area, ' + h + ' × ' + w1 + ', not its width.'), tr(noBorrow(A, A1), 'a_borrow', 'Check the taking away.')] };
@@ -631,7 +631,7 @@ defs([
     if (kind === 'walk' || kind === 'three') {
       if (kind === 'three') {
         const a = R.i(1, den - 1), b = R.i(1, den - 1), c = R.i(1, den - 1), S = a + b + c; if (S <= den) return null;
-        return { text: 'On a hike, ' + A + ' walks ' + frac(a, den) + ' of a mile to a bridge. Then ' + A + ' walks ' + frac(b, den) + ' of a mile to a pond. Then ' + A + ' walks ' + frac(c, den) + ' of a mile to the top. How far does ' + A + ' walk in all? Type a mixed number or a fraction.', ans: F(S, den), unit: 'miles',
+        return { text: A + ' walks ' + frac(a, den) + ' of a mile to a bridge. Then ' + A + ' walks ' + frac(b, den) + ' of a mile to a pond. Then ' + A + ' walks ' + frac(c, den) + ' of a mile to the top. How far does ' + A + ' walk in all? Type a mixed number or a fraction.', ans: F(S, den), unit: 'miles',
           how: ['Write it: ' + frac(a, den) + ' + ' + frac(b, den) + ' + ' + frac(c, den) + '.', 'Same bottom, so add the tops: ' + a + ' + ' + b + ' + ' + c + ' = ' + S + '. That is ' + frac(S, den) + '.', frac(S, den) + ' = ' + mx(S, den) + ', because ' + frac(den, den) + ' makes 1 whole.', A + ' walks ' + B(endFrac(S, den)) + ' miles.'],
           steps: [st('Add the tops: ' + B(a + ' + ' + b + ' + ' + c) + ' = ?', S), sf('As a fraction: ?', S, den)],
           traps: [tr(F(S, 3 * den), 'f_addunlike', 'Keep the bottom: add only the tops.'), tr(F(a + b, den), 's_fraclike', 'There are three parts of the hike.'), tr(F(S - den, den), 'f_mixed', frac(S, den) + ' is more than 1 whole. Keep the whole when you write the mixed number.')] };

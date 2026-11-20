@@ -307,7 +307,7 @@ C.defs(polish([
     const v = lo + k * step, L = lo + Math.floor((v - lo) / lab) * lab, Rr = L + lab, fwd = v - L <= Rr - v, from = fwd ? L : Rr, j = Math.abs(v - from) / step;
     const list = []; for (let i = 1; i <= j; i++) list.push(N(from + (fwd ? i : -i) * step));
     const howStep = d === 2 ? 'From ' + N(lo) + ' to ' + N(hi) + ' is ' + (hi - lo) + ', split into ' + gaps + ' equal jumps, so each jump is ' + step + '.' : told ? 'Each jump is ' + step + '.' : 'From ' + N(L) + ' to ' + N(Rr) + ' is ' + lab + ' in ' + (lab / step) + ' jumps, so each jump is ' + step + '.';
-    return { text: (told ? 'Each jump is ' + B(step) + '. ' : d === 2 ? 'Only the ends are labelled. ' : '') + 'What number goes where the ' + B('?') + ' is?', ans: v, vis: numLineSVG(lo, hi, step, [{ v, t: '?' }], lab),
+    return { text: (told ? 'Each jump is ' + B(step) + '. ' : d === 2 ? 'Only the ends are labeled. ' : '') + 'What number goes where the ' + B('?') + ' is?', ans: v, vis: numLineSVG(lo, hi, step, [{ v, t: '?' }], lab),
       how: [howStep, 'Count ' + (fwd ? 'on' : 'back') + ' from ' + N(from) + ' by ' + step + 's: ' + list.join(', ') + '. The ? is ' + B(N(v)) + '.'],
       steps: (told ? [] : [S('How much is each jump?', step)]).concat([S('How many jumps is the ? from ' + B(N(from)) + '?', j), S('Count ' + (fwd ? 'on' : 'back') + ' ' + j + ' ' + plural(j, 'jump') + ' of ' + step + ' from ' + B(N(from)) + '. Where do you land?', v)]),
       traps: traps([tp(fwd ? from + j : from - j, 'n_numline', 'Each jump is worth ' + step + ', not 1.'), tp(v + step, 'n_numline', 'Count the jumps again, one for each space between marks.'), tp(v - step, 'n_numline', 'Count the jumps again, one for each space between marks.'),

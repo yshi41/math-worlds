@@ -1034,7 +1034,7 @@ const DEFS = [
   tip: 'Read the top of each bar against the numbers on the side. "How many more" means take away: 9 dogs and 4 cats is 9 − 4 = 5 more dogs.',
   gen(d, R) {
     const sets = [[['dogs', 'cats', 'fish', 'birds'], l => l, 'pets in our class'], [['apples', 'pears', 'plums', 'lemons'], l => l, 'fruits picked'],
-      [['red', 'blue', 'green', 'pink'], l => 'votes for ' + l, 'votes for a favourite colour'], [['soccer', 'tennis', 'swim', 'dance'], l => 'kids in ' + l, 'kids in each club'],
+      [['red', 'blue', 'green', 'pink'], l => 'votes for ' + l, 'votes for a favorite color'], [['soccer', 'tennis', 'swim', 'dance'], l => 'kids in ' + l, 'kids in each club'],
       [['Mon', 'Tue', 'Wed', 'Thu'], l => 'books on ' + l, 'books read each day']];
     const [L, ph, what] = R.pick(sets), M = ' ' + MINUS + ' ';
     if (d < 2) {
@@ -1056,7 +1056,7 @@ const DEFS = [
     const each = R.pick([2, 5, 10]), sym = R.pick(['⭐', '🍎', '⚽', '📚']), cnt = L.map(() => R.i(1, 7)), vals = cnt.map(c => c * each);
     const vis = table(L.map((l, k) => [l, sym.repeat(cnt[k])]).concat([['key', sym + ' = ' + each]]));
     const [i, j, k] = R.shuffle([0, 1, 2, 3]); const ans = vals[i] + vals[j] - vals[k]; if (ans <= 0) return null;
-    return { text: 'The picture graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + '. How many more is that than ' + B(ph(L[k])) + '?', vis, ans,
+    return { text: 'The graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + '. How many more is that than ' + B(ph(L[k])) + '?', vis, ans,
       how: [L[i] + ': ' + cnt[i] + ' × ' + each + ' = ' + vals[i] + '. ' + L[j] + ': ' + cnt[j] + ' × ' + each + ' = ' + vals[j] + '. ' + L[k] + ': ' + cnt[k] + ' × ' + each + ' = ' + vals[k] + '.',
             'Together: ' + vals[i] + ' + ' + vals[j] + ' = ' + (vals[i] + vals[j]) + '.', (vals[i] + vals[j]) + M + vals[k] + ' = ' + B(ans) + '.'],
       steps: [{ text: 'How many ' + ph(L[i]) + ' and ' + ph(L[j]) + ' together?', ans: vals[i] + vals[j] }, { text: 'How many ' + ph(L[k]) + '?', ans: vals[k] }, { text: B((vals[i] + vals[j]) + M + vals[k]) + ' = ?', ans }],
@@ -1210,7 +1210,7 @@ const DEFS = [
   tip: 'If you make one choice and then another, multiply the number of options. 3 shirts and 4 pants make 3 × 4 = 12 outfits. A 3-digit code has 10 × 10 × 10 = 1,000.',
   gen(d, R) {
     if (d === 0) {
-      const a = R.i(2, 8), b = R.i(2, 8), w = R.pick([['shirts', 'pairs of pants', 'outfits', 'shirt'], ['kinds of bread', 'fillings', 'sandwiches', 'kind of bread'], ['ice cream flavours', 'toppings', 'sundaes with one of each', 'flavour'], ['colours of card', 'stickers', 'cards with one of each', 'colour']]), ans = a * b;
+      const a = R.i(2, 8), b = R.i(2, 8), w = R.pick([['shirts', 'pairs of pants', 'outfits', 'shirt'], ['kinds of bread', 'fillings', 'sandwiches', 'kind of bread'], ['ice cream flavors', 'toppings', 'sundaes with one of each', 'flavor'], ['colors of card', 'stickers', 'cards with one of each', 'color']]), ans = a * b;
       return { text: 'You have ' + B(a + ' ' + w[0]) + ' and ' + B(b + ' ' + w[1]) + '. How many different ' + w[2] + ' can you make?', ans,
         how: ['Each of the ' + a + ' ' + w[0] + ' goes with each of the ' + b + ' ' + w[1] + '.', a + ' × ' + b + ' = ' + B(ans) + '.'],
         steps: [{ text: 'With just one ' + w[3] + ', how many choices?', ans: b }, { text: B(a + ' × ' + b) + ' = ?', ans }],
@@ -1222,7 +1222,7 @@ const DEFS = [
           how: ['Multiply the choices at each step.', a + ' × ' + b + ' × ' + c + ' = ' + (a * b) + ' × ' + c + ' = ' + B(ans) + '.'],
           steps: [{ text: 'Drinks and mains: ' + B(a + ' × ' + b) + ' = ?', ans: a * b }, { text: B((a * b) + ' × ' + c) + ' = ?', ans }],
           traps: [tr(a + b + c, 'd_countways', 'Each choice multiplies the number of meals.'), tr(a * b + c, 'd_countways', 'Multiply by the desserts too.')] }; }
-      const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels', 5, 3], ['vowels', 5, 2], ['colours', 4, 3], ['colours', 3, 4]]), ans = Math.pow(k[1], k[2]);
+      const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels', 5, 3], ['vowels', 5, 2], ['colors', 4, 3], ['colors', 3, 4]]), ans = Math.pow(k[1], k[2]);
       return { text: 'A code has ' + B(k[2] + ' spots') + '. Each spot can be any of ' + B(k[1] + ' ' + k[0]) + '. Repeats are allowed. How many codes are there?', ans,
         how: ['Each of the ' + k[2] + ' spots has ' + k[1] + ' choices.', Array(k[2]).fill(k[1]).join(' × ') + ' = ' + B(num(ans)) + '.'],
         steps: [{ text: 'Choices for each spot?', ans: k[1] }, { text: 'How many codes?', ans }],

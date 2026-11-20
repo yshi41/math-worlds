@@ -1060,7 +1060,7 @@ defs([
         traps: [tr(L !== r ? L : null, 'fa_div2510', m + ' fits into ' + L + ' once. What is left after that?'), tr(m === 10 ? Math.floor(N / 10) % 10 : null, 'n_place', 'The leftover is the ones digit.'), tr(m - r, 'fa_div2510', 'That is how far to the next multiple. The remainder is what is left over.')] }; }
     const m = +kind.slice(3), up = (m - L % m) % m;
     if (up === 0) return null;
-    return { text: 'What is the ' + B('smallest') + ' number you can add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
+    return { text: 'What is the ' + B('smallest') + ' number to add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
       how: [why, m === 2 ? 'Add 1 to make it even: ' + B(1) + '.' : m === 5 ? 'Multiples of 5 end in 0 or 5. From ' + L + ', the next is ' + (L < 5 ? 5 : 10) + ': add ' + B(up) + '.' : 'Multiples of 10 end in 0. From ' + L + ' to 10: add ' + B(up) + '.', nm(N) + ' + ' + up + ' = ' + nm(N + up) + '.'],
       steps: [st('What is the last digit of ' + B(nm(N)) + '?', L), st('What is the next last digit that works?', (L + up) % 10), st('How much do you add?', up)],
       traps: [tr(m === 5 && L < 5 ? 10 - L : null, 'fa_div2510', 'Multiples of 5 can end in 5 too, which is closer.'), tr(L % m, 'fa_div2510', 'That is the remainder. How much more to reach the next multiple?'), tr(m === 5 ? 5 : null, 'fa_div2510', 'Add to the last digit to make it 0 or 5.')] };
@@ -1083,7 +1083,7 @@ defs([
     const N = d === 0 ? R.i(101, 999) : R.i(10001, 999999), s = dsum(N), r = N % m;
     if (d === 2 && R.chance(0.35)) {
       const up = (m - r) % m; if (!up) return null;
-      return { text: 'What is the ' + B('smallest') + ' number you can add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
+      return { text: 'What is the ' + B('smallest') + ' number to add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
         how: ['Digit sum: ' + String(N).split('').join(' + ') + ' = ' + s + '.', s + ' ÷ ' + m + ' leaves ' + r + ', so ' + nm(N) + ' leaves ' + r + ' too. Add ' + m + ' ' + MINUS + ' ' + r + ' = ' + B(up) + '.'],
         steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('What is the remainder of ' + s + ' ÷ ' + m + '?', r), st('How much more to the next multiple of ' + m + '?', up)],
         traps: [tr(r, 'fa_div39', 'That is the remainder. How much more to the next multiple?'), tr(s, 'fa_div39', 'That is the digit sum.')] };
@@ -1396,7 +1396,7 @@ defs([
       return { text: 'Find the ' + B('perimeter') + ' of the shape. All lengths are in cm.', ans: P, unit: 'cm', vis,
         how: ['The two missing sides are ' + W + ' ' + MINUS + ' ' + top + ' = ' + cw + ' and ' + H + ' ' + MINUS + ' ' + right + ' = ' + ch + '.', 'Add all six sides: ' + [W, H, top, ch, cw, right].join(' + ') + ' = ' + B(P) + ' cm.', 'Shortcut: the inside corner sides slide out to make a ' + W + ' by ' + H + ' rectangle, so it is 2 × (' + W + ' + ' + H + ').'],
         steps: [st('Missing top-right side across: ' + B(W + ' ' + MINUS + ' ' + top) + ' = ?', cw), st('Missing side going down: ' + B(H + ' ' + MINUS + ' ' + right) + ' = ?', ch), st('Add all six sides: ?', P, { unit: 'cm' })],
-        traps: [tr(W + H + top + right, 'g_areaL', 'There are six sides. Find the two that are not labelled.'), tr(A, 'g_areaL', 'That is the area. Perimeter goes around the edge.')] };
+        traps: [tr(W + H + top + right, 'g_areaL', 'There are six sides. Find the two that are not labeled.'), tr(A, 'g_areaL', 'That is the area. Perimeter goes around the edge.')] };
     }
     if (d === 2) return { text: 'Find the ' + B('area') + ' of the shape. All lengths are in cm.', ans: A, unit: 'square cm', vis,
       how: ['Big rectangle: ' + W + ' × ' + H + ' = ' + (W * H) + '.', 'Missing corner: (' + W + ' ' + MINUS + ' ' + top + ') × (' + H + ' ' + MINUS + ' ' + right + ') = ' + cw + ' × ' + ch + ' = ' + (cw * ch) + '.', 'Area = ' + (W * H) + ' ' + MINUS + ' ' + (cw * ch) + ' = ' + B(A) + ' square cm.'],

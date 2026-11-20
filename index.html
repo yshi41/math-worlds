@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-20 02:27';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-20 22:01';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -2005,6 +2005,10 @@ const minusFix = t => typeof t === 'string' ? t.replace(/(^|[\s=(\[,+×÷>])-(\s
    layout(p) fills p.parts, p.html (what the game shows) and p.read { w: words to read, s: sentences, max: the
    longest sentence }, leaving p.text as it was written. test/concepts.test.js holds every concept to reading limits
    for its grade. */
+/* reading grade: problems are written one grade below the concept's grade (never below 2nd), so a child who meets
+   a concept a grade ahead of her own (the placement check goes up to her grade + 1) can still read it. The game
+   reads a problem aloud when its reading grade is above the child's grade. */
+const readGrade = c => Math.max(2, (c && c.g || 2) - 1);
 const bare = h => String(h).replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
 const wordList = h => bare(h).match(/[A-Za-z][A-Za-z'’-]*/g) || [];
 const mathy = h => { const t = bare(h); return t.length > 0 && t.length <= 80 && !/[A-Za-z]{2,}/.test(t); };
@@ -2149,7 +2153,7 @@ const API = { makeR, n, num, B, MINUS, pad2, fmtT, fmtM, fmtD, plural, sum, sign
   frac, mixed, pw, rt, PI, DEG, ord, term, poly, NAMES, ITEMS, par, T, minHops, compHow, mulHow, breakHow, seqProblem, constSeq, skipGen,
   seqHTML, hopsSVG, tenFrame, dotsSVG, rowDots, groupsSVG, blocksSVG, chartSVG, roundLine, ioTable, clockSVG, COIN, COIN_ORDER, coinSVG, coinsRow,
   greedy, coinNames, countOn, tagsHTML, rectSVG, triSVG, barSVG, fracBarSVG, numLineSVG, plotSVG, angleSVG, table, stackHTML,
-  STRANDS, S, LIST, defs, STD, standards, align, regrade, modes, paperAt, layout, bare, wordList, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
+  STRANDS, S, LIST, defs, STD, standards, align, regrade, modes, paperAt, layout, readGrade, bare, wordList, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.MWC = API;
 })(typeof window !== 'undefined' ? window : this);
 
@@ -2462,7 +2466,7 @@ C.defs(polish([
     const v = lo + k * step, L = lo + Math.floor((v - lo) / lab) * lab, Rr = L + lab, fwd = v - L <= Rr - v, from = fwd ? L : Rr, j = Math.abs(v - from) / step;
     const list = []; for (let i = 1; i <= j; i++) list.push(N(from + (fwd ? i : -i) * step));
     const howStep = d === 2 ? 'From ' + N(lo) + ' to ' + N(hi) + ' is ' + (hi - lo) + ', split into ' + gaps + ' equal jumps, so each jump is ' + step + '.' : told ? 'Each jump is ' + step + '.' : 'From ' + N(L) + ' to ' + N(Rr) + ' is ' + lab + ' in ' + (lab / step) + ' jumps, so each jump is ' + step + '.';
-    return { text: (told ? 'Each jump is ' + B(step) + '. ' : d === 2 ? 'Only the ends are labelled. ' : '') + 'What number goes where the ' + B('?') + ' is?', ans: v, vis: numLineSVG(lo, hi, step, [{ v, t: '?' }], lab),
+    return { text: (told ? 'Each jump is ' + B(step) + '. ' : d === 2 ? 'Only the ends are labeled. ' : '') + 'What number goes where the ' + B('?') + ' is?', ans: v, vis: numLineSVG(lo, hi, step, [{ v, t: '?' }], lab),
       how: [howStep, 'Count ' + (fwd ? 'on' : 'back') + ' from ' + N(from) + ' by ' + step + 's: ' + list.join(', ') + '. The ? is ' + B(N(v)) + '.'],
       steps: (told ? [] : [S('How much is each jump?', step)]).concat([S('How many jumps is the ? from ' + B(N(from)) + '?', j), S('Count ' + (fwd ? 'on' : 'back') + ' ' + j + ' ' + plural(j, 'jump') + ' of ' + step + ' from ' + B(N(from)) + '. Where do you land?', v)]),
       traps: traps([tp(fwd ? from + j : from - j, 'n_numline', 'Each jump is worth ' + step + ', not 1.'), tp(v + step, 'n_numline', 'Count the jumps again, one for each space between marks.'), tp(v - step, 'n_numline', 'Count the jumps again, one for each space between marks.'),
@@ -5602,7 +5606,7 @@ defs([
         traps: [tr(L !== r ? L : null, 'fa_div2510', m + ' fits into ' + L + ' once. What is left after that?'), tr(m === 10 ? Math.floor(N / 10) % 10 : null, 'n_place', 'The leftover is the ones digit.'), tr(m - r, 'fa_div2510', 'That is how far to the next multiple. The remainder is what is left over.')] }; }
     const m = +kind.slice(3), up = (m - L % m) % m;
     if (up === 0) return null;
-    return { text: 'What is the ' + B('smallest') + ' number you can add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
+    return { text: 'What is the ' + B('smallest') + ' number to add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
       how: [why, m === 2 ? 'Add 1 to make it even: ' + B(1) + '.' : m === 5 ? 'Multiples of 5 end in 0 or 5. From ' + L + ', the next is ' + (L < 5 ? 5 : 10) + ': add ' + B(up) + '.' : 'Multiples of 10 end in 0. From ' + L + ' to 10: add ' + B(up) + '.', nm(N) + ' + ' + up + ' = ' + nm(N + up) + '.'],
       steps: [st('What is the last digit of ' + B(nm(N)) + '?', L), st('What is the next last digit that works?', (L + up) % 10), st('How much do you add?', up)],
       traps: [tr(m === 5 && L < 5 ? 10 - L : null, 'fa_div2510', 'Multiples of 5 can end in 5 too, which is closer.'), tr(L % m, 'fa_div2510', 'That is the remainder. How much more to reach the next multiple?'), tr(m === 5 ? 5 : null, 'fa_div2510', 'Add to the last digit to make it 0 or 5.')] };
@@ -5625,7 +5629,7 @@ defs([
     const N = d === 0 ? R.i(101, 999) : R.i(10001, 999999), s = dsum(N), r = N % m;
     if (d === 2 && R.chance(0.35)) {
       const up = (m - r) % m; if (!up) return null;
-      return { text: 'What is the ' + B('smallest') + ' number you can add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
+      return { text: 'What is the ' + B('smallest') + ' number to add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
         how: ['Digit sum: ' + String(N).split('').join(' + ') + ' = ' + s + '.', s + ' ÷ ' + m + ' leaves ' + r + ', so ' + nm(N) + ' leaves ' + r + ' too. Add ' + m + ' ' + MINUS + ' ' + r + ' = ' + B(up) + '.'],
         steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('What is the remainder of ' + s + ' ÷ ' + m + '?', r), st('How much more to the next multiple of ' + m + '?', up)],
         traps: [tr(r, 'fa_div39', 'That is the remainder. How much more to the next multiple?'), tr(s, 'fa_div39', 'That is the digit sum.')] };
@@ -5938,7 +5942,7 @@ defs([
       return { text: 'Find the ' + B('perimeter') + ' of the shape. All lengths are in cm.', ans: P, unit: 'cm', vis,
         how: ['The two missing sides are ' + W + ' ' + MINUS + ' ' + top + ' = ' + cw + ' and ' + H + ' ' + MINUS + ' ' + right + ' = ' + ch + '.', 'Add all six sides: ' + [W, H, top, ch, cw, right].join(' + ') + ' = ' + B(P) + ' cm.', 'Shortcut: the inside corner sides slide out to make a ' + W + ' by ' + H + ' rectangle, so it is 2 × (' + W + ' + ' + H + ').'],
         steps: [st('Missing top-right side across: ' + B(W + ' ' + MINUS + ' ' + top) + ' = ?', cw), st('Missing side going down: ' + B(H + ' ' + MINUS + ' ' + right) + ' = ?', ch), st('Add all six sides: ?', P, { unit: 'cm' })],
-        traps: [tr(W + H + top + right, 'g_areaL', 'There are six sides. Find the two that are not labelled.'), tr(A, 'g_areaL', 'That is the area. Perimeter goes around the edge.')] };
+        traps: [tr(W + H + top + right, 'g_areaL', 'There are six sides. Find the two that are not labeled.'), tr(A, 'g_areaL', 'That is the area. Perimeter goes around the edge.')] };
     }
     if (d === 2) return { text: 'Find the ' + B('area') + ' of the shape. All lengths are in cm.', ans: A, unit: 'square cm', vis,
       how: ['Big rectangle: ' + W + ' × ' + H + ' = ' + (W * H) + '.', 'Missing corner: (' + W + ' ' + MINUS + ' ' + top + ') × (' + H + ' ' + MINUS + ' ' + right + ') = ' + cw + ' × ' + ch + ' = ' + (cw * ch) + '.', 'Area = ' + (W * H) + ' ' + MINUS + ' ' + (cw * ch) + ' = ' + B(A) + ' square cm.'],
@@ -7319,7 +7323,7 @@ const DEFS = [
   tip: 'Read the top of each bar against the numbers on the side. "How many more" means take away: 9 dogs and 4 cats is 9 − 4 = 5 more dogs.',
   gen(d, R) {
     const sets = [[['dogs', 'cats', 'fish', 'birds'], l => l, 'pets in our class'], [['apples', 'pears', 'plums', 'lemons'], l => l, 'fruits picked'],
-      [['red', 'blue', 'green', 'pink'], l => 'votes for ' + l, 'votes for a favourite colour'], [['soccer', 'tennis', 'swim', 'dance'], l => 'kids in ' + l, 'kids in each club'],
+      [['red', 'blue', 'green', 'pink'], l => 'votes for ' + l, 'votes for a favorite color'], [['soccer', 'tennis', 'swim', 'dance'], l => 'kids in ' + l, 'kids in each club'],
       [['Mon', 'Tue', 'Wed', 'Thu'], l => 'books on ' + l, 'books read each day']];
     const [L, ph, what] = R.pick(sets), M = ' ' + MINUS + ' ';
     if (d < 2) {
@@ -7341,7 +7345,7 @@ const DEFS = [
     const each = R.pick([2, 5, 10]), sym = R.pick(['⭐', '🍎', '⚽', '📚']), cnt = L.map(() => R.i(1, 7)), vals = cnt.map(c => c * each);
     const vis = table(L.map((l, k) => [l, sym.repeat(cnt[k])]).concat([['key', sym + ' = ' + each]]));
     const [i, j, k] = R.shuffle([0, 1, 2, 3]); const ans = vals[i] + vals[j] - vals[k]; if (ans <= 0) return null;
-    return { text: 'The picture graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + '. How many more is that than ' + B(ph(L[k])) + '?', vis, ans,
+    return { text: 'The graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + '. How many more is that than ' + B(ph(L[k])) + '?', vis, ans,
       how: [L[i] + ': ' + cnt[i] + ' × ' + each + ' = ' + vals[i] + '. ' + L[j] + ': ' + cnt[j] + ' × ' + each + ' = ' + vals[j] + '. ' + L[k] + ': ' + cnt[k] + ' × ' + each + ' = ' + vals[k] + '.',
             'Together: ' + vals[i] + ' + ' + vals[j] + ' = ' + (vals[i] + vals[j]) + '.', (vals[i] + vals[j]) + M + vals[k] + ' = ' + B(ans) + '.'],
       steps: [{ text: 'How many ' + ph(L[i]) + ' and ' + ph(L[j]) + ' together?', ans: vals[i] + vals[j] }, { text: 'How many ' + ph(L[k]) + '?', ans: vals[k] }, { text: B((vals[i] + vals[j]) + M + vals[k]) + ' = ?', ans }],
@@ -7495,7 +7499,7 @@ const DEFS = [
   tip: 'If you make one choice and then another, multiply the number of options. 3 shirts and 4 pants make 3 × 4 = 12 outfits. A 3-digit code has 10 × 10 × 10 = 1,000.',
   gen(d, R) {
     if (d === 0) {
-      const a = R.i(2, 8), b = R.i(2, 8), w = R.pick([['shirts', 'pairs of pants', 'outfits', 'shirt'], ['kinds of bread', 'fillings', 'sandwiches', 'kind of bread'], ['ice cream flavours', 'toppings', 'sundaes with one of each', 'flavour'], ['colours of card', 'stickers', 'cards with one of each', 'colour']]), ans = a * b;
+      const a = R.i(2, 8), b = R.i(2, 8), w = R.pick([['shirts', 'pairs of pants', 'outfits', 'shirt'], ['kinds of bread', 'fillings', 'sandwiches', 'kind of bread'], ['ice cream flavors', 'toppings', 'sundaes with one of each', 'flavor'], ['colors of card', 'stickers', 'cards with one of each', 'color']]), ans = a * b;
       return { text: 'You have ' + B(a + ' ' + w[0]) + ' and ' + B(b + ' ' + w[1]) + '. How many different ' + w[2] + ' can you make?', ans,
         how: ['Each of the ' + a + ' ' + w[0] + ' goes with each of the ' + b + ' ' + w[1] + '.', a + ' × ' + b + ' = ' + B(ans) + '.'],
         steps: [{ text: 'With just one ' + w[3] + ', how many choices?', ans: b }, { text: B(a + ' × ' + b) + ' = ?', ans }],
@@ -7507,7 +7511,7 @@ const DEFS = [
           how: ['Multiply the choices at each step.', a + ' × ' + b + ' × ' + c + ' = ' + (a * b) + ' × ' + c + ' = ' + B(ans) + '.'],
           steps: [{ text: 'Drinks and mains: ' + B(a + ' × ' + b) + ' = ?', ans: a * b }, { text: B((a * b) + ' × ' + c) + ' = ?', ans }],
           traps: [tr(a + b + c, 'd_countways', 'Each choice multiplies the number of meals.'), tr(a * b + c, 'd_countways', 'Multiply by the desserts too.')] }; }
-      const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels', 5, 3], ['vowels', 5, 2], ['colours', 4, 3], ['colours', 3, 4]]), ans = Math.pow(k[1], k[2]);
+      const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels', 5, 3], ['vowels', 5, 2], ['colors', 4, 3], ['colors', 3, 4]]), ans = Math.pow(k[1], k[2]);
       return { text: 'A code has ' + B(k[2] + ' spots') + '. Each spot can be any of ' + B(k[1] + ' ' + k[0]) + '. Repeats are allowed. How many codes are there?', ans,
         how: ['Each of the ' + k[2] + ' spots has ' + k[1] + ' choices.', Array(k[2]).fill(k[1]).join(' × ') + ' = ' + B(num(ans)) + '.'],
         steps: [{ text: 'Choices for each spot?', ans: k[1] }, { text: 'How many codes?', ans }],
@@ -15087,7 +15091,7 @@ function digitProblem(R, p, bigger, cc) {
   const how = ['Compare ' + boxStr + ' with ' + tS + ' place by place, from the left.' + (pos > 1 ? ' The places before the box match.' : ''),
     'Try ' + same + ' in the box (the same ' + pn + ' digit): ' + decFull(sameV, p) + ' is ' + (sameV > t ? 'bigger' : sameV < t ? 'smaller' : 'the same') + ', so ' + same + (sameOK ? ' works.' : ' does not work.'),
     sameOK ? 'Try ' + (bigger ? same - 1 : same + 1) + ': ' + decFull(valWith(bigger ? same - 1 : same + 1), p) + ' is ' + (bigger ? 'smaller' : 'bigger') + '. So the answer is ' + B(ans) + '.' : 'So go one ' + (bigger ? 'up' : 'down') + ': ' + ans + ' gives ' + decFull(valWith(ans), p) + '. The answer is ' + B(ans) + '.'];
-  return { text: 'What is the ' + B(bigger ? 'smallest' : 'biggest') + ' digit that can go in the box to make ' + B(boxStr) + (bigger ? ' bigger than ' : ' smaller than ') + B(tS) + '?', ans, how,
+  return { text: 'What is the ' + B(bigger ? 'smallest' : 'biggest') + ' digit for the box so ' + B(boxStr) + (bigger ? ' is bigger than ' : ' is smaller than ') + B(tS) + '?', ans, how,
     steps: [st('Try ' + same + ' in the box. Type the number you get.', sameV / P10(p)), st('What is the ' + (bigger ? 'smallest' : 'biggest') + ' digit that works?', ans)],
     traps: [tr(sameOK ? (bigger ? ans + 1 : ans - 1) : same, cc, sameOK ? 'Check the next places: with the same ' + pn + ' digit the later digits decide.' : 'With the same ' + pn + ' digit, look at the next places: they decide.'), tr(bigger ? 9 : 0, cc, 'The question asks for the ' + (bigger ? 'smallest' : 'biggest') + ' digit that works.')] };
 }
@@ -15462,7 +15466,7 @@ defs([
       how: ['The right part is ' + w + ' ' + MINUS + ' ' + w1 + ' = ' + w2 + ' cm wide.', 'Its area: ' + h + ' × ' + w2 + ' = ' + B(A2) + ' square cm.'],
       steps: [st('How wide is the right part? ' + B(mi(w, w1)) + ' = ?', w2), st(B(h + ' × ' + w2) + ' = ?', A2)],
       traps: [tr(A, 'g_areasplit', 'That is the whole rectangle. Find only the right part.'), tr(h * w1, 'g_areasplit', 'That is the left part.'), tr(h + w2, 'g_area', 'Area multiplies: ' + h + ' rows of ' + w2 + '.')] };
-    return { text: 'A rectangle is ' + B(h + ' cm') + ' tall and has an area of ' + B(A + ' square cm') + '. It is split into two parts. The left part is ' + B(h + ' cm by ' + w1 + ' cm') + '. What is the area of the ' + B('right') + ' part?', ans: A2, unit: 'square cm', vis: splitRectSVG(h, w1, w2, { l2: '?', in2: '?' }),
+    return { text: 'A rectangle has an area of ' + B(A + ' square cm') + '. It is split in two. The left part is ' + B(h + ' cm by ' + w1 + ' cm') + '. What is the area of the ' + B('right') + ' part?', ans: A2, unit: 'square cm', vis: splitRectSVG(h, w1, w2, { l2: '?', in2: '?' }),
       how: ['Left part: ' + h + ' × ' + w1 + ' = ' + A1 + ' square cm.', 'The two parts make ' + A + ': ' + mi(A, A1) + ' = ' + B(A2) + ' square cm.'],
       steps: [st('Left part: ' + B(h + ' × ' + w1) + ' = ?', A1), st(B(mi(A, A1)) + ' = ?', A2)],
       traps: [tr(A1, 'g_areasplit', 'That is the left part. The right part is what is left of ' + A + '.'), tr(A - w1 > 0 ? A - w1 : null, 'g_areasplit', 'Take away the left part\'s area, ' + h + ' × ' + w1 + ', not its width.'), tr(noBorrow(A, A1), 'a_borrow', 'Check the taking away.')] };
@@ -15495,7 +15499,7 @@ defs([
     if (kind === 'walk' || kind === 'three') {
       if (kind === 'three') {
         const a = R.i(1, den - 1), b = R.i(1, den - 1), c = R.i(1, den - 1), S = a + b + c; if (S <= den) return null;
-        return { text: 'On a hike, ' + A + ' walks ' + frac(a, den) + ' of a mile to a bridge. Then ' + A + ' walks ' + frac(b, den) + ' of a mile to a pond. Then ' + A + ' walks ' + frac(c, den) + ' of a mile to the top. How far does ' + A + ' walk in all? Type a mixed number or a fraction.', ans: F(S, den), unit: 'miles',
+        return { text: A + ' walks ' + frac(a, den) + ' of a mile to a bridge. Then ' + A + ' walks ' + frac(b, den) + ' of a mile to a pond. Then ' + A + ' walks ' + frac(c, den) + ' of a mile to the top. How far does ' + A + ' walk in all? Type a mixed number or a fraction.', ans: F(S, den), unit: 'miles',
           how: ['Write it: ' + frac(a, den) + ' + ' + frac(b, den) + ' + ' + frac(c, den) + '.', 'Same bottom, so add the tops: ' + a + ' + ' + b + ' + ' + c + ' = ' + S + '. That is ' + frac(S, den) + '.', frac(S, den) + ' = ' + mx(S, den) + ', because ' + frac(den, den) + ' makes 1 whole.', A + ' walks ' + B(endFrac(S, den)) + ' miles.'],
           steps: [st('Add the tops: ' + B(a + ' + ' + b + ' + ' + c) + ' = ?', S), sf('As a fraction: ?', S, den)],
           traps: [tr(F(S, 3 * den), 'f_addunlike', 'Keep the bottom: add only the tops.'), tr(F(a + b, den), 's_fraclike', 'There are three parts of the hike.'), tr(F(S - den, den), 'f_mixed', frac(S, den) + ' is more than 1 whole. Keep the whole when you write the mixed number.')] };
@@ -17062,7 +17066,7 @@ const DEFS = [
     return { text: 'A bag has ' + B(r + ' red') + ', ' + B(b + ' blue') + ' and ' + B(g + ' green') + ' marbles. You pick one, put it back, and do this ' + B(N + ' times') + '. About how many times should you pick ' + (pick[0] === 'not green' ? 'a marble that is not green' : 'a ' + pick[0] + ' marble') + '?', ans,
       how: [W('P(' + pick[0] + ') = ' + pick[1] + ' out of ' + T + ' = ' + frac(pick[1], T), pick[0] === 'not green' ? r + ' red + ' + b + ' blue' : T + ' marbles in all'), W(frac(pick[1], T) + ' of ' + N + ' = ' + ofS(N, T, pick[1]) + ' = ' + B(ans))],
       steps: [st('How many marbles in all?', T), st(B(N + ' ÷ ' + T) + ' = ?', N / T), st(B((N / T) + ' × ' + pick[1]) + ' = ?', ans)],
-      traps: [tr(isInt(N / 3) ? N / 3 : null, 'd_prob', 'The colors are not equally likely: count the marbles of each colour.'), tr(isInt(N * pick[1] / (T - pick[1])) ? N * pick[1] / (T - pick[1]) : null, 'd_prob', 'Compare with all ' + T + ' marbles, not just the others.'), tr(N - ans, 'd_complement', 'That is about how many times the other marbles come up.')] };
+      traps: [tr(isInt(N / 3) ? N / 3 : null, 'd_prob', 'The colors are not equally likely: count the marbles of each color.'), tr(isInt(N * pick[1] / (T - pick[1])) ? N * pick[1] / (T - pick[1]) : null, 'd_prob', 'Compare with all ' + T + ' marbles, not just the others.'), tr(N - ans, 'd_complement', 'That is about how many times the other marbles come up.')] };
   } },
 
 { id: 'd_experiment', s: 'data', g: 7, title: 'Probability from a tally', pre: ['f_simplify'], cc: ['7.SP.C.7b', '7.SP.C.6'],
@@ -19437,7 +19441,9 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;
   renderDots();$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${P().cur}`;
   $('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
-  if(Voice.on)Voice.say(p.say);
+  /* a problem written above the child's grade (a concept two or more grades ahead of her) is read to her */
+  const sc=S[p.skill],above=!!sc&&MW.readGrade(sc)>gradeOf(kid(player));
+  if(Voice.on||(above&&Snd.on))Voice.say(p.say);
   setMood('neutral');persist()}
 function renderDots(pop){const d=$('#dots');if(RD.kind==='audit'){d.innerHTML=`<span class="streak">${Math.min(RD.mainDone+1,RD.mainTotal)} of ${RD.mainTotal}</span>`;return}if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
   let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}${pop&&i===RD.results.length-1?' pop':''}"></i>`}d.innerHTML=h}

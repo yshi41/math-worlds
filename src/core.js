@@ -363,6 +363,10 @@ const minusFix = t => typeof t === 'string' ? t.replace(/(^|[\s=(\[,+×÷>])-(\s
    layout(p) fills p.parts, p.html (what the game shows) and p.read { w: words to read, s: sentences, max: the
    longest sentence }, leaving p.text as it was written. test/concepts.test.js holds every concept to reading limits
    for its grade. */
+/* reading grade: problems are written one grade below the concept's grade (never below 2nd), so a child who meets
+   a concept a grade ahead of her own (the placement check goes up to her grade + 1) can still read it. The game
+   reads a problem aloud when its reading grade is above the child's grade. */
+const readGrade = c => Math.max(2, (c && c.g || 2) - 1);
 const bare = h => String(h).replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
 const wordList = h => bare(h).match(/[A-Za-z][A-Za-z'’-]*/g) || [];
 const mathy = h => { const t = bare(h); return t.length > 0 && t.length <= 80 && !/[A-Za-z]{2,}/.test(t); };
@@ -507,6 +511,6 @@ const API = { makeR, n, num, B, MINUS, pad2, fmtT, fmtM, fmtD, plural, sum, sign
   frac, mixed, pw, rt, PI, DEG, ord, term, poly, NAMES, ITEMS, par, T, minHops, compHow, mulHow, breakHow, seqProblem, constSeq, skipGen,
   seqHTML, hopsSVG, tenFrame, dotsSVG, rowDots, groupsSVG, blocksSVG, chartSVG, roundLine, ioTable, clockSVG, COIN, COIN_ORDER, coinSVG, coinsRow,
   greedy, coinNames, countOn, tagsHTML, rectSVG, triSVG, barSVG, fracBarSVG, numLineSVG, plotSVG, angleSVG, table, stackHTML,
-  STRANDS, S, LIST, defs, STD, standards, align, regrade, modes, paperAt, layout, bare, wordList, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
+  STRANDS, S, LIST, defs, STD, standards, align, regrade, modes, paperAt, layout, readGrade, bare, wordList, gen, parse, eqAns, rawFor, ansText, keysFor, sayOf, TYPES };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.MWC = API;
 })(typeof window !== 'undefined' ? window : this);
