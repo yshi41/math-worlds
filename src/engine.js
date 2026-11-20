@@ -252,7 +252,7 @@ function rushed(st) { const n = st && st.log ? st.log.length : 0; return n > 0 &
 function strandReopen(pre, sid) {
   const s = STR.find(x => x.id === sid), st = pre.st[sid]; if (!s || !st) return;
   const L = capLen(s, pre.grade, pre.cap), f = floorIdx(s, pre.floor), e = st.at0 != null ? st.at0 : firstAt(s, pre.grade, L, f);
-  pre.st[sid] = { lo: f - 1, hi: L, at: Math.min(e, L - 1), at0: e, step: 0, done: false, log: [], ms: 0, redo: (st.redo | 0) + 1, prev: { n: st.log.length, ms: st.ms || 0, right: st.log.filter(x => x[2]).length } };
+  pre.st[sid] = { lo: f - 1, hi: L, at: Math.min(e, L - 1), at0: e, step: 0, done: false, log: [], ms: 0, redo: (st.redo | 0) + 1, prev: { n: st.log.length, ms: st.ms || 0, right: st.log.filter(x => x[2]).length, log: st.log } };
 }
 /* older saves: a check without blocks becomes one planned in blocks from where it is */
 function pretestFix(pre) {
@@ -271,15 +271,17 @@ function pretestNext(pre) {
   return null;
 }
 function settle(st, short) { st.step = 0; if (st.hi - st.lo <= (short ? 2 : 1)) { st.done = true; st.start = st.lo + 1; return; } st.at = Math.floor((st.lo + st.hi + 1) / 2); if (st.at <= st.lo) st.at = st.lo + 1; if (st.at >= st.hi) st.at = st.hi - 1; }
-function pretestRecord(pre, ok, ms) {
+/* x: { seed, ans } so a parent can see the exact question later, and what she typed when it was wrong */
+const qref = (e, x, ok) => { if (x && typeof x.seed === 'number') { e.push(x.seed); if (!ok && x.ans != null && x.ans !== '') e.push(String(x.ans).slice(0, 24)); } return e; };
+function pretestRecord(pre, ok, ms, x) {
   const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
-  st.log.push([nx.skill, nx.d, ok ? 1 : 0, 0, Math.round(ms)]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now();
+  st.log.push(qref([nx.skill, nx.d, ok ? 1 : 0, 0, Math.round(ms)], x, ok)); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now();
   if (!pre.short && st.step === 0 && ok) { st.step = 1; return; }
   if (ok) st.lo = Math.max(st.lo, st.at); else { st.hi = Math.min(st.hi, st.at); if (st.step === 1) st.half = st.at; }
   settle(st, pre.short);
 }
-function pretestSkip(pre, ms) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
-  st.log.push([nx.skill, nx.d, 0, 1, Math.round(ms)]); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
+function pretestSkip(pre, ms, x) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
+  st.log.push(qref([nx.skill, nx.d, 0, 1, Math.round(ms)], x, true)); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
 /* a block is finished: record its time, adapt to the kid's pace, move on. Returns true when another block is left. */
 function pretestAdvance(pre) {
   pretestFix(pre); const blk = blockOf(pre);
@@ -313,14 +315,25 @@ function pretestApply(p, pre, now) {
     if (sid2 && st.half === upto) { const c = cs(p, sid2); if (!c.m && c.lv < 1) c.lv = 1; } });
   p.now = null; return out;
 }
-/* one line per assessment for the history: kept in the save, updated after every block */
+/* every question of a check, in order of its parts: [part, concept, level, right, skipped, ms (negative: the part's average,
+   from before each question was timed), seed, typed, didn't count];
+   questions from a part she tapped through (asked again) come first in that part, marked as not counted */
+function asmQuestions(pre) {
+  const out = []; if (!pre || !pre.st) return out;
+  pre.order.forEach(sid => { const x = pre.st[sid]; if (!x) return; const row = (e, nc) => out.push([sid, e[0], e[1], e[2] ? 1 : 0, e[3] ? 1 : 0, e[4] != null ? e[4] : -Math.round((x.ms || 0) / Math.max(1, (x.log || []).length)), typeof e[5] === 'number' ? e[5] : null, e[6] != null ? e[6] : null, nc]);
+    ((x.prev && x.prev.log) || []).forEach(e => row(e, 1)); (x.log || []).forEach(e => row(e, 0)); });
+  return out;
+}
+/* one line per assessment for the history: kept in the save, updated after every block, with its questions (the
+   last 12 assessments keep their questions, to keep the save small) */
 function asmNote(p, pre, now) {
   if (!pre || !pre.st) return null; now = now || Date.now();
   let n = 0, ok = 0, sk = 0, done = 0, again = 0; pre.order.forEach(sid => { const x = pre.st[sid]; (x.log || []).forEach(e => { n++; if (e[2]) ok++; if (e[3]) sk++; }); if (x.done) done++; if (x.redo) again++; });
   const ge = gradeLevel(p, null).ge, st = schoolTime(now), grade = pre.grade || 3;
   const e = { t0: pre.started || pre.t || now, t: now, by: pre.by || 'placement', done: !!pre.done, parts: pre.order.length, partsDone: done, again, n, ok, sk, ms: (pre.bms || []).reduce((a, b) => a + b, 0) + (pre.bt || 0),
-    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p) };
-  const L = (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t0 !== e.t0); L.push(e); L.sort((a, b) => a.t0 - b.t0); p.asm = L.slice(-50); return e;
+    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p), grade, q: asmQuestions(pre) };
+  const L = (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t0 !== e.t0); L.push(e); L.sort((a, b) => a.t0 - b.t0);
+  L.forEach((x, i) => { if (i < L.length - 12) delete x.q; }); p.asm = L.slice(-50); return e;
 }
 /* the parent's reset: progress rebuilt from the latest assessment alone. What it placed is mastered and nothing else;
    parts she tapped through are opened again and come first next time she plays, and when the assessment is finished the
@@ -474,7 +487,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, asmQuestions, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

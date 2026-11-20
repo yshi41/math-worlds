@@ -275,4 +275,8 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   const r = blank(), pre = E.pretestStart(3); let k = 0; while (E.pretestNext(pre) && k < 400) { E.pretestRecord(pre, k % 4 !== 3, 30000); k++; if (!E.pretestNext(pre) && !E.pretestAdvance(pre)) break; }
   pre.done = true; const res = E.pretestApply(r, pre, T), br = E.blockNext(r, { goal: 24, n: 0, rounds: 0, seen: [] }, T + E.DAY);
   ok(res.mastered > 4 && E.assumedList(r).length === res.mastered && br.kind === 'audit' && br.early === 2 && br.ids.every(id => r.cs[id].pl), 'concepts placed by an assessment are spot-checked the same way (' + res.mastered + ' placed)'); }
+/* the questions of a check are kept for the parent view: exact seed, and what she typed when wrong */
+{ const pre = E.pretestStart(3), nx = E.pretestNext(pre); E.pretestRecord(pre, false, 9000, { seed: 42, ans: '12' }); const nx2 = E.pretestNext(pre); E.pretestSkip(pre, 4000, { seed: 7 });
+  const Q = E.asmQuestions(pre); ok(Q.length === 2 && Q[0][1] === nx.skill && Q[0][6] === 42 && Q[0][7] === '12' && Q[1][1] === nx2.skill && Q[1][4] === 1 && Q[1][6] === 7 && Q[1][7] === null, 'questions keep their seed and the wrong answer typed');
+  const p = { cs: {}, asm: [] }; E.asmNote(p, pre); ok(p.asm[0].q.length === 2, 'the history line carries the questions'); }
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');

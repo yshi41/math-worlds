@@ -427,7 +427,7 @@ $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=c
   if(v==null){const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
-$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;if(RD.cur.kind==='aud'){Snd.click();logAns('q',true,false);auditAns(false,true);return}if(RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0);P().pre.t=Date.now();persist();afterPre(true)};
+$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;if(RD.cur.kind==='aud'){Snd.click();logAns('q',true,false);auditAns(false,true);return}if(RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0,{seed:RD.cur.p.ref&&RD.cur.p.ref.seed});P().pre.t=Date.now();persist();afterPre(true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
 $('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
@@ -449,7 +449,7 @@ const fbTop=(word,streak,gain)=>`<div class="fb-top"><span class="fb-hero axo-bo
 function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P(),cur0=pl.cur;RD.phase='done';
   logAns(it.kind==='pre'?'pre':it.kind==='step'?'step':'q',first,true);
   /* an assessment says nothing about right or wrong as it goes; the treats for it show up with the results */
-  if(it.kind==='pre'){CO.pretestRecord(pl.pre,true,Date.now()-RD.t0);pl.pre.t=Date.now();award(2);persist();afterPre(false);return}
+  if(it.kind==='pre'){CO.pretestRecord(pl.pre,true,Date.now()-RD.t0,{seed:p.ref&&p.ref.seed});pl.pre.t=Date.now();award(2);persist();afterPre(false);return}
   if(it.kind==='aud'){auditAns(true);return}
   let extra='',fanfare=false;
   if(it.kind!=='step'){
@@ -480,7 +480,7 @@ function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),
   bubble($('#playBubble'),RD.masteredNow&&it.kind==='main'?'You mastered it!':first?praise:'Way to keep trying!');persist()}
 function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;
   /* an assessment takes the answer and moves on, exactly as it does for a right one */
-  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0);pl.pre.t=Date.now();persist();afterPre(false);return}
+  if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0,{seed:p.ref&&p.ref.seed,ans:KP?KP.raw:String(v)});pl.pre.t=Date.now();persist();afterPre(false);return}
   if(it.kind==='aud'){logAns('q',true,false);auditAns(false);return}
   Snd.wrong();setMood('oops');heroDo('shake');
   if(RD.tries===1){it.diag=CO.diagnose(p,v);RD.streak=0;$('#streak').textContent='';
@@ -762,7 +762,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
     <p class="pv-p pv-soft">How: a grade level of ${fmtGE(O.ge)} matches a MAP Growth math score of about ${Math.round(P0.rit)}, the national average for students at that point in school. The national average for ${ord(grade)} graders now is ${Math.round(P0.mean)}, with a spread (standard deviation) of ${Math.round(P0.sd)}, so ${Math.round(P0.rit)} sits at the ${pctWord(P0.pct)} percentile.${R.ceilPct!=null?` The placement check went up to ${ord(R.capG)} grade, so for now the highest this can show is about the ${pctWord(R.ceilPct)} percentile; it rises as harder concepts are mastered.`:''}</p>
     <p class="pv-p pv-soft">This is an estimate from the game, not a test score. A school MAP or other standardized test is the real measure.</p>`)}
   const CW=clamp(($('#pvBody').clientWidth||640)-36,300,640);
-  out.push(histCard(k,p,grade,CW));
+  out.push(histCard(k,p,grade,CW));out.push(qsetCard(p));
   /* now, mastered, attention */
   const cur=R.current,cl=id=>`<div>${esc(conceptName(id))} <small class="pv-soft">${ord(S[id].g)} grade · ${esc(strandName(id))}</small></div>`;
   card('Working on now',`${cur?`<p class="pv-p">Next on the path: <b>${esc(conceptName(cur))}</b> (${ord(S[cur].g)} grade, ${esc(strandName(cur))}).</p>`:''}
@@ -788,7 +788,26 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
     <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
     <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
   $('#pvBody').innerHTML=out.join('');wireAssess(k);wireReset(k);
+  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=qsetBody(QSETS[+d.dataset.qi]||[])}));
   $('#pvBody').querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{Snd.click();PVR=b.dataset.range;renderParent()})}
+/* ---------- every question of each assessment, for parents: the exact question when its seed was saved, otherwise
+   one like it; what she typed when it was wrong ---------- */
+let QSETS=[];
+function asmQs(p,a){if(Array.isArray(a.q))return a.q;const pre=p.pre;return pre&&pre.st&&(pre.started||pre.t)===a.t0?CO.asmQuestions(pre):[]}
+function qsetCard(p){const pre=p.pre,AL=(p.asm||[]).slice().reverse(),t0=pre&&(pre.started||pre.t);
+  const list=(pre&&pre.st&&!AL.some(a=>a.t0===t0)&&pre.order.some(s=>pre.st[s].log.length)?[{t0,t:pre.t,by:pre.by,done:!!pre.done}]:[]).concat(AL);
+  QSETS=list.map(a=>asmQs(p,a));if(!list.length)return '';
+  return `<div class="card pv-card"><h3>Questions asked</h3><p class="pv-p pv-soft">Every question of each assessment and placement check, part by part, with the right answer and how she answered. Open one to see it.</p>${list.map((a,i)=>{const Q=QSETS[i],c=Q.filter(q=>!q[8]),ok=c.filter(q=>q[3]).length,sk=c.filter(q=>q[4]).length;
+    return `<details class="pv-qs" data-qi="${i}"><summary><b>${dShort(a.t0)}${a.t-a.t0>864e5/2?'–'+dShort(a.t):''}</b> ${a.by==='parent'?'assessment':'placement check'}${a.done?'':' (in progress)'} · ${Q.length?`${ok} of ${c.length} right${sk?`, ${sk} skipped`:''}`:'questions not saved'}</summary><div class="pv-qbody"></div></details>`}).join('')}</div>`}
+function qsetBody(Q){let h='',last=null;
+  Q.forEach(q=>{const [sid,id,d,ok,sk,ms,seed,typed,nc]=q;if(!S[id])return;
+    if(sid!==last){last=sid;const st=CO.STR.find(s=>s.id===sid);h+=`<h4 class="pv-h4">${esc(st?st.name:sid)}</h4>`}
+    const exact=seed!=null,pr=MW.gen(id,d,MW.makeR(exact?seed:hashStr(id+':'+d)));
+    let her;if(sk)her='Skipped: “I haven’t learned this yet”';else if(ok)her='Right';else if(typed!=null){const v=MW.parse(pr,typed);her='Wrong. She answered '+(v!=null?MW.ansText(pr,v):esc(typed))}else her='Wrong';
+    h+=`<div class="pv-q ${sk?'sk':ok?'ok':'no'}${nc?' nc':''}"><div class="pv-qh"><span class="pv-qi">${sk?'–':ok?'✓':'✗'}</span><b>${esc(conceptName(id))}</b><small class="pv-soft">${ord(S[id].g)} grade · ${d>=2?'hard':'medium'} · ${ms<0?`about ${Math.max(1,Math.round(-ms/1000))} s (the part's average)`:Math.max(1,Math.round(ms/1000))+' s'}${nc?' · went by too fast, so the part was asked again':''}</small></div>
+      ${exact?'':'<small class="pv-soft">A question like hers (the exact one was not saved before 11/19):</small>'}<div class="pv-qt">${pr.html||pr.text}</div>${pr.vis?`<div class="pv-qvis">${pr.vis}</div>`:''}
+      <div class="pv-qa"><span>Answer: <b>${MW.ansText(pr)}</b></span><span>${exact||sk||ok?her:her.replace(/\. She answered.*/,'')}</span></div></div>`});
+  return h||'<p class="pv-p pv-soft">The questions of this one were not saved.</p>'}
 /* ---------- history: charts over a chosen span ---------- */
 let PVR='30d';
 const RANGES=[['7d','7 days'],['30d','30 days'],['3m','3 months'],['1y','1 year'],['all','All']];

@@ -229,6 +229,10 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   { const st = mock.store.riley.state, ms = Object.values(st.cs).filter(s => s.m);
     check(st.reset && st.reset.t && ms.length > 0 && ms.every(s => s.pl) && Array.isArray(st.asm) && st.asm.length >= 1, 'the reset is saved online: only placed concepts are mastered (' + ms.length + ')'); }
   check(await ev(p, () => window.__storageWrites) === 0, 'the reset writes nothing to the device');
+  /* the questions of each assessment, for parents */
+  { const qs = await ev(p, () => { const d = document.querySelector('#pvBody details.pv-qs'); if (!d) return null; d.open = true; d.dispatchEvent(new Event('toggle')); const b = d.querySelector('.pv-qbody');
+      return { n: b.querySelectorAll('.pv-q').length, exact: !/not saved/.test(b.textContent), bad: /NaN|undefined|\[object/.test(b.textContent) }; });
+    check(qs && qs.n >= 10 && qs.exact && !qs.bad, 'parents can open the questions of an assessment, the exact ones (' + (qs && qs.n) + ')'); }
   await p.close();
 
   /* 9c. help lessons: missing a concept twice in a round brings a narrated video, a check, a step-by-step lesson and feedback */
