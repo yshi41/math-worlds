@@ -62,6 +62,8 @@ export function mergeState(mine, theirs, base) {
   /* the round in progress: the newer one wins (a finished round is a {done, t} marker, so finishing on one device
      clears it everywhere); settings follow this page */
   if (isObj(mine.round) && (!isObj(theirs.round) || num(mine.round.t) >= num(theirs.round.t))) out.round = clone(mine.round);
+  /* the help lesson in progress: the newer one wins (a {done, t} marker clears it everywhere) */
+  if (isObj(mine.hl) && (!isObj(theirs.hl) || num(mine.hl.t) >= num(theirs.hl.t))) out.hl = clone(mine.hl);
   if ('set' in mine) out.set = clone(mine.set);
   /* today's practice block: the newer one wins */
   if (isObj(mine.blk) && (!isObj(theirs.blk) || num(mine.blk.t) >= num(theirs.blk.t))) out.blk = clone(mine.blk);

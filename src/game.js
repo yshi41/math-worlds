@@ -88,7 +88,7 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   for(const id in b.mist)if(!S[id])delete b.mist[id];
   b.cur=Math.max(0,o.cur|0);b.games=Math.max(0,o.games|0);b.owned=Array.isArray(o.owned)?o.owned.filter(x=>typeof x==='string'&&x.includes(':')):[];
   b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?CO.pretestFix(o.pre):null;b.apace=typeof o.apace==='number'&&isFinite(o.apace)?o.apace:null;b.help=Array.isArray(o.help)?o.help.filter(h=>h&&typeof h==='object'&&S[h.id]&&h.t).slice(-60):[];b.now=S[o.now]?o.now:null;
-  b.round=o.round&&typeof o.round==='object'?o.round:null;b.blk=o.blk&&typeof o.blk==='object'&&!Array.isArray(o.blk)?o.blk:null;b.ppace=typeof o.ppace==='number'&&isFinite(o.ppace)?o.ppace:null;b.bhist=Array.isArray(o.bhist)?o.bhist.filter(x=>x&&typeof x==='object'&&x.t0).slice(-30):[];b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
+  b.round=o.round&&typeof o.round==='object'?o.round:null;b.hl=o.hl&&typeof o.hl==='object'&&!Array.isArray(o.hl)?o.hl:null;b.blk=o.blk&&typeof o.blk==='object'&&!Array.isArray(o.blk)?o.blk:null;b.ppace=typeof o.ppace==='number'&&isFinite(o.ppace)?o.ppace:null;b.bhist=Array.isArray(o.bhist)?o.bhist.filter(x=>x&&typeof x==='object'&&x.t0).slice(-30):[];b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
   b.asm=Array.isArray(o.asm)?o.asm.filter(x=>x&&typeof x==='object'&&x.t0).slice(-50):[];b.reset=o.reset&&typeof o.reset==='object'&&typeof o.reset.t==='number'?o.reset:null;b.sg=o.sg|0;
   const lg={};if(o.log&&typeof o.log==='object')for(const d in o.log){const e=o.log[d];if(!/^\d{4}-\d\d-\d\d$/.test(d)||!e||typeof e!=='object')continue;const x={};for(const f in e)if(typeof e[f]==='number'&&isFinite(e[f]))x[f]=Math.max(0,e[f]);lg[d]=x}b.log=lg;
   delete b.stars;delete b.best;delete b.sk;return b}
@@ -112,6 +112,8 @@ const Net=(()=>{
   function retry(){if(!LOADED)return refresh();let any=false;for(const id in DIRTY)if(DIRTY[id]){any=true;push(id)}if(!any)refresh()}
   async function refresh(){if(!CLOUD)return;try{const r=await call('GET','/saves');fails=0;warned=false;const ps=r.players||{};
       for(const k of KIDS){const id=k.id;if(SENDING[id]||DIRTY[id]||TIMERS[id])continue;const x=ps[id];
+        /* the same kid on another device moved this help lesson on: pick up from there */
+        if(HL&&player===id&&screen==='help'){if(x&&REV[id]!==x.rev&&!HL.playing&&helpAhead(saves[id],x.state)){adopt(id,x.rev,x.state);helpTakeOver()}continue}
         /* the same kid on another device moved this round on: pick up from there */
         if(RD&&player===id){if(x&&REV[id]!==x.rev&&screen==='play'&&RD.phase==='ask'&&remoteAhead(saves[id],x.state)){adopt(id,x.rev,x.state);takeOver()}continue}
         if(!x){if(REV[id]==null){REV[id]=0;BASE[id]=null}continue}if(REV[id]!==x.rev)adopt(id,x.rev,x.state)}
@@ -151,11 +153,23 @@ function resumeRound(){const r=liveRound(P());if(!r)return;Snd.init();Snd.click(
 const preCount=pr=>pr&&pr.st&&pr.order?pr.order.reduce((a,s)=>a+((pr.st[s]&&pr.st[s].log)||[]).length,0):0;
 function remoteAhead(local,remote){if(!RD||!remote||!local)return false;
   if(RD.kind==='pre'){const a=local.pre,b=remote.pre;return !!(a&&b)&&(b.started||0)===(a.started||0)&&(preCount(b)>preCount(a)||(b.bi|0)>(a.bi|0)||(!!b.done&&!a.done))}
-  const lr=local.round,rr=remote.round;return !!rr&&(rr.t||0)>((lr&&lr.t)||0)}
+  const lr=local.round,rr=remote.round,rh=liveHelp(remote);return (!!rr&&(rr.t||0)>((lr&&lr.t)||0))||(!!rh&&rh.t>Math.max((lr&&lr.t)||0,(local.hl&&local.hl.t)||0))}
 function takeOver(){if(!RD)return;const p=P(),R0=RD;clearTimeout(R0.autoT);
   if(R0.kind==='pre'){const pre=p.pre,more=pre&&!pre.done&&CO.pretestNext(pre);if(more){RD.phase='ask';nextQ()}else{RD=null;openHub()}}
-  else{RD=null;if(liveRound(p))resumeRound();else openHub()}
+  else{RD=null;const h=liveHelp(p),r=liveRound(p);if(h&&(!r||h.t>=r.t)){Narr.stop();openHelp(h.id,h.fromRound,h)}else if(r)resumeRound();else openHub()}
   toast('Picked up where you left off on another device.')}
+/* help lessons are saved step by step (p.hl), so one started on one device carries on on another */
+function liveHelp(p){const h=p&&p.hl;return h&&!h.done&&h.v===1&&S[h.id]&&Date.now()-(h.t||0)<14*864e5?h:null}
+function helpAhead(local,remote){const a=local&&local.hl,b=remote&&remote.hl;return !!b&&(b.t||0)>((a&&a.t)||0)}
+function helpTakeOver(){const p=P(),h=liveHelp(p);Narr.stop();if(window.speechSynthesis)speechSynthesis.cancel();
+  if(h)openHelp(h.id,h.fromRound,h);else{const was=HL;HL=null;if(was&&was.fromRound&&RD){show('play');nextQ()}else if(liveRound(p)){RD=null;resumeRound()}else openHub()}
+  toast('Picked up where you left off on another device.')}
+const HL_KEYS=['id','fromRound','stage','frame','watched','replays','ti','adone','rec','counted','exd'];
+function hlSave(){if(!HL||!player)return;const o={v:1,t:Date.now()};HL_KEYS.forEach(k=>{if(HL[k]!==undefined)o[k]=JSON.parse(JSON.stringify(HL[k]))});
+  if(HL.tasks)o.tasks=HL.tasks.map(t=>({k:t.kind,r:t.p&&t.p.ref,cid:t.cid,how:t.how,show:t.show,rs:t.rs,intro:t.kind==='read'?null:t.intro}));
+  P().hl=o;if(CLOUD)Net.schedule(player)}
+function hlEnd(){if(player&&P().hl)P().hl={done:true,t:Date.now()}}
+function resumeHelp(){const h=liveHelp(P());if(!h)return;Snd.init();Snd.click();openHelp(h.id,h.fromRound,h)}
 function renderSaveNote(){const n=$('#saveNote');
   n.textContent=saveMode==='loading'?'Loading saves…':saveMode==='on'?'Progress saves online for every player.':saveMode==='error'?'Can’t reach the save server. Check the connection and try again.':'Saving is off in this copy, so progress won’t be kept.';
   $('#saveRetry').hidden=saveMode!=='error'}
@@ -246,6 +260,8 @@ function renderHub(){const p=P(),k=lookOf(player),mc=CO.masteredCount(p),lv=scen
   /* up next */
   const cur=CO.current(p);
   if(!done){const pg=p.pre?CO.pretestProgress(p.pre):null;$('#nextTitle').textContent=checkName(p.pre);$('#nextSub').textContent=pg?`Block ${pg.block} of ${pg.blocks}, about 20 minutes`:'Find out where to start';$('#nextBtn').onclick=startPre}
+  else if(liveHelp(p)&&(!liveRound(p)||liveHelp(p).t>=liveRound(p).t)){const h=liveHelp(p);$('#nextTitle').textContent='Continue where you left off';
+    $('#nextSub').textContent=`Help lesson: ${conceptName(h.id)} · ${h.stage==='video'?'the video':h.stage==='feel1'?'after the video':h.stage==='check'?'quick check':h.stage==='lesson'?`step ${(h.ti|0)+1} of ${(h.tasks||[]).length}`:'almost done'}`;$('#nextBtn').onclick=resumeHelp}
   else if(liveRound(p)){const r=liveRound(p),t=r.kind==='review'?'Review mix':r.kind==='fix'?'Tricky spot: '+conceptName(r.concept):r.kind==='test'?'Test out: '+conceptName(r.skill):conceptName(r.skill);
     $('#nextTitle').textContent='Continue where you left off';$('#nextSub').textContent=`${t} · ${r.kind==='fix'?(r.results||[]).length:r.mainDone} of ${r.mainTotal} done`;$('#nextBtn').onclick=resumeRound}
   else{const b=blkLive(p),fin=!b&&doneToday(p),nx=CO.blockNext(p,b||{}),c=cur&&S[cur];
@@ -652,11 +668,22 @@ const Narr={on:true,tok:0,
       setTimeout(fin,ms)})},
   stop(){this.tok++;try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}}};
 function helpTrigger(p,id){const s=p.cs[id];return (RD&&RD.reveals>=2)||(s&&s.r+s.w>=6&&s.r/(s.r+s.w)<0.5)}
-function openHelp(id,fromRound){const p=P(),c=S[id];Narr.stop();if(window.speechSynthesis)speechSynthesis.cancel();
-  const lv=CO.levelsDone(p,id),seed=hashStr(id+'#video');
-  HL={id,fromRound:!!fromRound,stage:'video',rec:{id,t:Date.now(),from:fromRound?'round':'lesson'},ex:MW.gen(id,Math.min(1,lv),MW.makeR(seed)),frame:-1,playing:false,ask:false};
+function openHelp(id,fromRound,saved){const p=P(),c=S[id];Narr.stop();if(window.speechSynthesis)speechSynthesis.cancel();
+  const lv=CO.levelsDone(p,id),seed=hashStr(id+'#video'),exd=saved&&saved.exd!=null?saved.exd:Math.min(1,lv);
+  HL={id,fromRound:!!fromRound,stage:'video',rec:{id,t:Date.now(),from:fromRound?'round':'lesson'},exd,ex:MW.gen(id,exd,MW.makeR(seed)),frame:-1,playing:false,ask:false};
   show('help');applyWorld(lookOf(player),sceneLevel(p));$('#hlTitle').textContent=c.title;$('#hlKicker').textContent=`${ord(c.g)} grade · ${strandName(id)}`;
-  $('#hlSound').setAttribute('aria-pressed',String(Narr.on));buildVideo();playVideo(0)}
+  $('#hlSound').setAttribute('aria-pressed',String(Narr.on));buildVideo();
+  if(saved){HL_KEYS.forEach(k=>{if(saved[k]!==undefined)HL[k]=JSON.parse(JSON.stringify(saved[k]))});HL.fromRound=!!fromRound;
+    if(saved.tasks)HL.tasks=saved.tasks.map(x=>{let q=null;try{q=x.r&&fromRef(x.r)}catch(e){}return q?lessonTask(x.k,q,x.k==='read'?readIntro(q,x.rs):x.intro,{cid:x.cid,how:x.how,show:x.show,rs:x.rs}):null}).filter(Boolean);
+    const st=HL.stage;
+    if(st==='video'){const f=Math.min(HL.frames.length-1,HL.frame|0);if(HL.frame>=0)showFrame(f);HL.playing=false;$('#hvPlay').textContent='Play';$('#hvAfter').hidden=!HL.watched}
+    else if(st==='feel1')showFeel1();
+    else if((st==='check'||st==='lesson')&&HL.tasks&&HL.tasks.length){$('#hlVideo').hidden=true;$('#hlFeel').hidden=true;$('#hlLesson').hidden=false;$('#hlLessonTitle').textContent=st==='check'?'Quick check':'Step by step';
+      HL.afterTasks=st==='check'?startLesson:finishLesson;HL.ti=(HL.adone!=null&&HL.adone===HL.ti?HL.ti:(HL.ti|0)-1);nextTask()}
+    else if(st==='feel2'){$('#hlVideo').hidden=true;finishLesson()}
+    else playVideo(0);
+    return}
+  hlSave();playVideo(0)}
 /* the video: frames built from the concept's trick and a worked example */
 function buildVideo(){const c=S[HL.id],ex=HL.ex,F=[];
   F.push({cap:'The trick',say:'Here is the trick. '+c.tip,html:`<div class="hv-card hv-trick"><div class="hv-k">The trick</div><p>${esc(c.tip)}</p></div>`});
@@ -674,37 +701,41 @@ function showFrame(i){const F=HL.frames,st=$('#hvStage');HL.frame=i;
   $('#hvCap').textContent=F[i].say;$('#hvBar').querySelectorAll('i').forEach((b,k)=>b.className=k<i?'done':k===i?'now':'')}
 async function playVideo(from){if(!HL)return;HL.playing=true;const run=++HL.run||(HL.run=1),my=HL.run;$('#hvPlay').textContent='Pause';
   for(let i=from;i<HL.frames.length;i++){if(!HL||HL.run!==my||!HL.playing||screen!=='help')return;showFrame(i);const ok=await Narr.speak(HL.frames[i].say);if(!ok||!HL||HL.run!==my||!HL.playing)return;await new Promise(r=>setTimeout(r,window.__mwFast?5:450))}
-  if(!HL||HL.run!==my)return;HL.playing=false;HL.watched=true;$('#hvPlay').textContent='Play';$('#hvAfter').hidden=false;$('#hvAfter').scrollIntoView&&$('#hvAfter').scrollIntoView({block:'nearest'})}
-$('#hvPlay').onclick=()=>{Snd.click();if(!HL)return;if(HL.playing){HL.playing=false;HL.run++;Narr.stop();$('#hvPlay').textContent='Play'}else{const f=HL.frame>=HL.frames.length-1?0:Math.max(0,HL.frame);if(f===0)$('#hvStage').innerHTML='';playVideo(f)}};
+  if(!HL||HL.run!==my)return;HL.playing=false;HL.watched=true;hlSave();$('#hvPlay').textContent='Play';$('#hvAfter').hidden=false;$('#hvAfter').scrollIntoView&&$('#hvAfter').scrollIntoView({block:'nearest'})}
+$('#hvPlay').onclick=()=>{Snd.click();if(!HL)return;if(HL.playing){HL.playing=false;HL.run++;Narr.stop();$('#hvPlay').textContent='Play';hlSave()}else{const f=HL.frame>=HL.frames.length-1?0:Math.max(0,HL.frame);if(f===0)$('#hvStage').innerHTML='';playVideo(f)}};
 $('#hvReplay').onclick=()=>{Snd.click();if(!HL)return;HL.run++;Narr.stop();$('#hvStage').innerHTML='';HL.replays=(HL.replays||0)+1;playVideo(0)};
 $('#hlSound').onclick=()=>{Narr.on=!Narr.on;$('#hlSound').setAttribute('aria-pressed',String(Narr.on));if(!Narr.on)Narr.stop()};
 /* feedback buttons: yes / a little / not yet */
 const FEEL={yes:'Yes, I get it',some:'A little',no:'Not yet'};
 function feelButtons(box,onPick){box.innerHTML=Object.entries(FEEL).map(([k,t])=>`<button type="button" class="btn ${k==='yes'?'btn-good':k==='some'?'btn-sky':'btn-ghost'}" data-f="${k}">${t}</button>`).join('');
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{Snd.click();onPick(b.dataset.f)})}
-$('#hvDone').onclick=()=>{Snd.click();Narr.stop();HL.stage='feel1';HL.rec.replays=HL.replays||0;
+$('#hvDone').onclick=()=>{Snd.click();Narr.stop();HL.rec.replays=HL.replays||0;showFeel1();hlSave()};
+function showFeel1(){HL.stage='feel1';
   $('#hlVideo').hidden=true;$('#hlFeel').hidden=false;$('#hfQ').textContent='Did the video make sense?';
   feelButtons($('#hfBtns'),f=>{HL.rec.video=f;Narr.speak(f==='yes'?'Great! Show me with a quick one.':'That is OK. Try a quick one, then we will break it into smaller pieces.');startCheck()});
-  Narr.speak('Did the video make sense?')};
+  Narr.speak('Did the video make sense?')}
 /* the interactive part: a list of small tasks, each a typed problem (or a short read), checked one at a time */
 function lessonTask(kind,p,intro,extra){return Object.assign({kind,p,intro},extra||{})}
-function startCheck(){HL.tasks=[lessonTask('check',mk(HL.id,0),'Quick check: try this one.')];HL.ti=-1;HL.afterTasks=startLesson;$('#hlFeel').hidden=true;$('#hlLesson').hidden=false;$('#hlLessonTitle').textContent='Quick check';nextTask()}
+function startCheck(){HL.stage='check';HL.adone=null;HL.tasks=[lessonTask('check',mk(HL.id,0),'Quick check: try this one.')];HL.ti=-1;HL.afterTasks=startLesson;$('#hlFeel').hidden=true;$('#hlLesson').hidden=false;$('#hlLessonTitle').textContent='Quick check';nextTask()}
+function readIntro(p,rs){return rs?`Now a new one, broken into small steps. Copy it onto your paper.<div class="hv-q">${p.html||p.text}</div>${p.vis?`<div class="hv-vis">${p.vis}</div>`:''}`:`Now a new one. Read how it works, one line at a time.<div class="hv-q">${p.html||p.text}</div>${p.vis?`<div class="hv-vis">${p.vis}</div>`:''}<ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`}
 function startLesson(){const id=HL.id,parts=CO.prereqs(id).filter(x=>S[x]).slice(0,2),T=[];
   parts.forEach(x=>{T.push(lessonTask('part',mk(x,0),`This idea is built from a simpler one: <b>${esc(S[x].title)}</b>. ${esc(S[x].tip)}`,{cid:x}))});
   let p=mk(id,Math.min(1,CO.levelsDone(P(),id)));for(let i=0;i<6&&!(p.steps&&p.steps.length);i++)p=mk(id,i%2);
-  if(p.steps&&p.steps.length){T.push(lessonTask('read',p,`Now a new one, broken into small steps. Copy it onto your paper.<div class="hv-q">${p.html||p.text}</div>${p.vis?`<div class="hv-vis">${p.vis}</div>`:''}`));
+  if(p.steps&&p.steps.length){T.push(lessonTask('read',p,readIntro(p,1),{rs:1}));
+    p.steps.forEach((s,i)=>{s.ref=Object.assign({},p.ref,{step:i})});
     p.steps.forEach((s,i)=>T.push(lessonTask('step',s,`Step ${i+1} of ${p.steps.length}`,{how:p.how[i]||p.how[p.how.length-1]})));
     T.push(lessonTask('whole',p,'Put the steps together. What is the answer to the whole problem?',{show:true}))}
-  else T.push(lessonTask('read',p,`Now a new one. Read how it works, one line at a time.<div class="hv-q">${p.html||p.text}</div>${p.vis?`<div class="hv-vis">${p.vis}</div>`:''}<ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`));
+  else T.push(lessonTask('read',p,readIntro(p,0),{rs:0}));
   T.push(lessonTask('try',mk(id,Math.min(1,CO.levelsDone(P(),id))),'Your turn: one on your own. Use your paper.'));
-  HL.tasks=T;HL.ti=-1;HL.afterTasks=finishLesson;HL.stage='lesson';HL.rec.parts=parts;HL.rec.right=0;HL.rec.total=T.filter(t=>t.kind!=='read').length;
+  HL.tasks=T;HL.ti=-1;HL.adone=null;HL.afterTasks=finishLesson;HL.stage='lesson';HL.rec.parts=parts;HL.rec.right=0;HL.rec.total=T.filter(t=>t.kind!=='read').length;
   $('#hlLessonTitle').textContent='Step by step';nextTask()}
 function nextTask(){HL.ti++;const t=HL.tasks[HL.ti];if(!t){HL.afterTasks();return}HL.task=t;HL.tries=0;
   const n=HL.tasks.length,box=$('#hlTask');$('#hlTaskN').textContent=`${HL.ti+1} of ${n}`;
   box.innerHTML=`<div class="hl-intro">${t.intro}</div>${t.kind==='read'?'':`<div class="hv-q">${t.kind==='whole'?'':(t.p.html||t.p.text)}</div>${t.kind!=='whole'&&t.p.vis&&t.kind!=='step'?`<div class="hv-vis">${t.p.vis}</div>`:''}`}`;
   $('#hlFb').hidden=true;$('#hlFb').innerHTML='';const area=$('#hlAns');area.innerHTML='';$('#answerArea').innerHTML='';
   if(t.kind==='read'){HL.ask=false;KP=null;area.hidden=true;$('#hlCheck').hidden=true;$('#hlNext').hidden=false;$('#hlNext').textContent='Got it, next';Narr.speak(strip2(t.intro))}
-  else{HL.ask=true;area.hidden=false;buildKeypad(area,t.p);$('#hlCheck').hidden=false;$('#hlNext').hidden=true;Narr.speak(strip2(t.intro)+'. '+(t.kind==='whole'?'':(t.p.say||strip2(t.p.text))))}}
+  else{HL.ask=true;area.hidden=false;buildKeypad(area,t.p);$('#hlCheck').hidden=false;$('#hlNext').hidden=true;Narr.speak(strip2(t.intro)+'. '+(t.kind==='whole'?'':(t.p.say||strip2(t.p.text))))}
+  hlSave()}
 function taskAnswer(){if(!HL||!HL.ask||!KP)return;const v=MW.parse(KP.p,KP.raw);if(v==null){toast(KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   const t=HL.task,p=t.p,ok=MW.eqAns(p,v);HL.tries++;logAnsHelp(ok&&HL.tries===1);
   if(ok){HL.ask=false;if(HL.tries===1&&t.kind!=='check')HL.rec.right++;if(t.kind==='check')HL.rec.check=HL.tries===1;if(HL.tries===1)Snd.right(1);else Snd.again();cheer(HL.tries===1,0,true);
@@ -713,18 +744,18 @@ function taskAnswer(){if(!HL||!HL.ask||!KP)return;const v=MW.parse(KP.p,KP.raw);
   else if(HL.tries===1){Snd.wrong();const d=CO.diagnose(p,v);hlFb('try',`<div class="fb-h">Not quite. Try again!</div><div>${d.why||'Hint: '+(p.hint||p.how[0])}</div>`);Narr.speak('Not quite. '+strip2(d.why||p.hint||p.how[0]));KP.raw='';kpRender();markAnswer(false)}
   else{HL.ask=false;if(t.kind==='check')HL.rec.check=false;Snd.wrong();hlFb('bad',`<div class="fb-h">The answer is ${MW.ansText(p)}</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);Narr.speak('The answer is '+strip2(MW.ansText(p))+'. '+p.how.map(strip2).join(' '));toNext()}}
 function hlFb(cls,html){const f=$('#hlFb');f.hidden=false;f.className='feedback '+cls;f.innerHTML=html}
-function toNext(){$('#hlCheck').hidden=true;$('#hlNext').hidden=false;$('#hlNext').textContent=HL.ti>=HL.tasks.length-1?'Finish':'Next'}
+function toNext(){HL.adone=HL.ti;hlSave();$('#hlCheck').hidden=true;$('#hlNext').hidden=false;$('#hlNext').textContent=HL.ti>=HL.tasks.length-1?'Finish':'Next'}
 function logAnsHelp(ok){const p=P(),k=CO.dayKey(Date.now()),e=p.log[k]||(p.log[k]={n:0,ok:0,ms:0});e.hq=(e.hq|0)+1;if(ok)e.hok=(e.hok|0)+1}
 $('#hlCheck').onclick=()=>{Snd.init();taskAnswer()};
 $('#hlNext').onclick=()=>{Snd.click();Narr.stop();nextTask()};
-function finishLesson(){HL.stage='feel2';HL.ask=false;KP=null;$('#hlLesson').hidden=true;$('#hlFeel').hidden=false;$('#hfQ').textContent='How do you feel about it now?';
+function finishLesson(){HL.stage='feel2';HL.ask=false;KP=null;hlSave();$('#hlLesson').hidden=true;$('#hlFeel').hidden=false;$('#hfQ').textContent='How do you feel about it now?';
   Narr.speak(`You got ${HL.rec.right} of ${HL.rec.total} right. How do you feel about it now?`);
   feelButtons($('#hfBtns'),f=>{HL.rec.lesson=f;saveHelp();$('#hlFeel').hidden=true;$('#hlDone').hidden=false;
     $('#hdText').textContent=f==='yes'?'Great work! Back to practice, and keep your paper handy.':f==='some'?'Good effort. Practice makes it stick. The hints and step-by-step help are there when you need them.':'That is OK. Ask a grown-up to sit with you on this one. Your parent can see that this concept needs help.';
     Narr.speak($('#hdText').textContent);$('#hdBtn').textContent=HL.fromRound?'Back to practice':'Back to the concept'})}
-function saveHelp(){const p=P(),r=Object.assign({},HL.rec);if(!HL.counted){HL.counted=1;blkAdd(Date.now()-(HL.rec.t||Date.now()),0,0,12*60000)}p.help=(p.help||[]).concat([r]).slice(-60);persist()}
-$('#hdBtn').onclick=()=>{Snd.click();Narr.stop();const h=HL;HL=null;if(h&&h.fromRound&&RD){show('play');applyWorld(lookOf(player),sceneLevel(P()));$('#playHero').innerHTML=charSVG(charOf(P(),lookOf(player)),'neutral');nextQ()}else if(h)openLesson(h.id);else openHub()};
-$('#hlBack').onclick=()=>{Snd.click();Narr.stop();const h=HL;if(h&&h.stage!=='video'&&h.rec&&!h.saved&&(h.rec.video||h.rec.check!=null)){h.rec.quit=true;HL.rec.lesson=HL.rec.lesson||null;saveHelp()}HL=null;if(h&&h.fromRound&&RD){show('play');nextQ()}else if(h)openLesson(h.id);else openHub()};
+function saveHelp(){const p=P(),r=Object.assign({},HL.rec);if(!HL.counted){HL.counted=1;blkAdd(Date.now()-(HL.rec.t||Date.now()),0,0,12*60000)}p.help=(p.help||[]).concat([r]).slice(-60);hlEnd();persist()}
+$('#hdBtn').onclick=()=>{Snd.click();Narr.stop();const h=HL;HL=null;hlEnd();if(h&&h.fromRound&&RD){show('play');applyWorld(lookOf(player),sceneLevel(P()));$('#playHero').innerHTML=charSVG(charOf(P(),lookOf(player)),'neutral');nextQ()}else if(h&&h.fromRound&&liveRound(P()))resumeRound();else if(h)openLesson(h.id);else openHub()};
+$('#hlBack').onclick=()=>{Snd.click();Narr.stop();const h=HL;if(h&&h.stage!=='video'&&h.rec&&!h.saved&&(h.rec.video||h.rec.check!=null)){h.rec.quit=true;HL.rec.lesson=HL.rec.lesson||null;saveHelp()}HL=null;hlEnd();if(CLOUD&&player)Net.schedule(player);if(h&&h.fromRound&&RD){show('play');nextQ()}else if(h&&h.fromRound&&liveRound(P()))resumeRound();else if(h)openLesson(h.id);else openHub()};
 document.addEventListener('keydown',e=>{if(screen!=='help'||!HL||e.ctrlKey||e.metaKey||e.altKey)return;
   if(e.key==='Enter'){e.preventDefault();if(!$('#hlNext').hidden&&!$('#hlLesson').hidden)$('#hlNext').click();else if(!$('#hlCheck').hidden&&!$('#hlLesson').hidden)$('#hlCheck').click();return}
   if(!HL.ask||!KP)return;if(/^\d$/.test(e.key))kpPress(e.key);else if(e.key==='Backspace'){e.preventDefault();kpPress('⌫')}else if(e.key==='.'||e.key==='/'||e.key==='-'){e.preventDefault();kpPress(e.key)}else if(e.key===' '){e.preventDefault();kpPress(' ')}else if(e.key==='r'||e.key==='R')kpPress('r')});

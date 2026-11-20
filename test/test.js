@@ -250,8 +250,27 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => document.querySelector('#hvDone').click()); await wait(50);
   check(await ev(p, () => !document.querySelector('#hlFeel').hidden && document.querySelectorAll('#hfBtns button').length === 3), 'after the video: did it make sense? (3 answers)');
   await ev(p, () => document.querySelector('#hfBtns [data-f="some"]').click()); await wait(50);
-  let tasks = 0;
+  let tasks = 0, xd = 0;
+  const stepOn = async d => { const s = await ev(d, () => ({ check: !document.querySelector('#hlCheck').hidden, next: !document.querySelector('#hlNext').hidden }));
+    if (s.check) await ev(d, () => { const H = window.__mw.HL; window.__mw.type(window.__mw.MW.rawFor(H.task.p)); document.querySelector('#hlCheck').click(); });
+    else if (s.next) await ev(d, () => document.querySelector('#hlNext').click()); await wait(60); };
   for (let i = 0; i < 20; i++) {
+    if (tasks === 2 && !xd) { xd = 1; await until(() => ev(p, () => window.__mw.net.idle()));
+      /* help lessons carry on on another device, mid-lesson */
+      const dB = await newPage(mock); await ev(dB, () => { window.__mwFast = true; }); await until(() => ev(dB, () => !document.querySelector('.profile-card').disabled));
+      await ev(dB, () => document.querySelectorAll('.profile-card')[1].click()); await wait(150);
+      const hubTxt = await ev(dB, () => document.querySelector('#nextTitle').textContent + ' | ' + document.querySelector('#nextSub').textContent);
+      check(/Continue where you left off/.test(hubTxt) && /Help lesson/.test(hubTxt), 'another device offers to continue the help lesson (' + hubTxt + ')');
+      const tiA = await ev(p, () => window.__mw.HL.ti);
+      await ev(dB, () => document.querySelector('#nextBtn').click()); await wait(200);
+      const tiB0 = await ev(dB, () => window.__mw.HL && window.__mw.HL.ti);
+      check(await ev(dB, () => !document.querySelector('#help').hidden && !document.querySelector('#hlLesson').hidden) && (tiB0 === tiA || tiB0 === tiA + 1), 'it opens the help lesson at the same step (' + tiA + ' -> ' + tiB0 + ')');
+      await stepOn(dB); await stepOn(dB); await until(() => ev(dB, () => window.__mw.net.idle()));
+      const tiB = await ev(dB, () => window.__mw.HL.ti);
+      await ev(p, () => window.__mw.net.refresh()); await wait(300);
+      const tiA2 = await ev(p, () => window.__mw.HL && window.__mw.HL.ti);
+      check(tiA2 >= tiB && tiA2 > tiA, 'the first device catches up with the steps done on the other (' + tiA + ' -> ' + tiA2 + ', other ' + tiB + ')');
+      await dB.close(); }
     const st = await ev(p, () => ({ lesson: !document.querySelector('#hlLesson').hidden, feel: !document.querySelector('#hlFeel').hidden, check: !document.querySelector('#hlCheck').hidden, next: !document.querySelector('#hlNext').hidden }));
     if (st.feel) break; if (!st.lesson) break;
     if (st.check) { tasks++; await ev(p, () => { const H = window.__mw.HL; window.__mw.type(window.__mw.MW.rawFor(H.task.p)); document.querySelector('#hlCheck').click(); }); await wait(30); }

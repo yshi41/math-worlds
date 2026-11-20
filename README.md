@@ -222,7 +222,8 @@ Sentences are regular weight; headings, numbers and buttons are bold. The layout
 - `worker/`: the save service (Cloudflare Worker + D1, tables `mw_saves` and `mw_history` in the Spelling Worlds
   database). Saves are online only; nothing is kept in the browser. Two devices' saves merge, and a mastered concept
   is never lost. Every open page checks for other devices' progress every 15 seconds, and a page left open in the
-  middle of a round or an assessment picks up at the next unanswered question when the same kid has moved on elsewhere. Deploy from `worker/` with wrangler and `CLOUDFLARE_API_TOKEN` set.
+  middle of a round or an assessment picks up at the next unanswered question when the same kid has moved on elsewhere. Help lessons
+  are saved step by step too (`hl` in the save): another device continues at the same step of the video or the lesson. Deploy from `worker/` with wrangler and `CLOUDFLARE_API_TOKEN` set.
 - `test/`:
   - `node concepts.test.js`: every concept at every level, many times over (answers typeable, no broken text, steps and traps well formed). `--show <id>` prints samples.
   - `node engine.test.js`: the path, mastery, placement and the coach.
