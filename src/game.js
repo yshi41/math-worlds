@@ -111,7 +111,9 @@ const Net=(()=>{
     if(!LOADED)setReady('error');else if(!warned){warned=true;toast('Can’t reach the save server. Progress is not saved until it reconnects.')}}
   function retry(){if(!LOADED)return refresh();let any=false;for(const id in DIRTY)if(DIRTY[id]){any=true;push(id)}if(!any)refresh()}
   async function refresh(){if(!CLOUD)return;try{const r=await call('GET','/saves');fails=0;warned=false;const ps=r.players||{};
-      for(const k of KIDS){const id=k.id;if(SENDING[id]||DIRTY[id]||TIMERS[id])continue;if(RD&&player===id)continue;const x=ps[id];
+      for(const k of KIDS){const id=k.id;if(SENDING[id]||DIRTY[id]||TIMERS[id])continue;const x=ps[id];
+        /* the same kid on another device moved this round on: pick up from there */
+        if(RD&&player===id){if(x&&REV[id]!==x.rev&&screen==='play'&&RD.phase==='ask'&&remoteAhead(saves[id],x.state)){adopt(id,x.rev,x.state);takeOver()}continue}
         if(!x){if(REV[id]==null){REV[id]=0;BASE[id]=null}continue}if(REV[id]!==x.rev)adopt(id,x.rev,x.state)}
       if(!LOADED){LOADED=true;setReady('on')}else if(screen==='menu')renderMenu()}catch(e){failed()}}
   async function push(id){clearTimeout(TIMERS[id]);TIMERS[id]=null;if(SENDING[id]||!saves[id])return;
@@ -124,6 +126,8 @@ const Net=(()=>{
   function schedule(id){if(!id||!saves[id])return;DIRTY[id]=true;clearTimeout(TIMERS[id]);TIMERS[id]=setTimeout(()=>push(id),400)}
   function flush(){for(const id in TIMERS)if(TIMERS[id])push(id)}
   document.addEventListener('visibilitychange',()=>{if(!CLOUD)return;if(document.hidden)flush();else if(LOADED)refresh()});
+  /* every device on the page checks for the other devices' progress every 15 seconds, so they stay in step */
+  setInterval(()=>{if(CLOUD&&LOADED&&!document.hidden)refresh()},15000);
   window.addEventListener('pagehide',()=>{if(CLOUD)flush()});
   window.addEventListener('online',()=>{if(CLOUD)retry()});
   return {refresh,schedule,retry,idle:()=>{for(const id in SENDING)if(SENDING[id])return false;for(const id in TIMERS)if(TIMERS[id])return false;return true},rev:id=>REV[id]||0}
@@ -142,6 +146,16 @@ function resumeRound(){const r=liveRound(P());if(!r)return;Snd.init();Snd.click(
   RD.missed=RD.missed||{};RD.inserted=RD.inserted||{};RD.results=RD.results||[];
   try{RD.queue=(r.queue||[]).map(itemFrom).filter(Boolean);RD.endQ=(r.endQ||[]).map(itemFrom).filter(Boolean);const c=r.cur&&itemFrom(r.cur);if(c)RD.queue.unshift(c)}catch(e){RD.queue=[];RD.endQ=[]}
   if(RD.kind==='learn'&&RD.skill&&!CO.isMastered(P(),RD.skill))P().now=RD.skill;beginPlay()}
+/* the same kid playing on two devices: the stored copy is ahead of this round when the other device has answered more
+   of it (a practice round saved later, or more assessment answers in the same assessment) */
+const preCount=pr=>pr&&pr.st&&pr.order?pr.order.reduce((a,s)=>a+((pr.st[s]&&pr.st[s].log)||[]).length,0):0;
+function remoteAhead(local,remote){if(!RD||!remote||!local)return false;
+  if(RD.kind==='pre'){const a=local.pre,b=remote.pre;return !!(a&&b)&&(b.started||0)===(a.started||0)&&(preCount(b)>preCount(a)||(b.bi|0)>(a.bi|0)||(!!b.done&&!a.done))}
+  const lr=local.round,rr=remote.round;return !!rr&&(rr.t||0)>((lr&&lr.t)||0)}
+function takeOver(){if(!RD)return;const p=P(),R0=RD;clearTimeout(R0.autoT);
+  if(R0.kind==='pre'){const pre=p.pre,more=pre&&!pre.done&&CO.pretestNext(pre);if(more){RD.phase='ask';nextQ()}else{RD=null;openHub()}}
+  else{RD=null;if(liveRound(p))resumeRound();else openHub()}
+  toast('Picked up where you left off on another device.')}
 function renderSaveNote(){const n=$('#saveNote');
   n.textContent=saveMode==='loading'?'Loading saves…':saveMode==='on'?'Progress saves online for every player.':saveMode==='error'?'Can’t reach the save server. Check the connection and try again.':'Saving is off in this copy, so progress won’t be kept.';
   $('#saveRetry').hidden=saveMode!=='error'}

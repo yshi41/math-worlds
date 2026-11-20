@@ -221,7 +221,8 @@ Sentences are regular weight; headings, numbers and buttons are bold. The layout
 - `src/engine.js`: the path, mastery, review, placement and diagnosis. `src/game.js`: the page.
 - `worker/`: the save service (Cloudflare Worker + D1, tables `mw_saves` and `mw_history` in the Spelling Worlds
   database). Saves are online only; nothing is kept in the browser. Two devices' saves merge, and a mastered concept
-  is never lost. Deploy from `worker/` with wrangler and `CLOUDFLARE_API_TOKEN` set.
+  is never lost. Every open page checks for other devices' progress every 15 seconds, and a page left open in the
+  middle of a round or an assessment picks up at the next unanswered question when the same kid has moved on elsewhere. Deploy from `worker/` with wrangler and `CLOUDFLARE_API_TOKEN` set.
 - `test/`:
   - `node concepts.test.js`: every concept at every level, many times over (answers typeable, no broken text, steps and traps well formed). `--show <id>` prints samples.
   - `node engine.test.js`: the path, mastery, placement and the coach.

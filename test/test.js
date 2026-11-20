@@ -299,6 +299,12 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(devB, () => document.querySelector('#nextBtn').click()); await wait(150);
   check(await ev(devB, () => window.__mw.RD.mainDone === 3 && window.__mw.RD.results.length === 3), 'it picks up after the 3 answers already given');
   check(await ev(devB, () => document.querySelector('#qText').innerHTML) === qA, 'with the same question on screen');
+  /* the first device is still open on the old question: it catches up with the answers given on the second */
+  for (let i = 0; i < 2; i++) { await answer(devB, true); await next(devB); }
+  await until(() => ev(devB, () => window.__mw.net.idle()));
+  const qB = await ev(devB, () => document.querySelector('#qText').innerHTML);
+  await ev(devA, () => window.__mw.net.refresh()); await wait(400);
+  check(await ev(devA, () => window.__mw.RD && window.__mw.RD.mainDone === 5) && await ev(devA, () => document.querySelector('#qText').innerHTML) === qB, 'the first device picks up after the answers given on the second, mid-round');
   await ev(devB, () => { document.querySelector('#quitBtn').click(); }); await wait(150);
   await ev(devB, () => document.querySelector('#hubBtn').click()); await wait(150);
   await ev(devB, () => document.querySelector('#tSound').click()); await until(() => ev(devB, () => window.__mw.net.idle()));
