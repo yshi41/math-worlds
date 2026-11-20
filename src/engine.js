@@ -303,17 +303,20 @@ function pretestAdvance(pre) {
 function pretestProgress(pre) { pretestFix(pre); let done = 0; pre.order.forEach(s => { if (pre.st[s].done) done++; });
   return { done, total: pre.order.length, block: Math.min((pre.bi || 0) + 1, pre.blocks.length), blocks: pre.blocks.length, estMin: Math.round(blockOf(pre).reduce((a, s) => a + strandEstimate(pre, s), 0) * Math.max(0.6, pre.pace || 1) / 60000) }; }
 /* what the placement means: every concept below the start in each strand is mastered (reviews spread over the next
-   days); a start concept whose medium problem was right begins at the medium level */
-function pretestApply(p, pre, now) {
+   days); a start concept whose medium problem was right begins at the medium level.
+   doneOnly: after each block of an unfinished check, only the parts already finished count (a part still being searched,
+   or one asked again because she went too fast, waits until it is done), so the report moves with every block.
+   pre.nm keeps the total this check has marked mastered. */
+function pretestApply(p, pre, now, doneOnly) {
   now = now || Date.now(); const out = { mastered: 0, starts: {} };
   if (pre.floor) STR.forEach(s => { const f = floorIdx(s, pre.floor);
     for (let i = 0; i < f; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); cs(p, id).pl = 1; out.mastered++; } } });
-  pre.order.forEach(sid => { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s) return;
+  pre.order.forEach(sid => { const st = pre.st[sid], s = STR.find(x => x.id === sid); if (!st || !s || (doneOnly && !st.done)) return;
     const upto = st.done ? st.start : st.lo + 1;
     for (let i = 0; i < upto; i++) { const id = s.core[i]; if (!isMastered(p, id)) { master(p, id, now, DAY * (1 + (i % 7))); cs(p, id).pl = 1; out.mastered++; } }
     const sid2 = s.core[upto]; out.starts[sid] = sid2 || null;
     if (sid2 && st.half === upto) { const c = cs(p, sid2); if (!c.m && c.lv < 1) c.lv = 1; } });
-  p.now = null; return out;
+  pre.nm = (pre.nm | 0) + out.mastered; out.total = pre.nm; p.now = null; return out;
 }
 /* every question of a check, in order of its parts: [part, concept, level, right, skipped, ms (negative: the part's average,
    from before each question was timed), seed, typed, didn't count];

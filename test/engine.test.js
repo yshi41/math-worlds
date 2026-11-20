@@ -243,6 +243,18 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   k = 0; while (E.pretestNext(q.pre) && k < 400) { E.pretestRecord(q.pre, true, 40000); k++; if (!E.pretestNext(q.pre) && !E.pretestAdvance(q.pre)) break; }
   q.pre.done = true; const m0 = E.masteredCount(q); E.pretestApply(q, q.pre); E.asmNote(q, q.pre);
   ok(E.masteredCount(q) > m0 && !E.report(q, 3).partial && q.asm.length === 1 && q.asm[0].done, 'finishing it adds what it placed and updates the history line'); }
+/* the report moves with every block: after each block of an unfinished check, the parts already finished are applied */
+{ const pre = E.pretestStart(3, {}), p = blank(), q = blank(); let k = 0;
+  while (E.pretestNext(pre) && k < 400) { E.pretestRecord(pre, true, 40000); k++; }
+  ok(E.pretestAdvance(pre), 'per-block apply: the check has more blocks');
+  const doneP = pre.order.filter(s => pre.st[s].done), openP = pre.order.filter(s => !pre.st[s].done);
+  const r1 = E.pretestApply(p, pre, 1e12, true);
+  ok(doneP.length && doneP.every(sid => { const st = pre.st[sid], s = E.STR.find(x => x.id === sid); return s.core.slice(0, st.start).every(id => E.isMastered(p, id)); }), 'per-block apply: finished parts count');
+  ok(openP.every(sid => !E.STR.find(x => x.id === sid).core.some(id => E.isMastered(p, id))), 'per-block apply: parts not finished yet count nothing');
+  ok(E.pretestApply(p, pre, 1e12, true).mastered === 0 && pre.nm === r1.mastered, 'per-block apply: running it again adds nothing');
+  k = 0; while (k < 800) { if (!E.pretestNext(pre) && !E.pretestAdvance(pre)) break; E.pretestRecord(pre, true, 40000); k++; }
+  pre.done = true; const r2 = E.pretestApply(p, pre, 1e12); E.pretestApply(q, pre, 1e12);
+  ok(r2.total === r1.mastered + r2.mastered && E.masteredCount(p) === E.masteredCount(q), 'per-block apply: the finished check ends where a single apply would (' + r2.total + ' concepts)'); }
 /* history: buckets by day, week and month */
 { const now = new Date(2026, 10, 17, 18).getTime(), p = { cs: { a_ten: { m: now - 40 * E.DAY, lv: 2 }, a_fives: { m: now - 2 * E.DAY, lv: 2 } }, log: {} };
   for (let i = 0; i < 60; i += 3) p.log[E.dayKey(now - i * E.DAY)] = { n: 10, ok: 7, ms: 60000, pre: i === 3 ? 5 : 0, pok: 0 };

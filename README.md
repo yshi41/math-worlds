@@ -171,6 +171,13 @@ history stay. The save carries `reset.t`; the save service accepts a save with a
 mastered concepts (never characters), refuses any save from before it, and merges a stale device onto the reset copy.
 Every accepted save is still kept in `mw_history`.
 
+**The report moves with every block.** At the end of each assessment block (or when she stops part way) the parts she has
+finished are applied right away (`COACH.pretestApply(p, pre, now, true)`): concepts below where each finished part placed
+her are mastered, while a part still being searched, or one asked again because she went too fast, waits until it is done.
+`pre.nm` keeps the running total, so the last block ends exactly where one apply at the end would. A parent view left
+open on any device redraws when new progress arrives (15 s poll), keeps open question sets and the scroll position,
+and shows when progress was last saved.
+
 **History** charts grade level (with the average student in her grade), the estimated national percentile, concepts
 mastered, problems answered (right first try, other practice, assessment questions) and minutes, over 7 days, 30 days,
 3 months, 1 year or all time (`COACH.history`): day by day up to a month, week by week up to about 6 months, month by

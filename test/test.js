@@ -64,6 +64,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     if (await resultsShown(p)) { if (await ev(p, () => window.__mw.saves.riley.pre.done)) break; blocksSeen++;
       check(await ev(p, n => Number(document.querySelector('#rRight').textContent) === n && document.querySelector('#rCur').textContent === '+' + 2 * n, sitRight), 'the end of a block shows how many were right (' + sitRight + ')'); sitRight = 0;
       check(blocksSeen > 1 || await ev(p, () => /^Block 1 of [0-9]+ done/.test(document.querySelector('#resTitle').textContent) && document.querySelector('#againBtn').textContent === 'Next block'), 'a block ends with a break and Next block');
+      check(await ev(p, () => { const pl = window.__mw.saves.riley, pre = pl.pre, CO = window.COACH; return pre.order.every(sid => { const st = pre.st[sid], s = CO.STR.find(x => x.id === sid); return !st.done || s.core.slice(0, st.start).every(id => CO.isMastered(pl, id)); }); }), 'after each block, the parts it finished already count in the report');
       await ev(p, () => document.querySelector('#againBtn').click()); await wait(200); }
   }
   await until(() => resultsShown(p), 5000);
@@ -332,6 +333,20 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(await ev(devC, () => document.querySelector('#tSound').getAttribute('aria-pressed') === 'false'), 'turning sounds off follows Riley to another device');
   check(await ev(devC, () => document.querySelector('#nextTitle').textContent !== 'Continue where you left off'), 'a finished round is cleared on every device');
   check(await ev(devC, () => window.__storageWrites) === 0, 'still nothing written to the device');
+  /* 10c. a parent view left open on another device redraws when new progress arrives, keeping open question sets */
+  await ev(devA, () => document.querySelector('#quitBtn').click()); await wait(150); await ev(devA, () => document.querySelector('#hubBtn').click()); await wait(150);
+  await until(() => ev(devA, () => window.__mw.net.idle()));
+  await ev(devA, () => window.__mw.openParent('riley')); await wait(300);
+  const qsOpen = await ev(devA, () => { const d = document.querySelector('details.pv-qs'); if (d) d.open = true; return !!d; });
+  const tile = d => ev(d, () => Number(document.querySelectorAll('.pv-tile b')[2].textContent));
+  const pm0 = await tile(devA);
+  await ev(devC, () => { const pl = window.__mw.saves.riley, CO = window.COACH; CO.master(pl, CO.current(pl)); window.__mw.net.schedule('riley'); });
+  await until(() => ev(devC, () => window.__mw.net.idle()));
+  await ev(devA, () => window.__mw.net.refresh()); await wait(400);
+  const m1 = await tile(devA);
+  check(m1 === pm0 + 1, 'an open parent view updates on its own with progress from another device (' + pm0 + ' to ' + m1 + ')');
+  check(!qsOpen || await ev(devA, () => !!document.querySelector('details.pv-qs[open] .pv-q')), 'an open question set stays open when it redraws');
+  check(await ev(devA, () => /progress saved at/.test(document.querySelector('.pv-sub').textContent)), 'the parent view says when progress was last saved');
   for (const d of [devA, devB, devC]) await d.close();
 
   /* 11. service down: the player screen waits, Try again loads */

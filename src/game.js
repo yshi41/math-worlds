@@ -578,10 +578,10 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     if(R0.deeperAdded)note+=` Next, go one step back with “${conceptName(R0.deeperAdded)}”, which is in your tricky spots.`}
   else if(R0.kind==='pre'){const pre=p.pre;sub=checkName(pre);
     if(pre&&!CO.pretestNext(pre)){const more=CO.pretestAdvance(pre);pre.t=Date.now();
-      if(!more){pre.done=true;const res=CO.pretestApply(p,pre);p.apace=Math.round((p.apace?(p.apace+pre.pace)/2:pre.pace)*100)/100;title='All done!';note=`${res.mastered} concepts you already know are marked mastered. They'll come back now and then for review.`}
-      else{const pg=CO.pretestProgress(pre);title=`Block ${pre.bi} of ${pg.blocks} done!`;note=(pre.again&&pre.again.length?`Some parts went by too fast to count (${pre.again.map(s=>CO.STR.find(x=>x.id===s).name).join(', ')}), so they come again. Take your time and read each one. `:'')+`Take a break. The next block is planned at about ${clamp(pg.estMin,5,30)} minutes. Start it from the map whenever you're ready, today or another day.`}
+      if(!more){pre.done=true;const res=CO.pretestApply(p,pre);p.apace=Math.round((p.apace?(p.apace+pre.pace)/2:pre.pace)*100)/100;title='All done!';note=`${res.total} concepts you already know are marked mastered. They'll come back now and then for review.`}
+      else{CO.pretestApply(p,pre,Date.now(),true);const pg=CO.pretestProgress(pre);title=`Block ${pre.bi} of ${pg.blocks} done!`;note=(pre.again&&pre.again.length?`Some parts went by too fast to count (${pre.again.map(s=>CO.STR.find(x=>x.id===s).name).join(', ')}), so they come again. Take your time and read each one. `:'')+`Take a break. The next block is planned at about ${clamp(pg.estMin,5,30)} minutes. Start it from the map whenever you're ready, today or another day.`}
       CO.asmNote(p,pre)}
-    else{title='Saved!';note='Your check is saved. Pick up where you left off any time.'}}
+    else{if(pre&&!pre.done){CO.pretestApply(p,pre,Date.now(),true);CO.asmNote(p,pre)}title='Saved!';note='Your check is saved. Pick up where you left off any time.'}}
   /* the block: count the round; when its problems are done, the block ends, her pace is updated and the next block is sized */
   const bk=R0.kind!=='pre'?blkLive(p):null;let bEnd=false;
   if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
@@ -774,13 +774,14 @@ const pctWord=n=>n+(n%100>=11&&n%100<=13?'th':n%10===1?'st':n%10===2?'nd':n%10==
 const mins=ms=>{const m=Math.round(ms/60000);return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'};
 const accTxt=(r,n)=>n?Math.round(100*r/n)+'%':'—';
 const dShort=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const savedAt=t=>{const d=new Date(t),tm=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});return new Date().toDateString()===d.toDateString()?'at '+tm:dShort(t)+' at '+tm};
 const dLong=t=>new Date(t).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 function openParent(id){PV=id||PV||(KIDS.find(k=>saves[k.id]&&CO.masteredCount(saves[k.id]))||KIDS[0]).id;show('parent');applyWorld(lookOf(PV),3);renderParent();if(CLOUD)Net.refresh()}
-function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=gradeOf(k),R=CO.report(p,grade),O=R.overall;applyWorld(lookOf(PV),3);
+function renderParent(){const keep=pvKeep(),k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=gradeOf(k),R=CO.report(p,grade),O=R.overall;applyWorld(lookOf(PV),3);
   $('#pvTabs').innerHTML=KIDS.map(x=>`<button type="button" class="tog" data-kid="${x.id}" aria-pressed="${x.id===PV}">${x.name}</button>`).join('');
   $('#pvTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{Snd.click();PV=b.dataset.kid;renderParent()});
   const out=[];const card=(h,body,cls)=>out.push(`<div class="card pv-card${cls?' '+cls:''}"><h3>${h}</h3>${body}</div>`);
-  const head=`<div class="pv-head"><div><div class="pv-name">${esc(k.name)}</div><div class="pv-sub">${ord(grade)} grade · report for ${dLong(R.now)} · week ${Math.round(R.week)} of 36 in the school year</div></div></div>`;
+  const head=`<div class="pv-head"><div><div class="pv-name">${esc(k.name)}</div><div class="pv-sub">${ord(grade)} grade · report for ${dLong(R.now)} · week ${Math.round(R.week)} of 36 in the school year${p.updated?` · progress saved ${savedAt(p.updated)}, updates on its own`:''}</div></div></div>`;
   if(!R.placed&&!R.answered&&!R.mastered){out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<p class="pv-p">${esc(k.name)} hasn't started yet. The report fills in once the placement check is done; it finds which concepts ${esc(k.name)} already knows.</p></div>`);$('#pvBody').innerHTML=out.join('');wireAssess(k);return}
   /* summary tiles */
   const dw=diffWords(O.diff),ceilO=O.ceil?'+':'';
@@ -795,7 +796,7 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
   if(R.placed)sum+=` That is about the <b>${pctWord(R.pct.pct)} percentile</b> nationally${O.ceil?' or higher':''}.`;
   sum+=` Strongest: ${esc(strong[0].name)} (${fmtGE(strong[0].ge)}). Most room to grow: ${esc(weak[0].name)} (${fmtGE(weak[0].ge)})${weak[1].ge<strong[0].ge?` and ${esc(weak[1].name)} (${fmtGE(weak[1].ge)})`:''}.`;
   const conf={none:'There is no placement check yet, so the grade levels only count concepts mastered in practice.',low:'These numbers are rough for now: they rest mostly on the placement check. They firm up with every few hundred problems.',medium:'These numbers rest on the placement check and a fair amount of practice.',high:'These numbers rest on the placement check and a lot of practice.'}[R.confidence];
-  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. These numbers come from the parts done so far and are worked out again when ${esc(k.name)} finishes it.</p>`:''}${floorOf(k)?`<p class="pv-p pv-soft">${esc(k.name)} is set to start at ${ord(floorOf(k))} grade: every concept below that counts as known, and a memory check spot-checks one or two of them in each practice block.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
+  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. These numbers come from the parts done so far. They update after every block, on any device, and are worked out again when ${esc(k.name)} finishes it.</p>`:''}${floorOf(k)?`<p class="pv-p pv-soft">${esc(k.name)} is set to start at ${ord(floorOf(k))} grade: every concept below that counts as known, and a memory check spot-checks one or two of them in each practice block.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
   /* grade level by domain */
   const lo=2,hi=Math.max(grade+3,Math.ceil(Math.max(...R.domains.map(d=>d.ge),O.ge)+0.5)),X=v=>((clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(2);
   const ticks=[];for(let g=lo;g<=hi;g++)ticks.push(`<span style="left:${X(g)}%">${g}</span>`);
@@ -834,18 +835,21 @@ function renderParent(){const k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=grad
     <li><b>Practice</b> comes in blocks planned at about 20 minutes: a memory check when concepts are due, then the next concept on the path. The path never moves past a concept until it is mastered. A block is never cut off by the clock; it ends when its problems are done. How long it took (answering, at most 4 minutes a problem, and help lessons) compared with an average kid, and how hard the concept is (written methods and word problems take longer), set the size of the next block.</li>
     <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
     <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
-  $('#pvBody').innerHTML=out.join('');wireAssess(k);wireReset(k);
-  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=qsetBody(QSETS[+d.dataset.qi]||[])}));
+  $('#pvBody').innerHTML=out.join('');$('#pvBody').dataset.kid=PV;wireAssess(k);wireReset(k);
+  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>{d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=qsetBody(QSETS[+d.dataset.qi]||[])});if(keep.kid===PV&&keep.open.includes(d.dataset.t0))d.open=true});window.scrollTo(0,keep.kid===PV?keep.y:0);
   $('#pvBody').querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{Snd.click();PVR=b.dataset.range;renderParent()})}
 /* ---------- every question of each assessment, for parents: the exact question when its seed was saved, otherwise
    one like it; what she typed when it was wrong ---------- */
 let QSETS=[];
+/* the parent view redraws itself whenever new progress arrives (every block, from any device): it keeps the question sets
+   that were open and the place on the page */
+function pvKeep(){const b=$('#pvBody');return {kid:b.dataset.kid||null,y:window.scrollY,open:[...b.querySelectorAll('details.pv-qs[open]')].map(d=>d.dataset.t0)}}
 function asmQs(p,a){if(Array.isArray(a.q))return a.q;const pre=p.pre;return pre&&pre.st&&(pre.started||pre.t)===a.t0?CO.asmQuestions(pre):[]}
 function qsetCard(p){const pre=p.pre,AL=(p.asm||[]).slice().reverse(),t0=pre&&(pre.started||pre.t);
   const list=(pre&&pre.st&&!AL.some(a=>a.t0===t0)&&pre.order.some(s=>pre.st[s].log.length)?[{t0,t:pre.t,by:pre.by,done:!!pre.done}]:[]).concat(AL);
   QSETS=list.map(a=>asmQs(p,a));if(!list.length)return '';
   return `<div class="card pv-card"><h3>Questions asked</h3><p class="pv-p pv-soft">Every question of each assessment and placement check, part by part, with the right answer and how she answered. Open one to see it.</p>${list.map((a,i)=>{const Q=QSETS[i],c=Q.filter(q=>!q[8]),ok=c.filter(q=>q[3]).length,sk=c.filter(q=>q[4]).length;
-    return `<details class="pv-qs" data-qi="${i}"><summary><b>${dShort(a.t0)}${a.t-a.t0>864e5/2?'–'+dShort(a.t):''}</b> ${a.by==='parent'?'assessment':'placement check'}${a.done?'':' (in progress)'} · ${Q.length?`${ok} of ${c.length} right${sk?`, ${sk} skipped`:''}`:'questions not saved'}</summary><div class="pv-qbody"></div></details>`}).join('')}</div>`}
+    return `<details class="pv-qs" data-qi="${i}" data-t0="${a.t0}"><summary><b>${dShort(a.t0)}${a.t-a.t0>864e5/2?'–'+dShort(a.t):''}</b> ${a.by==='parent'?'assessment':'placement check'}${a.done?'':' (in progress)'} · ${Q.length?`${ok} of ${c.length} right${sk?`, ${sk} skipped`:''}`:'questions not saved'}</summary><div class="pv-qbody"></div></details>`}).join('')}</div>`}
 function qsetBody(Q){let h='',last=null;
   Q.forEach(q=>{const [sid,id,d,ok,sk,ms,seed,typed,nc]=q;if(!S[id])return;
     if(sid!==last){last=sid;const st=CO.STR.find(s=>s.id===sid);h+=`<h4 class="pv-h4">${esc(st?st.name:sid)}</h4>`}
