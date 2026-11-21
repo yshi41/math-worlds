@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-21 22:43';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-21 22:55';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -19207,7 +19207,7 @@ function applyWorld(k,lv){CUR_WORLD=k;document.documentElement.setAttribute('dat
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null;
-function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null,help:[],blk:null,ppace:null,bhist:[],asm:[],reset:null,sg:0}}
+function blank(){return {cur:0,cs:{},mist:{},owned:[],char:{},look:null,games:0,pre:null,now:null,round:null,set:null,log:{},apace:null,help:[],blk:null,ppace:null,bhist:[],asm:[],reset:null,sg:0,tut:null}}
 /* a save from the first version (lessons and stars) keeps its treats and characters; the concept path and the
    placement check start fresh because the concepts are new */
 function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.assign(blank(),o);
@@ -19218,6 +19218,7 @@ function normalize(d){const o=JSON.parse(JSON.stringify(d||{}));const b=Object.a
   b.look=WORLDS[o.look]?o.look:null;b.pre=o.pre&&typeof o.pre==='object'&&o.pre.v===2&&o.pre.st?CO.pretestFix(o.pre):null;b.apace=typeof o.apace==='number'&&isFinite(o.apace)?o.apace:null;b.help=Array.isArray(o.help)?o.help.filter(h=>h&&typeof h==='object'&&S[h.id]&&h.t).slice(-60):[];b.now=S[o.now]?o.now:null;
   b.round=o.round&&typeof o.round==='object'?o.round:null;b.hl=o.hl&&typeof o.hl==='object'&&!Array.isArray(o.hl)?o.hl:null;b.blk=o.blk&&typeof o.blk==='object'&&!Array.isArray(o.blk)?o.blk:null;b.ppace=typeof o.ppace==='number'&&isFinite(o.ppace)?o.ppace:null;b.bhist=Array.isArray(o.bhist)?o.bhist.filter(x=>x&&typeof x==='object'&&x.t0).slice(-30):[];b.set=o.set&&typeof o.set==='object'?{snd:o.set.snd!==false,voice:!!o.set.voice}:null;
   b.asm=Array.isArray(o.asm)?o.asm.filter(x=>x&&typeof x==='object'&&x.t0).slice(-50):[];b.reset=o.reset&&typeof o.reset==='object'&&typeof o.reset.t==='number'?o.reset:null;b.sg=o.sg|0;
+  b.tut=o.tut&&typeof o.tut==='object'&&Array.isArray(o.tut.items)?{t:+o.tut.t||0,from:o.tut.from||'practice',i:o.tut.i|0,done:!!o.tut.done,items:o.tut.items.filter(x=>x&&S[x.id]&&typeof x.seed==='number').slice(0,10)}:null;
   const lg={};if(o.log&&typeof o.log==='object')for(const d in o.log){const e=o.log[d];if(!/^\d{4}-\d\d-\d\d$/.test(d)||!e||typeof e!=='object')continue;const x={};for(const f in e)if(typeof e[f]==='number'&&isFinite(e[f]))x[f]=Math.max(0,e[f]);lg[d]=x}b.log=lg;
   delete b.stars;delete b.best;delete b.sk;return b}
 function P(){return saves[player]||(saves[player]=blank())}
@@ -19316,7 +19317,7 @@ function recordMiss(id,why){const p=P();const m=p.mist[id]||(p.mist[id]={n:0,ok:
    5 minutes a problem), break-down steps and placement questions */
 function logAns(kind,first,right){if(!player||!RD)return;const p=P(),k=CO.dayKey(Date.now()),e=p.log[k]||(p.log[k]={n:0,ok:0,ms:0});
   e.ms=(e.ms|0)+clamp(Date.now()-(RD.t0||Date.now()),0,300000);
-  if(kind!=='pre'){blkAdd(Date.now()-(RD.t0||Date.now()),kind==='step'?0:1,kind!=='step'&&first&&right?1:0,0,kind!=='step'&&RD.cur&&RD.cur.p&&S[RD.cur.p.skill]?CO.pracSec(RD.cur.p.skill)*1000:0);blkQ(first,right)}
+  if(kind!=='pre'&&RD.kind!=='tut'){blkAdd(Date.now()-(RD.t0||Date.now()),kind==='step'?0:1,kind!=='step'&&first&&right?1:0,0,kind!=='step'&&RD.cur&&RD.cur.p&&S[RD.cur.p.skill]?CO.pracSec(RD.cur.p.skill)*1000:0);blkQ(first,right)}
   if(kind==='pre'){e.pre=(e.pre|0)+1;if(right)e.pok=(e.pok|0)+1;return}if(kind==='step'){e.st=(e.st|0)+1;return}
   e.n=(e.n|0)+1;if(first&&right)e.ok=(e.ok|0)+1;if(RD.usedHint)e.h=(e.h|0)+1}
 /* ---------- practice blocks ----------
@@ -19344,7 +19345,7 @@ function blkArchive(p,bk,partial){if(!bk||!bk.t0||!(bk.n|0))return;const e={t0:b
 function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;b.ms+=clamp(ms,0,capMs||BLK_CAP);b.exp=(b.exp||0)+(exp||0);b.n+=n|0;b.ok+=ok|0;b.t=Date.now()}
 const probs=n=>n+' problem'+(n===1?'':'s');
 const doneToday=p=>!!(p.blk&&p.blk.done&&p.blk.day===CO.dayKey(Date.now()));
-function startBlock(){Snd.init();const p=P(),b=ensureBlock(),nx=CO.blockNext(p,b);b.justMastered=false;
+function startBlock(){Snd.init();if(tutPending(P())){startTut();return}const p=P(),b=ensureBlock(),nx=CO.blockNext(p,b);b.justMastered=false;
   if(nx.kind==='audit'){if(nx.focus)b.fc.push(nx.focus);b.early=(b.early|0)+(nx.early|0);startAudit(nx.ids,nx.focus);return}
   if(nx.kind==='learn'){Snd.click();playConcept(nx.id);return}
   if(nx.kind==='review'){startReview();return}
@@ -19517,12 +19518,37 @@ function newCheck(p,id,by){applyStart(p,kid(id));const pace=p.apace||1,m=CO.mast
    searching below it. True when the save changed. */
 function applyStart(p,k){const f=floorOf(k);if(!f||!p)return false;let ch=false;if(p.sg!==f){CO.applyFloor(p,f);p.sg=f;ch=true}if(p.pre&&!p.pre.done&&p.pre.floor!==f){CO.pretestFloor(p.pre,f);ch=true}return ch}
 const checkName=pre=>pre&&pre.by==='parent'?'Assessment':'Placement check';
-function startPre(){Snd.init();Snd.click();const p=P();if(!p.pre||p.pre.done)p.pre=newCheck(p,player);newRound({kind:'pre'});beginPlay()}
+function startPre(){Snd.init();Snd.click();const p=P();if(tutPending(p)){startTut();return}if(!p.pre||p.pre.done)p.pre=newCheck(p,player);newRound({kind:'pre'});beginPlay()}
+/* ---------- going over the mistakes ----------
+   At the end of every block (practice or assessment) she goes over each problem she got wrong, before anything else:
+   the problem again, what she answered and the right answer, the worked shortcut, then the problem broken into small
+   steps that she answers one at a time. The list lives in the save (p.tut) until she has been through it, so closing
+   the game doesn't skip it; it picks up at the problem she was on. */
+const TUT_MAX=8;
+const tutPending=p=>!!(p&&p.tut&&!p.tut.done&&p.tut.items&&p.tut.items.length&&p.tut.i<p.tut.items.length);
+function tutSet(p,from,items){if(window.__mwNoTut)return null;const seen=new Set(),L=[];items.forEach(x=>{const k=x.id+':'+x.seed;if(!S[x.id]||typeof x.seed!=='number'||seen.has(k))return;seen.add(k);L.push(x)});
+  p.tut=L.length?{t:Date.now(),from,i:0,done:false,items:L.slice(-TUT_MAX)}:null;return L.length?p.tut:null}
+/* the wrong answers of a practice block: problems missed twice, and memory-check problems missed or not remembered */
+function tutFromBlock(p,bk){return tutSet(p,'practice',(bk.q||[]).filter(q=>q[4]!=='s'&&!q[6]&&q[2]!=null).map(q=>({id:q[0],d:q[1]|0,seed:q[2],typed:q[9]?null:q[8],sk:q[9]?1:0,mc:q[4]==='a'?1:0})))}
+/* the wrong answers of an assessment block (not the ones she said she hasn't learned yet) */
+function tutFromPre(p,pre,bi){return tutSet(p,'asm',CO.asmQuestions(pre).filter(q=>q[9]===bi&&!q[8]&&!q[3]&&!q[4]&&q[6]!=null).map(q=>({id:q[1],d:q[2]|0,seed:q[6],typed:q[7]})))}
+function startTut(){Snd.init();Snd.click();const p=P();if(!tutPending(p))return openHub();const T=p.tut;newRound({kind:'tut'});RD.queue=[];
+  T.items.forEach((x,i)=>{if(i<T.i)return;const q=fromRef({id:x.id,d:x.d,seed:x.seed});if(!q)return;RD.queue.push({p:q,kind:'tut',ti:i,x});
+    (q.steps||[]).forEach((st,j)=>{st.ref=Object.assign({},q.ref,{step:j});RD.queue.push({p:st,kind:'step',ti:i})})});
+  RD.mainTotal=T.items.length;RD.mainDone=T.i;if(!RD.queue.length){T.done=true;T.t=Date.now();persist();return openHub()}beginPlay()}
+/* one mistake, shown again: no keys, just what happened and how it works */
+function showTut(it){const p=it.p,x=it.x,T=P().tut,n=T.items.length;T.i=it.ti;RD.mainDone=it.ti;
+  $('#answerArea').hidden=true;$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;$('#skipBtn').hidden=true;$('#backBtn').hidden=true;
+  let her='';if(x.sk)her=x.mc?'You said you didn’t remember this one.':'You skipped this one.';else if(x.typed!=null){let v=null;try{v=MW.parse(p,x.typed)}catch(e){}her=`You answered <b>${v!=null?MW.ansText(p,v):esc(x.typed)}</b>.`}else her='You missed this one.';
+  const more=(p.steps||[]).length;
+  showFb('try',`<div class="fb-h">Mistake ${it.ti+1} of ${n}</div><div>${her} The answer is <b>${MW.ansText(p)}</b>.</div><div>Here is how it works:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>${p.howVis?`<div class="vis-wrap">${p.howVis}</div>`:''}${more?`<div>Now you try it, one small step at a time.</div>`:''}`);
+  $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=more?'Step by step':it.ti+1<n?'Next mistake':'Done';RD.phase='done';
+  bubble($('#playBubble'),'Mistakes help you learn!');persist()}
 const quiet=()=>!!RD&&(RD.kind==='pre'||RD.kind==='audit');
-function beginPlay(){const p=P(),k=lookOf(player);if(RD.kind!=='pre'){const b=ensureBlock();
+function beginPlay(){const p=P(),k=lookOf(player);if(RD.kind!=='pre'&&RD.kind!=='tut'){const b=ensureBlock();
     /* a practice round fits the problems left in the block (4 to 10), so the block ends at the end of a round */
     if((RD.kind==='learn'||RD.kind==='review')&&!RD.sized){RD.mainTotal=clamp(CO.blockLeft(b),4,10);RD.sized=1}}applyWorld(k,sceneLevel(p));show('play');$('#playHero').innerHTML=charSVG(charOf(p,k),'neutral');
-  $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):RD.kind==='audit'?'Memory check':checkName(p.pre);
+  $('#playTitle').textContent=RD.kind==='learn'?conceptName(RD.skill):RD.kind==='test'?'Test out: '+conceptName(RD.skill):RD.kind==='review'?'Review mix':RD.kind==='fix'?'Tricky spot: '+conceptName(RD.concept):RD.kind==='audit'?'Memory check':RD.kind==='tut'?'Going over your mistakes':checkName(p.pre);
   /* an assessment keeps the treat counter out of sight, because a counter that ticks up gives the answer away */
   $('#playCur').hidden=quiet();$('#playHero').classList.remove('jump','shake');
   bubble($('#playBubble'),RD.kind==='pre'?'Do your best! You will see how you did at the end.':RD.kind==='audit'?'Ideas you learned before. Do your best: you will see how you did at the end.':'You can do it!');nextQ()}
@@ -19550,7 +19576,7 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   $('#backBtn').hidden=!((it.kind==='pre'||it.kind==='aud')&&RD.undo&&RD.undo.length);
   const p=it.p,cid=it.concept||p.concept;
   const bd=$('#qBadge');bd.hidden=false;bd.className='q-badge'+(it.kind==='step'?' build':it.kind==='fix'||it.kind==='prac'||cid?' fix':'');
-  bd.textContent=it.kind==='aud'?'Memory check':it.kind==='step'?'Step by step':cid?'Tricky spot: '+conceptName(cid):it.kind==='rev'?'Review: '+conceptName(p.skill):it.kind==='pre'?`${P().pre&&P().pre.by==='parent'?'Assessment':'Placement'} · ${CO.STR.find(s=>s.id===it.nx.strand).name}`:RD.kind==='test'?'Test out · hard':['Easy','Medium','Hard'][p.d]+` · level ${p.d+1} of 3`;
+  bd.textContent=it.kind==='tut'?'Going over a mistake':RD.kind==='tut'&&it.kind==='step'?`Mistake ${it.ti+1} of ${P().tut.items.length} · step by step`:it.kind==='aud'?'Memory check':it.kind==='step'?'Step by step':cid?'Tricky spot: '+conceptName(cid):it.kind==='rev'?'Review: '+conceptName(p.skill):it.kind==='pre'?`${P().pre&&P().pre.by==='parent'?'Assessment':'Placement'} · ${CO.STR.find(s=>s.id===it.nx.strand).name}`:RD.kind==='test'?'Test out · hard':['Easy','Medium','Hard'][p.d]+` · level ${p.d+1} of 3`;
   const pp=!!p.paper,mk=pp?'paper':'head';setMode($('#qMode'),pp,it.kind==='step'?(pp?'Write this step on your paper':'One small step'):'',!!RD.mode&&RD.mode!==mk);RD.mode=mk;
   const qc=$('#play .qcard');qc.classList.toggle('paper',pp);qc.classList.toggle('head',!pp);
   const qt=$('#qText');qt.innerHTML=p.html||p.text;qt.classList.toggle('long',!!p.read&&p.read.w>16);$('#qVis').innerHTML=p.vis||'';
@@ -19559,7 +19585,9 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   if(ask){RD.ready=1;$('#qReadyBtn').onclick=()=>{Snd.click();rdy.hidden=true;if(RD&&RD.cur===it&&RD.phase==='ask')RD.t0=Date.now()}}
   const fb=$('#feedback');fb.hidden=true;fb.className='feedback';fb.innerHTML='';
   $('#nextQBtn').hidden=true;$('#skipBtn').hidden=it.kind!=='pre'&&it.kind!=='aud';$('#skipBtn').textContent=it.kind==='aud'?'I don’t remember':'I haven’t learned this yet';$('#hintBtn').hidden=it.kind==='pre'||it.kind==='aud'||RD.kind==='test'||!p.how||!p.how.length;$('#hintBtn').disabled=false;
-  const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;fitQ();
+  const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;
+  if(it.kind==='tut'){showTut(it);renderDots();return}
+  fitQ();
   renderDots();$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${P().cur}`;
   $('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
   /* a problem written above the child's grade (a concept two or more grades ahead of her) is read to her */
@@ -19579,7 +19607,7 @@ function fitQ(){if(screen!=='play')return;const qc=$('#play .qcard'),vis=$('#qVi
   qc.classList.add('fit2');shrinkVis();if(over()<=0)return;
   qc.classList.add('fit3');zmin=.4;shrinkVis()}
 let fitT=0;addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(()=>{if(RD&&RD.phase==='ask')fitQ()},120)});
-function renderDots(pop){const d=$('#dots');if(RD.kind==='audit'){d.innerHTML=`<span class="streak">${Math.min(RD.mainDone+1,RD.mainTotal)} of ${RD.mainTotal}</span>`;return}if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
+function renderDots(pop){const d=$('#dots');if(RD.kind==='tut'){const n=P().tut?P().tut.items.length:0;d.innerHTML=`<span class="streak">Mistake ${Math.min((RD.cur&&RD.cur.ti|0)+1,n)} of ${n}</span>`;return}if(RD.kind==='audit'){d.innerHTML=`<span class="streak">${Math.min(RD.mainDone+1,RD.mainTotal)} of ${RD.mainTotal}</span>`;return}if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
   let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}${pop&&i===RD.results.length-1?' pop':''}"></i>`}d.innerHTML=h}
 function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m)}
 
@@ -19672,7 +19700,7 @@ function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),
       if(ev.mastered){RD.masteredNow=p.skill;RD.refresh=!!ev.refreshed;RD.stop=true;RD.queue=[];fanfare=true;award(40);extra=`<div><b>${ev.refreshed?'Mastered again':'Concept mastered'}: ${esc(conceptName(p.skill))}!</b></div>`}}
     if(first&&RD.kind==='test'&&it.kind==='main'&&!RD.usedHint)RD.testRight++;
     const m=WORLDS[k].milestones&&WORLDS[k].milestones[RD.streak];if(first&&m&&(RD.streak===5||RD.streak===10)){award(m.b);toast(`${m.t} +${m.b} ${curName(k)}`)}}
-  else if(first)award(2);
+  else if(first){award(2);if(RD.kind==='tut')RD.right++}
   /* a quick step in your head moves on by itself, so its keys stay put; everything else waits for Next */
   const auto=first&&!extra&&it.kind==='step'&&!p.paper,streak=it.kind==='step'?0:RD.streak;
   if(first)Snd.right(Math.max(1,streak));else Snd.again();if(fanfare)Snd.win(.5);
@@ -19753,21 +19781,23 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   else if(R0.kind==='fix'){const m=p.mist[R0.concept];sub='Tricky spot: '+conceptName(R0.concept);
     note=m&&m.ok>=3?'Fixed! That idea is solid now.':`${R0.fixRight} of ${R0.fixTotal} practice problems right the first time. Fixed after 3 in a row.`;
     if(R0.deeperAdded)note+=` Next, go one step back with “${conceptName(R0.deeperAdded)}”, which is in your tricky spots.`}
+  else if(R0.kind==='tut'){sub='Going over your mistakes';const n=p.tut?p.tut.items.length:0;if(p.tut){p.tut.done=true;p.tut.i=n;p.tut.t=Date.now()}
+    title='All gone over!';note=`You went over ${n===1?'the problem':'all '+n+' problems'} you missed, one step at a time. Each mistake teaches you something.`}
   else if(R0.kind==='pre'){const pre=p.pre;sub=checkName(pre);
-    if(pre&&!CO.pretestNext(pre)){const more=CO.pretestAdvance(pre);pre.t=Date.now();
+    if(pre&&!CO.pretestNext(pre)){const more=CO.pretestAdvance(pre);pre.t=Date.now();tutFromPre(p,pre,pre.bi-1);
       if(!more){pre.done=true;const res=CO.pretestApply(p,pre);p.apace=Math.round((p.apace?(p.apace+pre.pace)/2:pre.pace)*100)/100;title='All done!';note=`${res.total} concepts you already know are marked mastered. They'll come back now and then for review.`}
       else{CO.pretestApply(p,pre,Date.now(),true);const pg=CO.pretestProgress(pre);title=`Block ${pre.bi} of ${pg.blocks} done!`;note=(pre.again&&pre.again.length?`Some parts went by too fast to count (${pre.again.map(s=>CO.STR.find(x=>x.id===s).name).join(', ')}), so they come again. Take your time and read each one. `:'')+`Take a break. The next block is planned at about ${clamp(pg.estMin,5,30)} minutes. Start it from the map whenever you're ready, today or another day.`}
       CO.asmNote(p,pre)}
     else{if(pre&&!pre.done){CO.pretestApply(p,pre,Date.now(),true);CO.asmNote(p,pre)}title='Saved!';note='Your check is saved. Pick up where you left off any time.'}}
   /* the block: count the round; when its problems are done, the block ends, her pace is updated and the next block is sized */
-  const bk=R0.kind!=='pre'?blkLive(p):null;let bEnd=false;
+  const bk=R0.kind!=='pre'&&R0.kind!=='tut'?blkLive(p):null;let bEnd=false;
   if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
-    if(bk.goal&&bk.n>=bk.goal){bk.done=true;bEnd=true;CO.blockPace(p,bk);bk.next=CO.blockGoal(p);
+    if(bk.goal&&bk.n>=bk.goal){bk.done=true;bEnd=true;CO.blockPace(p,bk);bk.next=CO.blockGoal(p);tutFromBlock(p,bk);
       blkArchive(p,bk)}}
   RD=null;LAST=R0;endRound();persist();
   show('results');applyWorld(k,sceneLevel(p));$('#resHero').innerHTML=charSVG(charOf(p,k),'happy');$('#resTitle').textContent=title;$('#resSub').textContent=sub;
   $('#resStars').innerHTML=starsShown!=null?[0,1,2].map(i=>starSvg(i<starsShown)).join(''):'';
-  $('#rRight').textContent=R0.kind==='pre'?R0.earned/2|0:R0.kind==='audit'?R0.right:R0.kind==='fix'?R0.fixRight:R0.right;$('#rStreak').textContent=R0.bestStreak;$('#rCur').textContent='+'+R0.earned;$('#rCurL').textContent=cap(curName(k));
+  $('#rRight').textContent=R0.kind==='pre'?R0.earned/2|0:R0.kind==='audit'||R0.kind==='tut'?R0.right:R0.kind==='fix'?R0.fixRight:R0.right;$('#rStreak').textContent=R0.bestStreak;$('#rCur').textContent='+'+R0.earned;$('#rCurL').textContent=cap(curName(k));
   $('#resNote').textContent=note;
   /* tricky spots found this round, with practice right here */
   const rs=$('#resSpots');rs.innerHTML='';const found=Object.keys(R0.missed).filter(id=>S[id]&&(!p.mist[id]||p.mist[id].ok<3));
@@ -19784,7 +19814,10 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     nb.hidden=bEnd||!bk;nb.textContent='Keep going';nb.onclick=()=>startBlock();
     $('#againBtn').hidden=bEnd||!(R0.kind==='fix'&&!(p.mist[R0.concept]&&p.mist[R0.concept].ok>=3))&&!(R0.kind==='test'&&!CO.isMastered(p,R0.skill));$('#againBtn').textContent=R0.kind==='fix'?'Practice again':'Try again';
     rb.hidden=!bk;if(bk)rb.innerHTML=bEnd?blockSummary(bk):`About ${probs(CO.blockLeft(bk))} left in today’s block.`}
-  $('#hubBtn').textContent=bEnd?'Back to the map':'Map';
+  $('#hubBtn').textContent=bEnd?'Back to the map':'Map';$('#hubBtn').hidden=false;
+  if(R0.kind==='tut'){nb.hidden=true;$('#againBtn').hidden=true;$('#hubBtn').textContent='Back to the map';rb.hidden=true}
+  if(tutPending(p)&&R0.kind!=='tut'){const n=p.tut.items.length;nb.hidden=false;nb.textContent=`Go over my mistakes (${n})`;nb.onclick=()=>startTut();$('#againBtn').hidden=true;$('#hubBtn').hidden=true;
+    $('#resNote').textContent=($('#resNote').textContent+' ').trimStart()+`First, let’s go over the ${n===1?'problem':n+' problems'} you missed, step by step.`}
   if(starsShown)for(let i=0;i<starsShown;i++)setTimeout(()=>Snd.star(i),300+i*250);
   if(!early)setTimeout(()=>fxConfetti(R0.masteredNow||(R0.kind==='pre'&&preDone(p))?160:70),250);Snd.win()}
 let LAST=null;const AUD={};

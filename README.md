@@ -101,6 +101,18 @@ What the block does next depends on how the kid is doing:
   concepts it is built on are checked, even before they are due (each at most every 3 days).
 - Levels, tricky spots, break-downs and help lessons adapt within each round, as below.
 
+## Going over mistakes
+
+At the end of every block, practice or assessment, she goes over each problem she got wrong before anything else
+(`startTut` in `src/game.js`). The results screen offers only **Go over my mistakes (N)**: the map, the next block and
+the next assessment block all wait until it is done, and starting a block from the map opens it first. Each mistake
+shows the same problem again, what she answered and the right answer, and the worked shortcut. Then come the problem's
+break-down steps, which she answers one at a time with the usual hints and second-try help. In a practice block the
+mistakes are problems missed twice and memory-check problems missed or not remembered. In an assessment block they are
+the wrong answers, not the ones she said she hasn't learned yet, and not parts she went through too fast (those are
+asked again). At most 8, the latest. The list is kept in the save (`tut`: items with concept, level, seed and what she
+typed, `i` the one she is on, `done`), so closing the game doesn't skip it, and it picks up at the problem she was on.
+
 ## Memory checks
 
 Every concept mastered in the game is checked again 1, 3, 9, 27 and 81 days after it is mastered, then every 81 days.

@@ -23,7 +23,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     await p.setViewport(viewport || { width: 1100, height: 860 });
     await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
     await mock.attach(p);
-    await p.evaluateOnNewDocument(() => { window.__mwRushMs = 0; /* test answers are instant: memory checks still count */ window.__storageWrites = 0; for (const k of ['localStorage', 'sessionStorage']) { try { const s = window[k], set = s.setItem.bind(s); s.setItem = (...a) => { window.__storageWrites++; return set(...a); }; } catch (e) {} } });
+    await p.evaluateOnNewDocument(() => { window.__mwNoTut = !window.name.includes('tut'); window.__mwRushMs = 0; /* test answers are instant: memory checks still count */ window.__storageWrites = 0; for (const k of ['localStorage', 'sessionStorage']) { try { const s = window[k], set = s.setItem.bind(s); s.setItem = (...a) => { window.__storageWrites++; return set(...a); }; } catch (e) {} } });
     await p.goto(F); return p;
   };
   const ev = (p, f, ...a) => p.evaluate(f, ...a);
@@ -499,6 +499,26 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(m14.store.riley.state.cs[ids14[2]].lx > 0, 'the slipped concept is saved online');
   await ev(p, () => document.querySelector('#hubBtn').click()); await wait(150);
   check(await ev(p, () => /done/.test(document.querySelector('#nextTitle').textContent) && document.querySelectorAll('#map .chip.lapsed').length >= 1), 'the map says today is done and marks what slipped');
+  /* at the end of a block she goes over every problem she got wrong, step by step, before anything else */
+  { await ev(p, () => { window.__mwNoTut = false; const pl = window.__mw.saves.riley; pl.blk = null; });
+    await ev(p, () => window.__mw.startBlock()); await wait(200);
+    await ev(p, () => { const b = window.__mw.blk; b.goal = b.n + 40; });
+    for (let i = 0; i < 120; i++) {
+      if (await resultsShown(p)) { if (await ev(p, () => { const b = window.__mw.saves.riley.blk; return !b || b.done; })) break; await ev(p, () => document.querySelector('#nextLessonBtn').click()); await wait(200); continue; }
+      const c = await cur(p); if (!c) { await wait(100); continue; }
+      if (c.phase === 'ask' && c.kind === 'main') await ev(p, () => { const b = window.__mw.blk; if (b && !b.__set) { b.goal = b.n + 3; b.__set = 1; } });
+      if (c.phase === 'ask') { if (c.kind === 'main') { await answer(p, false); if ((await cur(p)).phase === 'ask') await answer(p, false); } else await answer(p, true); }
+      await next(p); await wait(c.kind === 'aud' ? 800 : 60); }
+    const r = await ev(p, () => ({ res: !document.querySelector('#results').hidden, btn: document.querySelector('#nextLessonBtn').hidden ? '' : document.querySelector('#nextLessonBtn').textContent, map: document.querySelector('#hubBtn').hidden, n: window.__mw.saves.riley.tut && window.__mw.saves.riley.tut.items.length }));
+    check(r.res && /Go over my mistakes \(\d+\)/.test(r.btn) && r.map && r.n >= 1, 'the end of the block asks her to go over her mistakes first, and the map waits (' + JSON.stringify(r) + ')');
+    await ev(p, () => document.querySelector('#nextLessonBtn').click()); await wait(200);
+    const t1 = await ev(p, () => ({ kind: window.__mw.RD.kind, cur: window.__mw.RD.cur.kind, fb: document.querySelector('#feedback').textContent, keys: document.querySelector('#answerArea').hidden, btn: document.querySelector('#nextQBtn').textContent }));
+    check(t1.kind === 'tut' && t1.cur === 'tut' && /Mistake 1 of/.test(t1.fb) && /You answered/.test(t1.fb) && /The answer is/.test(t1.fb) && t1.keys, 'each mistake shows her answer, the right answer and how it works (' + JSON.stringify(t1) + ')');
+    let steps = 0;
+    for (let i = 0; i < 80 && !(await resultsShown(p)); i++) { const c = await cur(p); if (!c) break; if (c.phase === 'ask') { steps++; await answer(p, true); } await next(p); await wait(1200 * 0 + 60); }
+    const t2 = await ev(p, () => ({ res: !document.querySelector('#results').hidden, title: document.querySelector('#resTitle').textContent, done: window.__mw.saves.riley.tut.done, map: !document.querySelector('#hubBtn').hidden }));
+    check(t2.res && /gone over/i.test(t2.title) && t2.done && t2.map && steps >= 1, 'she works through the steps of each mistake, then the map opens again (' + steps + ' steps, ' + JSON.stringify(t2) + ')');
+    await ev(p, () => { window.__mwNoTut = true; }); }
   /* an assessment block keeps going past 20 minutes until its parts are done */
   await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.t = Date.now(); pl.pre.bt = 2 * window.COACH.BLOCK_MS; window.__mw.startPre(); }); await wait(200);
   await answer(p, true);
