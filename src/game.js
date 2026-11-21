@@ -367,7 +367,7 @@ $('#lessonBack').onclick=()=>{Snd.click();openHub()};
    concept, that concept becomes a tricky spot and gets practice at the end of the round. Mastering a concept ends
    the round with a celebration, and the path moves on. */
 let RD=null;
-function newRound(o){RD=Object.assign({queue:[],endQ:[],mainDone:0,mainTotal:10,right:0,streak:0,bestStreak:0,earned:0,missed:{},inserted:{},results:[],keys:new Set(),R:MW.makeR(),fixMiss:0,fixRight:0,fixTotal:0,testRight:0,lvUps:0,phase:'ask'},o)}
+function newRound(o){RD=Object.assign({queue:[],endQ:[],mainDone:0,mainTotal:10,right:0,streak:0,bestStreak:0,earned:0,missed:{},inserted:{},results:[],keys:new Set(),R:MW.makeR(),fixMiss:0,fixRight:0,fixTotal:0,testRight:0,lvUps:0,phase:'ask',undo:[]},o)}
 /* every problem is made from its own seed and remembers it (ref), so the round in progress can be saved online as a
    short recipe and rebuilt exactly on any device */
 function mk(id,d,concept){const seed=Math.floor(Math.random()*2147483647),q=MW.gen(id,d,MW.makeR(seed));q.ref={id,d,seed};if(concept)q.concept=concept;return q}
@@ -418,7 +418,8 @@ let KP=null,ANS=null;
 const counted=it=>it.kind==='main'||it.kind==='rev'||it.kind==='prac';
 function nextQ(){const it=nextItem();if(!it){finishRound();return}
   if(it.kind==='help'){openHelp(it.p.skill,true);return}
-  RD.cur=it;RD.tries=0;RD.usedHint=false;RD.phase='ask';RD.t0=Date.now();KP=null;
+  disarm();RD.cur=it;RD.tries=0;RD.usedHint=false;RD.phase='ask';RD.t0=Date.now();KP=null;
+  $('#backBtn').hidden=!((it.kind==='pre'||it.kind==='aud')&&RD.undo&&RD.undo.length);
   const p=it.p,cid=it.concept||p.concept;
   const bd=$('#qBadge');bd.hidden=false;bd.className='q-badge'+(it.kind==='step'?' build':it.kind==='fix'||it.kind==='prac'||cid?' fix':'');
   bd.textContent=it.kind==='aud'?'Memory check':it.kind==='step'?'Step by step':cid?'Tricky spot: '+conceptName(cid):it.kind==='rev'?'Review: '+conceptName(p.skill):it.kind==='pre'?`${P().pre&&P().pre.by==='parent'?'Assessment':'Placement'} · ${CO.STR.find(s=>s.id===it.nx.strand).name}`:RD.kind==='test'?'Test out · hard':['Easy','Medium','Hard'][p.d]+` · level ${p.d+1} of 3`;
@@ -480,11 +481,20 @@ function kpPress(k){if(!KP||!k)return;if(screen==='help'){if(!HL||!HL.ask)return
   else return;
   KP.raw=r;Snd.key();kpRender();$('#kpDisp').classList.remove('bad')}
 function currentValue(){if(!ANS||!KP)return null;return MW.parse(KP.p,KP.raw)}
+/* Check and "I haven't learned this yet" take two presses: the first lights the button up and says "Tap again";
+   a second press within 4 seconds goes ahead. Enter works the same way. */
+let ARM=null;
+function disarm(){if(!ARM)return;clearTimeout(ARM.timer);const b=$('#'+ARM.id);if(b){b.classList.remove('armed');b.textContent=ARM.label}ARM=null}
+function armed(id,again){const b=$('#'+id);if(ARM&&ARM.id===id&&RD&&ARM.it===RD.cur&&Date.now()-ARM.t<4000){disarm();return true}
+  disarm();ARM={id,it:RD&&RD.cur,t:Date.now(),label:b.textContent,timer:setTimeout(disarm,4000)};b.textContent=again;b.classList.add('armed');Snd.click();return false}
 $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=currentValue();
-  if(v==null){const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
+  if(v==null){disarm();const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
+  if(!armed('checkBtn','Tap again to check'))return;
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
-$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;if(RD.cur.kind==='aud'){Snd.click();RD.cur.skip=1;logAns('q',true,false);auditAns(false,true);return}if(RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0,{seed:RD.cur.p.ref&&RD.cur.p.ref.seed});P().pre.t=Date.now();persist();afterPre(true)};
+$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;if(RD.cur.kind!=='aud'&&RD.cur.kind!=='pre')return;
+  if(!armed('skipBtn',RD.cur.kind==='aud'?'Tap again: I don’t remember':'Tap again: I haven’t learned this'))return;undoSnap();
+  if(RD.cur.kind==='aud'){Snd.click();RD.cur.skip=1;logAns('q',true,false);auditAns(false,true);return}if(RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0,{seed:RD.cur.p.ref&&RD.cur.p.ref.seed});P().pre.t=Date.now();persist();afterPre(true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
 $('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
@@ -503,7 +513,21 @@ function bumpCur(){const c=$('#playCur');c.classList.remove('bump');void c.offse
 function heroDo(cls){const h=$('#playHero');h.classList.remove('jump','shake');void h.offsetWidth;h.classList.add(cls)}
 function cheer(first,gain,fold){markAnswer(true,fold);const from=$('#kpDisp')||$('#answerArea');fxStars(from,first?26:12);if(gain>0&&screen==='play')bumpCur();if(screen==='play')heroDo('jump')}
 const fbTop=(word,streak,gain)=>`<div class="fb-top"><span class="fb-hero axo-box" aria-hidden="true">${charSVG(charOf(P(),lookOf(player)),'happy')}</span><div class="fb-h"><span class="fb-ck">${CHECK_SVG}</span><span>${word}</span></div>${streak>=2||gain>0?`<div class="fb-chips">${streak>=2?`<span class="fb-streak">${streak} in a row!</span>`:''}${gain>0?`<span class="fb-gain">+${gain} ${CUR_ICON[lookOf(player)]}</span>`:''}</div>`:''}</div>`;
-function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P(),cur0=pl.cur;RD.phase='done';
+/* going back: in an assessment or a memory check (which say nothing about right or wrong as they go), Back undoes the
+   last answer and asks that question again, as many questions back as this round has gone */
+const clone=o=>o==null?o:JSON.parse(JSON.stringify(o));
+function undoSnap(){const it=RD&&RD.cur;if(!it||(it.kind!=='pre'&&it.kind!=='aud'))return;const p=P(),k=CO.dayKey(Date.now()),sk=it.p.skill;
+  RD.undo.push({it,sk,k,pre:clone(p.pre),cs:clone(p.cs[sk]),log:clone(p.log[k]),cur:p.cur,blk:clone(p.blk),
+    rd:clone({mainDone:RD.mainDone,right:RD.right,earned:RD.earned,audMs:RD.audMs|0,aud:RD.aud||null,results:RD.results,done:Object.keys(RD).filter(x=>x.startsWith('done_'))})});
+  if(RD.undo.length>30)RD.undo.shift()}
+function goBack(){if(!RD||!RD.undo||!RD.undo.length)return;clearTimeout(RD.autoT);disarm();const s=RD.undo.pop(),p=P();
+  if(RD.cur&&RD.phase==='ask'&&RD.cur!==s.it&&RD.cur.kind==='aud')RD.queue.unshift(RD.cur);
+  p.pre=s.pre;if(s.cs)p.cs[s.sk]=s.cs;else delete p.cs[s.sk];if(s.log)p.log[s.k]=s.log;else delete p.log[s.k];p.cur=s.cur;p.blk=s.blk;
+  const r=s.rd;RD.mainDone=r.mainDone;RD.right=r.right;RD.earned=r.earned;RD.audMs=r.audMs;if(r.aud)RD.aud=r.aud;RD.results=r.results;
+  Object.keys(RD).filter(x=>x.startsWith('done_')&&!r.done.includes(x)).forEach(x=>delete RD[x]);
+  const it=s.it;delete it.typed;delete it.skip;delete it.diag;RD.queue.unshift(it);RD.phase='ask';Snd.click();persist();nextQ()}
+$('#backBtn').onclick=()=>goBack();
+function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),pl=P(),cur0=pl.cur;undoSnap();RD.phase='done';
   logAns(it.kind==='pre'?'pre':it.kind==='step'?'step':'q',first,true);
   /* an assessment says nothing about right or wrong as it goes; the treats for it show up with the results */
   if(it.kind==='pre'){CO.pretestRecord(pl.pre,true,Date.now()-RD.t0,{seed:p.ref&&p.ref.seed});pl.pre.t=Date.now();award(2);persist();afterPre(false);return}
@@ -535,7 +559,7 @@ function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),
     if(auto)RD.autoT=setTimeout(()=>{if(RD&&RD.cur===it&&screen==='play')nextQ()},1100)}
   else{showFb('good',fbTop('You got it!',0,0)+`<div>Here is the shortcut again:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);renderDots();$('#nextQBtn').hidden=false;$('#nextQBtn').textContent='Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true}
   bubble($('#playBubble'),RD.masteredNow&&it.kind==='main'?'You mastered it!':first?praise:'Way to keep trying!');persist()}
-function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;if(RD.tries===1)it.typed=KP?KP.raw:String(v);
+function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();if(it.kind==='pre'||it.kind==='aud')undoSnap();RD.tries++;if(RD.tries===1)it.typed=KP?KP.raw:String(v);
   /* an assessment takes the answer and moves on, exactly as it does for a right one */
   if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0,{seed:p.ref&&p.ref.seed,ans:KP?KP.raw:String(v)});pl.pre.t=Date.now();persist();afterPre(false);return}
   if(it.kind==='aud'){logAns('q',true,false);auditAns(false);return}
@@ -573,7 +597,7 @@ function afterPre(skipped){const pre=RD.kind==='pre'?P().pre:null;
   const sname=strandJustDone?CO.STR.find(s=>s.id===strandJustDone).name:'';
   if(!skipped)Snd.tick();
   showFb('note',`<div class="fb-h">${skipped?'Skipped. That’s OK!':'Answer saved.'}</div>${strandJustDone?`<div>That part is finished: <b>${sname}</b>.</div>`:''}`);
-  renderDots();$('#checkBtn').hidden=true;$('#skipBtn').hidden=true;$('#hintBtn').hidden=true;
+  renderDots();$('#checkBtn').hidden=true;$('#skipBtn').hidden=true;$('#hintBtn').hidden=true;$('#backBtn').hidden=true;
   clearTimeout(RD.autoT);RD.autoT=setTimeout(()=>{if(quiet()&&screen==='play')nextQ()},strandJustDone?1300:650)}
 
 /* ---------- end of a round ---------- */
@@ -992,7 +1016,7 @@ function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,
       if(v&&v!==window.MW_BUILD&&new URLSearchParams(location.search).get('b')!==v&&free())location.replace(location.pathname+'?b='+encodeURIComponent(v))}catch(e){}}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});setInterval(check,6e5);setTimeout(check,5000)})();
 window.__mw={snd:Snd,startBlock,startAudit,get blk(){return blkLive(P())},get fx(){return FX.length},openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
-  answerRight(){if(!RD||!RD.cur)return;submit(RD.cur.p.ans,null)},
+  answerRight(){if(!RD||!RD.cur)return;submit(RD.cur.p.ans,null)},goBack,
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};
 })();

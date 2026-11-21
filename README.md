@@ -147,6 +147,13 @@ down. The search starts near the kid's grade (Riley is in 3rd grade, Charlie in 
 strand settles are marked mastered, and spot-checked a couple at a time from the next day on. A concept whose medium problem was
 right but whose hard problem was missed starts at level 2. The check saves as it goes and can be redone from Settings.
 
+**Two presses, and Back.** Check and "I haven't learned this yet" (or "I don't remember" in a memory check) take two
+presses: the first lights the button up and says "Tap again", and a second press within 4 seconds goes ahead (Enter
+works the same way). In an assessment or a memory check, **← Back** undoes the last answer and asks that question
+again, as many questions back as the round has gone (`goBack` in `src/game.js`; the undo restores the assessment's
+search, the concept's record, the daily log, the block and the treats). Practice rounds show right or wrong at once,
+so they have no Back.
+
 The placement check and the assessments a parent starts never say right or wrong as they go. Every answer gets the
 same tick, the same "Answer saved." note and the same short pause, the character stays neutral, and the treat counter is
 hidden so it can't give the answer away. How many were right, and the treats earned, show on the results at the end of

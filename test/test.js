@@ -168,7 +168,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   const g2 = G.order.find(id => G.grade[id] === 2 && /^a_/.test(id)), g7 = G.order.find(id => G.grade[id] === 7 && /^n_int/.test(id));
   const k2 = await keysOf(g2); check(!/[.\/−]/.test(k2), '2nd grade pads have just the digits (' + k2 + ')');
   if (g7) { const k7 = await keysOf(g7); check(/−/.test(k7) && /\./.test(k7) && /\//.test(k7), '7th grade pads have − . / (' + k7 + ')'); }
-  const typeRight = async id => { await ev(p, s => window.__mw.startLearn(s), id); await wait(100); const raw = await ev(p, () => window.MWC.rawFor(window.__mw.RD.cur.p)); await ev(p, s => window.__mw.type(s), raw); await p.keyboard.press('Enter'); await wait(60); return ev(p, () => window.__mw.RD.phase === 'done' && window.__mw.RD.tries === 0); };
+  const typeRight = async id => { await ev(p, s => window.__mw.startLearn(s), id); await wait(100); const raw = await ev(p, () => window.MWC.rawFor(window.__mw.RD.cur.p)); await ev(p, s => window.__mw.type(s), raw); await p.keyboard.press('Enter'); await wait(40); const one = await ev(p, () => window.__mw.RD.phase === 'ask' && /Tap again/.test(document.querySelector('#checkBtn').textContent)); await p.keyboard.press('Enter'); await wait(60); return one && await ev(p, () => window.__mw.RD.phase === 'done' && window.__mw.RD.tries === 0); };
   for (const id of ['t_later', 't_elapsed', 'c_change', 'm_remain', 'f_addunlike', 'n_intadd', 'x_slope', 'f_decadd']) if (G.grade[id]) check(await typeRight(id), 'typing the answer and pressing Enter works: ' + id);
   check(await ev(p, () => { const MW = window.MWC, q = { type: 'frac', ans: { n: 3, d: 4 }, low: true, skill: 'f_simplify' }; return MW.eqAns(q, MW.parse(q, '3/4')) && !MW.eqAns(q, MW.parse(q, '6/8')); }), 'lowest terms means 6/8 is not accepted where 3/4 is asked');
   check(await ev(p, () => { const MW = window.MWC, q = { type: 'time', ans: { h: 3, m: 15 } }; return MW.eqAns(q, MW.parse(q, '315')) && !MW.eqAns(q, MW.parse(q, '31')); }), 'typing 3 1 5 means 3:15');
@@ -301,7 +301,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => document.querySelector('#preBtn').click()); await wait(150);
   const cf = await cur(p);
   check(cf && G.grade[cf.nx.skill] >= 3, 'a 4th grader starts further in (' + cf.nx.skill + ')');
-  await ev(p, () => document.querySelector('#skipBtn').click()); await wait(1300);
+  await ev(p, () => (document.querySelector('#skipBtn').click(), document.querySelector('#skipBtn').click())); await wait(1300);
   check((await state(p, 'charlie')).pre.st[cf.nx.strand].log.length === 1, 'skipping counts as not known yet');
   await p.close();
 
@@ -413,7 +413,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     return { fbClass: fb.hidden ? 'hidden' : fb.className, head: h ? h.textContent.trim() : '', ok: !!d && d.classList.contains('ok'), bad: !!d && d.classList.contains('bad'), tick: !!q('#kpDisp .kp-ok'), keysShown: !!keys && getComputedStyle(keys).display !== 'none',
       mood: hero && hero.getAttribute('data-mood'), jump: q('#playHero').classList.contains('jump'), curShown: getComputedStyle(c).display !== 'none', fx: window.__mw.fx, treats: window.__mw.saves.riley.cur,
       chips: [...document.querySelectorAll('#feedback .fb-streak,#feedback .fb-gain')].map(x => x.textContent.trim()), dotPop: !!q('#dots i.ok.pop'), streak: q('#streak').textContent }; });
-  const typeAndCheck = async () => { await ev(p, () => { window.__mw.type(String(window.__mw.RD.cur.p.ans)); document.querySelector('#checkBtn').click(); }); await wait(60); };
+  const typeAndCheck = async () => { await ev(p, () => { window.__mw.type(String(window.__mw.RD.cur.p.ans)); document.querySelector('#checkBtn').click(); document.querySelector('#checkBtn').click(); }); await wait(60); };
   await ev(p, () => document.querySelector('#preBtn').click()); await wait(200);
   const a0 = await look(); await sounds();
   check((await cur(p)).kind === 'pre' && !a0.curShown, 'an assessment keeps the treat counter out of sight');
@@ -467,7 +467,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     const c = await ev(p, () => { const R = window.__mw.RD; return R && R.cur ? { aid: R.cur.aid, phase: R.phase } : null; });
     if (!c || c.phase !== 'ask') { await wait(80); continue; }
     const k = used[c.aid] = (used[c.aid] | 0) + 1, act = plan[c.aid][k - 1];
-    if (act === 's') await ev(p, () => document.querySelector('#skipBtn').click()); else await answer(p, !!act);
+    if (act === 's') await ev(p, () => (document.querySelector('#skipBtn').click(), document.querySelector('#skipBtn').click())); else await answer(p, !!act);
     notes.add(await ev(p, () => document.querySelector('#feedback .fb-h').textContent.trim()));
     await until(() => ev(p, () => !document.querySelector('#results').hidden || (window.__mw.RD && window.__mw.RD.phase === 'ask')), 3000);
   }
@@ -503,6 +503,16 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = window.COACH.pretestStart(3); pl.pre.t = Date.now(); pl.pre.bt = 2 * window.COACH.BLOCK_MS; window.__mw.startPre(); }); await wait(200);
   await answer(p, true);
   check(await until(() => ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask'), 4000) && await ev(p, () => document.querySelector('#results').hidden), 'an assessment block is not cut off at 20 minutes');
+  /* "I haven't learned this yet" takes two presses, and Back undoes the last answer */
+  { const before = await ev(p, () => JSON.stringify(window.__mw.saves.riley.pre.st));
+    await ev(p, () => document.querySelector('#skipBtn').click()); await wait(40);
+    const once = await ev(p, () => window.__mw.RD.phase === 'ask' && /Tap again/.test(document.querySelector('#skipBtn').textContent) && JSON.stringify(window.__mw.saves.riley.pre.st));
+    await ev(p, () => document.querySelector('#skipBtn').click());
+    await until(() => ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask'), 3000);
+    const moved = await ev(p, () => JSON.stringify(window.__mw.saves.riley.pre.st)), backShown = await ev(p, () => !document.querySelector('#backBtn').hidden);
+    await ev(p, () => document.querySelector('#backBtn').click()); await wait(120);
+    const after = await ev(p, () => JSON.stringify(window.__mw.saves.riley.pre.st));
+    check(once === before && moved !== before && backShown && after === before && await ev(p, () => window.__mw.RD.phase === 'ask'), 'skipping takes two presses, and Back undoes the answer and asks again'); }
   await p.close();
 
   /* 15. earlier-grade spot checks: a kid who starts at 4th grade gets two assumed concepts checked as a block opens;
@@ -517,7 +527,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => { window.__mwRushMs = null; document.querySelector('#nextBtn').click(); }); await wait(200);
   const e15 = await ev(p, () => { const R = window.__mw.RD, pl = window.__mw.saves.charlie; return { kind: R && R.kind, ids: R && R.ids, ok: R && R.ids.every(id => pl.cs[id].pl && !pl.cs[id].at && window.MWC.S[id].g < 4), early: window.__mw.blk.early }; });
   check(e15.kind === 'audit' && e15.ids.length === 2 && e15.ok && e15.early === 2, 'it checks two earlier-grade concepts she has never been checked on (' + JSON.stringify(e15) + ')');
-  for (let i = 0; i < 80 && !(await resultsShown(p)); i++) { if (await ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask')) await ev(p, () => document.querySelector('#skipBtn').click()); await wait(120); }
+  for (let i = 0; i < 80 && !(await resultsShown(p)); i++) { if (await ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask')) await ev(p, () => (document.querySelector('#skipBtn').click(), document.querySelector('#skipBtn').click())); await wait(120); }
   await until(() => resultsShown(p), 5000);
   const f15 = await ev(p, ids => { const pl = window.__mw.saves.charlie, CO = window.COACH, lg = Object.values(pl.log || {}); return { title: document.querySelector('#resTitle').textContent, lapsed: ids.filter(id => CO.isLapsed(pl, id)).length, assumed: CO.assumedList(pl).length, ar: lg.reduce((a, e) => a + (e.ar || 0), 0), w: ids.reduce((a, id) => a + (pl.cs[id].w | 0), 0) }; }, e15.ids);
   check(/too fast/i.test(f15.title) && f15.lapsed === 0 && f15.assumed === as15 && f15.ar === 1 && f15.w === 0, 'a check tapped through does not count: nothing slips (' + JSON.stringify(f15) + ')');
