@@ -178,6 +178,19 @@ her are mastered, while a part still being searched, or one asked again because 
 open on any device redraws when new progress arrives (15 s poll), keeps open question sets and the scroll position,
 and shows when progress was last saved.
 
+**The report rests on every block, not the assessment alone.** Grade level, percentile and how firm the numbers are
+come from all the blocks done so far: assessment blocks place what she already knows, practice blocks add what she
+masters, and memory checks take away what slipped. Assessment questions and practice problems both count toward how
+firm the report is (`COACH.report` → `blocks`, `answered`).
+
+**Blocks** lists every block newest first (`COACH.blockList`): each block of each assessment (the questions of the parts
+planned in it; a part asked again counts in the block it was asked again in) and each practice block, including one in
+progress or left unfinished on an earlier day (archived into `bhist` with `partial` when the next block starts). Open a
+block to review every question: the exact problem rebuilt from its seed, the right answer, and how she answered. Practice
+blocks keep their problems in `q` (`[concept, level, seed, step, kind, right first try, right in the end, ms, first wrong
+answer, skipped]`; the last 15 blocks keep them). Assessment block end times are kept in `pre.bend` (and `bl`, `bi`,
+`bms`, `bend` in each `asm` line); older blocks are dated from the daily log.
+
 **History** charts grade level (with the average student in her grade), the estimated national percentile, concepts
 mastered, problems answered (right first try, other practice, assessment questions) and minutes, over 7 days, 30 days,
 3 months, 1 year or all time (`COACH.history`): day by day up to a month, week by week up to about 6 months, month by

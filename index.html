@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-20 23:04';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-21 13:37';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -18653,7 +18653,7 @@ function pretestAdvance(pre) {
   pretestFix(pre); const blk = blockOf(pre);
   /* her pace: the time she took over the time an average kid takes on the same questions */
   const est = pre.be || blk.reduce((a, sid) => a + (pre.st[sid].log.length * avgSec(pre.st[sid].log[0] ? pre.st[sid].log[0][0] : STR.find(x => x.id === sid).core[0]) * 1000), 0);
-  const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0; pre.be = 0;
+  const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0; pre.be = 0; pre.bend = (Array.isArray(pre.bend) ? pre.bend : []).concat([Date.now()]);
   /* a block she tapped through says nothing about her pace */
   if (est > 0 && ms > 0 && ms / est >= 0.25) { const r = ms / est, n = (pre.pn != null ? pre.pn : pre.bms.length - 1) + 1; pre.pn = n; pre.pace = ((pre.pace || 1) * (n - 1) + r) / n; }
   /* parts she tapped through are asked again, once */
@@ -18685,11 +18685,12 @@ function pretestApply(p, pre, now, doneOnly) {
   pre.nm = (pre.nm | 0) + out.mastered; out.total = pre.nm; p.now = null; return out;
 }
 /* every question of a check, in order of its parts: [part, concept, level, right, skipped, ms (negative: the part's average,
-   from before each question was timed), seed, typed, didn't count];
+   from before each question was timed), seed, typed, didn't count, block (0-based)];
    questions from a part she tapped through (asked again) come first in that part, marked as not counted */
 function asmQuestions(pre) {
-  const out = []; if (!pre || !pre.st) return out;
-  pre.order.forEach(sid => { const x = pre.st[sid]; if (!x) return; const row = (e, nc) => out.push([sid, e[0], e[1], e[2] ? 1 : 0, e[3] ? 1 : 0, e[4] != null ? e[4] : -Math.round((x.ms || 0) / Math.max(1, (x.log || []).length)), typeof e[5] === 'number' ? e[5] : null, e[6] != null ? e[6] : null, nc]);
+  const out = []; if (!pre || !pre.st) return out; const bl = Array.isArray(pre.blocks) ? pre.blocks : [];
+  pre.order.forEach(sid => { const x = pre.st[sid]; if (!x) return; const I = bl.map((b, i) => Array.isArray(b) && b.includes(sid) ? i : -1).filter(i => i >= 0), b0 = I.length ? I[0] : 0, b1 = x.prev && I.length ? I[I.length - 1] : b0;
+    const row = (e, nc) => out.push([sid, e[0], e[1], e[2] ? 1 : 0, e[3] ? 1 : 0, e[4] != null ? e[4] : -Math.round((x.ms || 0) / Math.max(1, (x.log || []).length)), typeof e[5] === 'number' ? e[5] : null, e[6] != null ? e[6] : null, nc, nc ? b0 : b1]);
     ((x.prev && x.prev.log) || []).forEach(e => row(e, 1)); (x.log || []).forEach(e => row(e, 0)); });
   return out;
 }
@@ -18700,7 +18701,8 @@ function asmNote(p, pre, now) {
   let n = 0, ok = 0, sk = 0, done = 0, again = 0; pre.order.forEach(sid => { const x = pre.st[sid]; (x.log || []).forEach(e => { n++; if (e[2]) ok++; if (e[3]) sk++; }); if (x.done) done++; if (x.redo) again++; });
   const ge = gradeLevel(p, null).ge, st = schoolTime(now), grade = pre.grade || 3;
   const e = { t0: pre.started || pre.t || now, t: now, by: pre.by || 'placement', done: !!pre.done, parts: pre.order.length, partsDone: done, again, n, ok, sk, ms: (pre.bms || []).reduce((a, b) => a + b, 0) + (pre.bt || 0),
-    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p), grade, q: asmQuestions(pre) };
+    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p), grade, q: asmQuestions(pre),
+    bl: (pre.blocks || []).map(b => (b || []).slice()), bi: pre.bi | 0, bms: (pre.bms || []).slice(), bend: (pre.bend || []).slice() };
   const L = (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t0 !== e.t0); L.push(e); L.sort((a, b) => a.t0 - b.t0);
   L.forEach((x, i) => { if (i < L.length - 12) delete x.q; }); p.asm = L.slice(-50); return e;
 }
@@ -18729,6 +18731,49 @@ function resetToAssessment(p, now) {
     set: p.set || null, log, apace: p.apace == null ? null : p.apace, help: [], blk: null, ppace: null, bhist: [], asm: (Array.isArray(p.asm) ? p.asm : []).slice(), reset: { t: now, from: q.started || T }, updated: now };
   const res = pretestApply(np, q, T); asmNote(np, q, T);
   return { p: np, mastered: res.mastered, again };
+}
+
+/* ---------- every block, for the parent view ----------
+   One list of every block done so far, newest first: each block of each assessment (its questions are the ones of the
+   parts planned in that block; a part asked again because she went too fast counts in the block it was asked again in)
+   and each practice block (from bhist, plus the one open or left unfinished in p.blk). Assessment blocks from before
+   their end times were saved are dated from the daily log. */
+function asmBlocks(p, a) {
+  const pre = p.pre, live = !!(pre && pre.st && (pre.started || pre.t) === a.t0);
+  const Q = live ? asmQuestions(pre) : Array.isArray(a.q) ? a.q : null;
+  const bl = live ? pre.blocks : a.bl, bms = (live ? pre.bms : a.bms) || [], bend = (live ? pre.bend : a.bend) || [];
+  const bi = live ? (pre.done ? (bl || []).length : pre.bi | 0) : a.bi != null ? a.bi : a.done ? (bl ? bl.length : 1) : 0, nb = bl && bl.length ? bl.length : 1;
+  const out = [];
+  for (let i = 0; i < nb; i++) {
+    const q = Q ? Q.filter(x => (x[9] != null ? x[9] : 0) === i) : null, done = i < bi || (!!a.done && !live);
+    if (!done && !(q && q.length)) continue;
+    const c = (q || []).filter(x => !x[8]);
+    out.push({ kind: 'asm', key: 'a' + a.t0 + '-' + i, t0: a.t0, by: a.by || 'placement', i, of: nb, done, t: bend[i] || null, ms: bms[i] != null ? bms[i] : (q || []).reduce((s, x) => s + Math.abs(x[5] || 0), 0),
+      q, n: q ? c.length : (i === 0 ? a.n | 0 : 0), ok: q ? c.filter(x => x[3]).length : (i === 0 ? a.ok | 0 : 0), sk: q ? c.filter(x => x[4]).length : 0, parts: bl && bl[i] ? bl[i].slice() : [] });
+  }
+  /* dates for blocks from before their end times were saved: the days with assessment questions in the daily log,
+     taken in order: a block goes on a day while that day's time still covers it */
+  if (out.some(b => !b.t)) { const d0 = dayKey(a.t0), d1 = dayKey(a.t || a.t0), log = p.log || {};
+    const days = Object.keys(log).filter(k => k >= d0 && k <= d1 && (log[k].pre | 0) > 0).sort().map(k => [k, log[k].ms || 0]); let di = 0;
+    out.forEach(b => { if (b.t) return; while (days[di] && di < days.length - 1 && (b.ms || 0) > days[di][1] + 2000) di++;
+      const k = days[di]; b.t = k ? new Date(k[0] + 'T12:00').getTime() : (a.t || a.t0); b.est = 1; if (k) k[1] -= b.ms || 0; }); }
+  return out;
+}
+function blockList(p) {
+  const out = [], A = (Array.isArray(p.asm) ? p.asm : []).filter(a => a && a.t0), pre = p.pre, t0 = pre && (pre.started || pre.t);
+  if (pre && pre.st && pre.started && !A.some(a => a.t0 === t0)) A.push({ t0, t: pre.t, by: pre.by, done: !!pre.done });
+  A.forEach(a => asmBlocks(p, a).forEach(b => out.push(b)));
+  const H = (Array.isArray(p.bhist) ? p.bhist : []).filter(b => b && b.t0).slice();
+  if (p.blk && p.blk.t0 && (p.blk.n | 0) > 0 && !H.some(b => b.t0 === p.blk.t0)) H.push(Object.assign({}, p.blk, { open: !p.blk.done && p.blk.day === dayKey(Date.now()), partial: !p.blk.done }));
+  H.forEach(b => out.push({ kind: 'practice', key: 'p' + b.t0, t0: b.t0, t: b.t || b.t0, done: !b.partial && !b.open, open: !!b.open, n: b.n | 0, ok: b.ok | 0, ms: b.ms || 0, goal: b.goal || null,
+    q: Array.isArray(b.q) ? b.q : null, mastered: b.mastered || [], refreshed: b.refreshed || [], seen: Array.isArray(b.seen) ? b.seen.length : b.seen | 0, held: b.held | 0, lapsed: b.lapsed || [] }));
+  return out.sort((x, y) => ((y.t || y.t0) - (x.t || x.t0)) || ((y.i | 0) - (x.i | 0)));
+}
+/* the totals behind the report: every block, assessment and practice */
+function blockTotals(L) {
+  const o = { count: L.length, asm: 0, asmQ: 0, asmOk: 0, prac: 0, pracN: 0, pracOk: 0, ms: 0 };
+  L.forEach(b => { o.ms += b.ms || 0; if (b.kind === 'asm') { o.asm++; o.asmQ += b.n; o.asmOk += b.ok; } else { o.prac++; o.pracN += b.n; o.pracOk += b.ok; } });
+  return o;
 }
 
 /* ---------- the parent report ----------
@@ -18825,9 +18870,11 @@ function report(p, grade, now) {
     lapsed: csv.filter(([id]) => isLapsed(p, id)).map(([id, s]) => ({ id, at: s.lx, lv: s.lv })).sort((a, b) => b.at - a.at),
     recent: csv.filter(([, s]) => s.at).map(([id, s]) => ({ id, at: s.at, res: s.lx && s.lx === s.at ? 'lapse' : s.sh ? 'shaky' : 'pass' })).sort((a, b) => b.at - a.at).slice(0, 12) };
   let fastChecks = 0; for (const k in log) fastChecks += (log[k] && log[k].ar) | 0; /* memory checks tapped through, which did not count */
-  const answered = Math.max(all.r + all.w, ever.n);
+  /* the report rests on every block: assessment questions and practice problems both count toward how firm it is */
+  const BL = blockList(p), blocks = blockTotals(BL); let everPre = 0; for (const k in log) everPre += (log[k] && log[k].pre) | 0;
+  const answered = Math.max(all.r + all.w, ever.n, blocks.pracN) + Math.max(everPre, blocks.asmQ);
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
-  return { now, grade, week: st.week, expect, placed, partial, fastChecks, capG, overall, domains, pct, ceilPct, confidence, answered,
+  return { now, grade, week: st.week, expect, placed, partial, fastChecks, blocks, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
     learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, retention, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
@@ -18856,7 +18903,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, asmQuestions, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, asmQuestions, blockList, blockTotals, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;
@@ -19211,7 +19258,7 @@ function recordMiss(id,why){const p=P();const m=p.mist[id]||(p.mist[id]={n:0,ok:
    5 minutes a problem), break-down steps and placement questions */
 function logAns(kind,first,right){if(!player||!RD)return;const p=P(),k=CO.dayKey(Date.now()),e=p.log[k]||(p.log[k]={n:0,ok:0,ms:0});
   e.ms=(e.ms|0)+clamp(Date.now()-(RD.t0||Date.now()),0,300000);
-  if(kind!=='pre')blkAdd(Date.now()-(RD.t0||Date.now()),kind==='step'?0:1,kind!=='step'&&first&&right?1:0,0,kind!=='step'&&RD.cur&&RD.cur.p&&S[RD.cur.p.skill]?CO.pracSec(RD.cur.p.skill)*1000:0);
+  if(kind!=='pre'){blkAdd(Date.now()-(RD.t0||Date.now()),kind==='step'?0:1,kind!=='step'&&first&&right?1:0,0,kind!=='step'&&RD.cur&&RD.cur.p&&S[RD.cur.p.skill]?CO.pracSec(RD.cur.p.skill)*1000:0);blkQ(first,right)}
   if(kind==='pre'){e.pre=(e.pre|0)+1;if(right)e.pok=(e.pok|0)+1;return}if(kind==='step'){e.st=(e.st|0)+1;return}
   e.n=(e.n|0)+1;if(first&&right)e.ok=(e.ok|0)+1;if(RD.usedHint)e.h=(e.h|0)+1}
 /* ---------- practice blocks ----------
@@ -19223,7 +19270,19 @@ function logAns(kind,first,right){if(!player||!RD)return;const p=P(),k=CO.dayKey
 const BLK_CAP=4*60000;
 function blkLive(p){const b=p&&p.blk;return b&&!b.done&&b.day===CO.dayKey(Date.now())?b:null}
 function ensureBlock(){const p=P();let b=blkLive(p);if(b)return b;const day=CO.dayKey(Date.now()),n=p.blk&&p.blk.day===day?(p.blk.num|0):0;
+  if(p.blk&&!p.blk.done&&(p.blk.n|0)>0)blkArchive(p,p.blk,true);
   return p.blk={num:n+1,day,t0:Date.now(),t:Date.now(),goal:CO.blockGoal(p),ms:0,exp:0,n:0,ok:0,rounds:0,seen:[],fc:[],mastered:[],refreshed:[],held:0,lapsed:[],justMastered:false,done:false}}
+/* every problem of a practice block is kept for the parent view: [concept, level, seed, break-down step, kind (m practice,
+   r review, a memory check, f tricky spot, t test-out, s break-down step), right first try, right in the end, ms, what she
+   typed first when it was wrong, skipped]; the seed rebuilds the exact problem */
+function blkQ(first,right){const b=blkLive(P()),it=RD&&RD.cur;if(!b||!it||!it.p)return;const p=it.p,r=p.ref||{},Q=b.q||(b.q=[]);if(Q.length>=160)return;
+  const tag=it.kind==='step'?'s':it.kind==='aud'?'a':(RD.kind==='fix'||it.kind==='fix'||it.kind==='prac')?'f':RD.kind==='test'?'t':(it.kind==='rev'||RD.kind==='review')?'r':'m';
+  Q.push([r.id||p.skill||null,r.d!=null?r.d:null,r.seed!=null?r.seed:null,r.step!=null?r.step:null,tag,first&&right?1:0,right?1:0,Math.round(clamp(Date.now()-(RD.t0||Date.now()),0,300000)),it.typed!=null?String(it.typed).slice(0,24):null,it.skip?1:0])}
+/* a finished block (or one left unfinished on an earlier day) goes into the history the parent view lists; the last 15
+   keep their problems */
+function blkArchive(p,bk,partial){if(!bk||!bk.t0||!(bk.n|0))return;const e={t0:bk.t0,t:bk.t||Date.now(),n:bk.n|0,ok:bk.ok|0,ms:Math.round(bk.ms||0),goal:bk.goal,next:bk.next||null,pace:p.ppace,rounds:bk.rounds|0,
+  mastered:(bk.mastered||[]).slice(),refreshed:(bk.refreshed||[]).slice(),seen:(bk.seen||[]).length,held:bk.held|0,lapsed:(bk.lapsed||[]).slice(),q:(bk.q||[]).slice()};if(partial)e.partial=1;
+  const L=(p.bhist||[]).filter(x=>x&&x.t0!==bk.t0).concat([e]).sort((a,b)=>a.t0-b.t0).slice(-30);L.forEach((x,i)=>{if(i<L.length-15)delete x.q});p.bhist=L}
 function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;b.ms+=clamp(ms,0,capMs||BLK_CAP);b.exp=(b.exp||0)+(exp||0);b.n+=n|0;b.ok+=ok|0;b.t=Date.now()}
 const probs=n=>n+' problem'+(n===1?'':'s');
 const doneToday=p=>!!(p.blk&&p.blk.done&&p.blk.day===CO.dayKey(Date.now()));
@@ -19231,7 +19290,7 @@ function startBlock(){Snd.init();const p=P(),b=ensureBlock(),nx=CO.blockNext(p,b
   if(nx.kind==='audit'){if(nx.focus)b.fc.push(nx.focus);b.early=(b.early|0)+(nx.early|0);startAudit(nx.ids,nx.focus);return}
   if(nx.kind==='learn'){Snd.click();playConcept(nx.id);return}
   if(nx.kind==='review'){startReview();return}
-  b.done=true;b.t=Date.now();persist();openHub();toast('Today’s block is done. Great work!')}
+  b.done=true;b.t=Date.now();blkArchive(p,b);persist();openHub();toast('Today’s block is done. Great work!')}
 function recordFix(id){const m=P().mist[id];if(!m||m.ok>=3)return;m.ok++;m.t=Date.now();if(m.ok>=3){toast(`Tricky spot fixed: ${conceptName(id)}!`);Snd.win()}}
 /* every concept is either a pencil-and-paper concept (written methods, word problems, most algebra and up) or a
    shortcut done in your head; the game says which on every problem */
@@ -19482,7 +19541,7 @@ $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=c
   if(v==null){const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
-$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;if(RD.cur.kind==='aud'){Snd.click();logAns('q',true,false);auditAns(false,true);return}if(RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0,{seed:RD.cur.p.ref&&RD.cur.p.ref.seed});P().pre.t=Date.now();persist();afterPre(true)};
+$('#skipBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;if(RD.cur.kind==='aud'){Snd.click();RD.cur.skip=1;logAns('q',true,false);auditAns(false,true);return}if(RD.cur.kind!=='pre')return;Snd.click();RD.phase='done';logAns('pre',true,false);CO.pretestSkip(P().pre,Date.now()-RD.t0,{seed:RD.cur.p.ref&&RD.cur.p.ref.seed});P().pre.t=Date.now();persist();afterPre(true)};
 $('#nextQBtn').onclick=()=>{Snd.click();nextQ()};
 $('#readBtn').onclick=()=>{if(RD&&RD.cur)Voice.say(RD.cur.p.say)};
 $('#quitBtn').onclick=()=>{Snd.click();persist();if(RD&&RD.kind!=='pre'&&RD.mainDone+RD.results.length>0){finishRound(true);return}RD=null;endRound();persist();openHub()};
@@ -19533,7 +19592,7 @@ function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),
     if(auto)RD.autoT=setTimeout(()=>{if(RD&&RD.cur===it&&screen==='play')nextQ()},1100)}
   else{showFb('good',fbTop('You got it!',0,0)+`<div>Here is the shortcut again:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);renderDots();$('#nextQBtn').hidden=false;$('#nextQBtn').textContent='Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true}
   bubble($('#playBubble'),RD.masteredNow&&it.kind==='main'?'You mastered it!':first?praise:'Way to keep trying!');persist()}
-function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;
+function onWrong(v,el){const it=RD.cur,p=it.p,pl=P();RD.tries++;if(RD.tries===1)it.typed=KP?KP.raw:String(v);
   /* an assessment takes the answer and moves on, exactly as it does for a right one */
   if(it.kind==='pre'){logAns('pre',true,false);RD.phase='done';CO.pretestRecord(pl.pre,false,Date.now()-RD.t0,{seed:p.ref&&p.ref.seed,ans:KP?KP.raw:String(v)});pl.pre.t=Date.now();persist();afterPre(false);return}
   if(it.kind==='aud'){logAns('q',true,false);auditAns(false);return}
@@ -19609,7 +19668,7 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   const bk=R0.kind!=='pre'?blkLive(p):null;let bEnd=false;
   if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
     if(bk.goal&&bk.n>=bk.goal){bk.done=true;bEnd=true;CO.blockPace(p,bk);bk.next=CO.blockGoal(p);
-      p.bhist=(p.bhist||[]).concat([{t0:bk.t0,t:Date.now(),n:bk.n,ok:bk.ok,ms:Math.round(bk.ms),goal:bk.goal,next:bk.next,pace:p.ppace}]).slice(-30)}}
+      blkArchive(p,bk)}}
   RD=null;LAST=R0;endRound();persist();
   show('results');applyWorld(k,sceneLevel(p));$('#resHero').innerHTML=charSVG(charOf(p,k),'happy');$('#resTitle').textContent=title;$('#resSub').textContent=sub;
   $('#resStars').innerHTML=starsShown!=null?[0,1,2].map(i=>starSvg(i<starsShown)).join(''):'';
@@ -19812,14 +19871,16 @@ function renderParent(){const keep=pvKeep(),k=kid(PV),p=saves[PV]?saves[PV]:blan
     [R.placed?`${pctWord(R.pct.pct)}`:'—','National percentile',R.placed?'estimate from NWEA 2025 national norms':'after the placement check'],
     [String(R.mastered),'Concepts mastered',`${R.byPlacement} from the placement check or assessments, ${R.mastered-R.byPlacement} learned in the game${R.learnedWeek?`, ${R.learnedWeek} this week`:''}`],
     [accTxt(R.month.ok,R.month.n),'Right first try',R.month.n?`last 30 days, ${R.month.n} problems`:'no practice problems yet'],
-    [mins(R.week7.ms),'Time this week',`${R.week7.days} of the last 7 days`],
-    [String(R.streak),'Day streak',R.streak===1?'day in a row':'days in a row']];
+    [String(R.blocks.count),'Blocks done',R.blocks.count?`${R.blocks.asm} assessment, ${R.blocks.prac} practice · ${mins(R.blocks.ms)} in all`:'none yet'],
+    [String(R.streak),'Day streak',`${R.streak===1?'day in a row':'days in a row'} · ${mins(R.week7.ms)} this week`]];
   const strong=R.domains.slice().sort((a,b)=>b.diff-a.diff),weak=strong.slice().reverse();
   let sum=`${esc(k.name)} is working at about a <b>${gradeWords(O.ge)}</b> level overall (${fmtGE(O.ge)}${ceilO}), <b>${dw.t.toLowerCase()}</b>${dw.cls==='on'?'':' compared with the average '+ord(grade)+' grader at this point in the year'}.`;
   if(R.placed)sum+=` That is about the <b>${pctWord(R.pct.pct)} percentile</b> nationally${O.ceil?' or higher':''}.`;
   sum+=` Strongest: ${esc(strong[0].name)} (${fmtGE(strong[0].ge)}). Most room to grow: ${esc(weak[0].name)} (${fmtGE(weak[0].ge)})${weak[1].ge<strong[0].ge?` and ${esc(weak[1].name)} (${fmtGE(weak[1].ge)})`:''}.`;
-  const conf={none:'There is no placement check yet, so the grade levels only count concepts mastered in practice.',low:'These numbers are rough for now: they rest mostly on the placement check. They firm up with every few hundred problems.',medium:'These numbers rest on the placement check and a fair amount of practice.',high:'These numbers rest on the placement check and a lot of practice.'}[R.confidence];
-  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. These numbers come from the parts done so far. They update after every block, on any device, and are worked out again when ${esc(k.name)} finishes it.</p>`:''}${floorOf(k)?`<p class="pv-p pv-soft">${esc(k.name)} is set to start at ${ord(floorOf(k))} grade: every concept below that counts as known, and a memory check spot-checks one or two of them in each practice block.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
+  const BT=R.blocks,pl_=(n,w)=>n+' '+w+(n===1?'':'s');
+  const conf=(BT.count?`These numbers are worked out from every block ${esc(k.name)} has done, not from the assessment alone: ${pl_(BT.asm,'assessment block')} (${pl_(BT.asmQ,'question')}) and ${pl_(BT.prac,'practice block')} (${pl_(BT.pracN,'problem')}). Assessment blocks place what she already knows; practice blocks add what she masters, and memory checks take away anything that slipped. `:'No blocks done yet. ')+
+    {none:'Until an assessment is at least half done, the grade levels only count concepts mastered in practice.',low:'With this few questions they are rough, and they firm up with every block.',medium:'That is a fair amount of work, so they are reasonably firm.',high:'That is a lot of work, so they are firm.'}[R.confidence];
+  out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<div class="pv-tiles">${tiles.map(t=>`<div class="sbox pv-tile"><b>${t[0]}</b><span>${t[1]}</span><small>${t[2]}</small></div>`).join('')}</div><p class="pv-p">${sum}</p>${R.partial?`<p class="pv-p"><b>The ${checkName(p.pre).toLowerCase()} is not finished:</b> ${R.placement.parts.filter(x=>x.done).length} of ${R.placement.parts.length} parts done. Its finished parts count so far, together with every practice block. The numbers update after every block, on any device, and are worked out again when ${esc(k.name)} finishes it.</p>`:''}${floorOf(k)?`<p class="pv-p pv-soft">${esc(k.name)} is set to start at ${ord(floorOf(k))} grade: every concept below that counts as known, and a memory check spot-checks one or two of them in each practice block.</p>`:''}<p class="pv-p pv-soft">${conf}</p></div>`);
   /* grade level by domain */
   const lo=2,hi=Math.max(grade+3,Math.ceil(Math.max(...R.domains.map(d=>d.ge),O.ge)+0.5)),X=v=>((clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(2);
   const ticks=[];for(let g=lo;g<=hi;g++)ticks.push(`<span style="left:${X(g)}%">${g}</span>`);
@@ -19839,7 +19900,7 @@ function renderParent(){const keep=pvKeep(),k=kid(PV),p=saves[PV]?saves[PV]:blan
   card('Working on now',`${cur?`<p class="pv-p">Next on the path: <b>${esc(conceptName(cur))}</b> (${ord(S[cur].g)} grade, ${esc(strandName(cur))}).</p>`:''}
     ${R.working.length?`<ul class="pv-list">${R.working.slice(0,8).map(w=>`<li>${cl(w.id)}<span>level ${w.lv+1} of 3 · ${accTxt(w.r,w.r+w.w)} right</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing in progress yet.</p>'}
     <p class="pv-p pv-soft">${R.due} mastered concept${R.due===1?' is':'s are'} due for review.</p>`);
-  {const BH=(p.bhist||[]).slice(-8).reverse();card('Practice blocks',BH.length?`<ul class="pv-list">${BH.map(x=>`<li><span>${dShort(x.t0)}: ${probs(x.n)}, ${x.n?Math.round(100*x.ok/x.n):0}% right first try</span><span>${Math.max(1,Math.round(x.ms/60000))} min</span></li>`).join('')}</ul><p class="pv-p pv-soft">Next block: about ${probs(CO.blockGoal(p))}. ${esc(k.name)} works at about ${(p.ppace||1).toFixed(1)}× the time an average kid takes; the next block is sized from that and the concept she is on.</p>`:'<p class="pv-p pv-soft">No practice blocks finished yet. Each is planned at about 20 minutes and sized to her pace.</p>')}
+  out.push(blocksCard(k,p));
   {const RT=R.retention;card('Memory checks',`<p class="pv-p">${RT.checked?`${RT.pass} passed, ${RT.shaky} a little wobbly, ${RT.lapses} needed a refresh.`:'No memory checks yet.'} ${RT.due} concept${RT.due===1?'':'s'} due for a check now.</p>${RT.early.left+RT.early.checked+RT.early.vouched?`<p class="pv-p"><b>Earlier-grade spot checks:</b> ${RT.early.checked+RT.early.vouched+RT.early.left} concept${RT.early.checked+RT.early.vouched+RT.early.left===1?' was':'s were'} counted as known without being practised here (placed by a check, or below the starting grade). ${RT.early.checked} checked so far${RT.early.vouched?`, which also vouch for ${RT.early.vouched} just before them`:''}${RT.early.slipped?`; ${RT.early.slipped} needed a refresh`:''}. ${RT.early.left} still to check, one or two in each practice block, the most advanced first.</p>`:''}${R.fastChecks?`<p class="pv-p pv-soft">${R.fastChecks} memory check${R.fastChecks===1?' was':'s were'} answered too fast to count (under 7 seconds a problem). Nothing changed, and those ideas come back later.</p>`:''}${RT.lapsed.length?`<p class="pv-p"><b>Being mastered again:</b></p><ul class="pv-list">${RT.lapsed.map(x=>`<li>${cl(x.id)}<span>slipped ${dShort(x.at)}</span></li>`).join('')}</ul>`:''}${RT.recent.length?`<p class="pv-p"><b>Latest checks:</b></p><ul class="pv-list">${RT.recent.slice(0,8).map(x=>`<li>${cl(x.id)}<span>${x.res==='pass'?'held':x.res==='shaky'?'wobbly':'slipped'} · ${dShort(x.at)}</span></li>`).join('')}</ul>`:''}<p class="pv-p pv-soft">Each mastered concept is checked again 1, 3, 9, 27 and 81 days later: two problems, no hints, no feedback until the end. One that slipped goes back on the path ahead of anything new and must be mastered again. When ${esc(k.name)} struggles with a concept, the ideas it is built on are checked too.</p>`)}
   card('Recently mastered',R.learned.length?`<ul class="pv-list">${R.learned.slice(0,10).map(x=>`<li>${cl(x.id)}<span>${dShort(x.at)}${x.how==='test'?' · tested out':''}</span></li>`).join('')}</ul>`:'<p class="pv-p pv-soft">Nothing mastered in practice yet. Concepts from the placement check are counted above.</p>');
   const att=R.spots.map(s=>`<li>${cl(s.id)}<span>tricky spot · missed ${s.n}× · ${s.ok} of 3 fixed</span>${s.why?`<small class="pv-soft">${esc(s.why)}</small>`:''}</li>`).concat(R.hard.filter(h=>!R.spots.some(s=>s.id===h.id)).slice(0,6).map(h=>`<li>${cl(h.id)}<span>${Math.round(h.acc*100)}% right first try (${h.r+h.w} tries)</span></li>`));
@@ -19855,11 +19916,12 @@ function renderParent(){const keep=pvKeep(),k=kid(PV),p=saves[PV]?saves[PV]:blan
   card('How these numbers are worked out',`<ul class="pv-notes">
     <li><b>Grade level</b> = 2.0 (the start of 2nd grade) plus the share of each grade's Common Core concepts that are mastered. All of 2nd grade and half of 3rd gives 3.5. Extras beyond the Common Core don't count. The average student is at their grade plus the share of the school year gone (36 weeks from mid-August, breaks left out), so ${R.expect.toFixed(1)} for a ${ord(grade)} grader today.</li>
     <li><b>Mastered</b> means 3 right in a row, first try and no hint, at each of the 3 levels; or a test-out (5 hard ones in a row); or placed by the placement check. A concept that fails a memory check stops counting until it is mastered again.</li>
+    <li><b>Blocks</b>: everything is counted across every block done so far, assessment and practice together. Assessment blocks place what she already knows; practice blocks master new concepts; memory checks inside them keep or take away what was counted before. The Blocks card lists every block and every question in it.</li>
     <li><b>Practice</b> comes in blocks planned at about 20 minutes: a memory check when concepts are due, then the next concept on the path. The path never moves past a concept until it is mastered. A block is never cut off by the clock; it ends when its problems are done. How long it took (answering, at most 4 minutes a problem, and help lessons) compared with an average kid, and how hard the concept is (written methods and word problems take longer), set the size of the next block.</li>
     <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
     <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
   $('#pvBody').innerHTML=out.join('');$('#pvBody').dataset.kid=PV;wireAssess(k);wireReset(k);
-  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>{d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=qsetBody(QSETS[+d.dataset.qi]||[])});if(keep.kid===PV&&keep.open.includes(d.dataset.t0))d.open=true});window.scrollTo(0,keep.kid===PV?keep.y:0);
+  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>{d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=d.dataset.bi!=null?blockBody(BSETS[+d.dataset.bi]):qsetBody(QSETS[+d.dataset.qi]||[])});if(keep.kid===PV&&keep.open.includes(d.dataset.t0))d.open=true});window.scrollTo(0,keep.kid===PV?keep.y:0);
   $('#pvBody').querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{Snd.click();PVR=b.dataset.range;renderParent()})}
 /* ---------- every question of each assessment, for parents: the exact question when its seed was saved, otherwise
    one like it; what she typed when it was wrong ---------- */
@@ -19882,6 +19944,37 @@ function qsetBody(Q){let h='',last=null;
       ${exact?'':'<small class="pv-soft">A question like hers (the exact one was not saved before 11/19):</small>'}<div class="pv-qt">${pr.html||pr.text}</div>${pr.vis?`<div class="pv-qvis">${pr.vis}</div>`:''}
       <div class="pv-qa"><span>Answer: <b>${MW.ansText(pr)}</b></span><span>${exact||sk||ok?her:her.replace(/\. She answered.*/,'')}</span></div></div>`});
   return h||'<p class="pv-p pv-soft">The questions of this one were not saved.</p>'}
+/* ---------- every block, newest first: assessment blocks and practice blocks, each opened to review its questions ---------- */
+let BSETS=[];
+const BTAG={m:'practice',r:'review',a:'memory check',f:'tricky spot',t:'test-out',s:'break-down step'};
+function blocksCard(k,p){const L=CO.blockList(p),T=CO.blockTotals(L);BSETS=L;
+  const pl_=(n,w)=>n+' '+w+(n===1?'':'s');
+  if(!L.length)return `<div class="card pv-card"><h3>Blocks</h3><p class="pv-p pv-soft">No blocks done yet. Each block is planned at about 20 minutes and sized to ${esc(k.name)}'s pace.</p></div>`;
+  const row=(b,i)=>{const what=b.kind==='asm'?`${b.by==='parent'?'Assessment':'Placement check'}, block ${b.i+1} of ${b.of}`:'Practice block',
+    st=b.kind==='asm'?(b.done?'':' (in progress)'):b.open?' (in progress)':!b.done?' (unfinished)':'',
+    res=b.kind==='asm'?(b.n?`${b.ok} of ${b.n} right${b.sk?`, ${b.sk} skipped`:''}`:'no questions saved'):`${probs(b.n)}, ${b.n?Math.round(100*b.ok/b.n):0}% right first try`;
+    return `<details class="pv-qs pv-blk" data-bi="${i}" data-t0="${b.key}"><summary><b>${dShort(b.t||b.t0)}</b> ${what}${st} · ${res} · ${Math.max(1,Math.round((b.ms||0)/60000))} min</summary><div class="pv-qbody"></div></details>`};
+  return `<div class="card pv-card"><h3>Blocks</h3><p class="pv-p">${pl_(T.count,'block')} so far: ${pl_(T.asm,'assessment block')} (${T.asmOk} of ${T.asmQ} right) and ${pl_(T.prac,'practice block')} (${T.pracN?Math.round(100*T.pracOk/T.pracN):0}% of ${pl_(T.pracN,'problem')} right first try), ${mins(T.ms)} in all. The report above is worked out from all of them together.</p>
+    <p class="pv-p pv-soft">Open a block to see every question in it, the right answer and how ${esc(k.name)} answered.</p>${L.map(row).join('')}
+    <p class="pv-p pv-soft">Next practice block: about ${probs(CO.blockGoal(p))}. ${esc(k.name)} works at about ${(p.ppace||1).toFixed(1)}× the time an average kid takes; the next block is sized from that and the concept she is on.</p></div>`}
+function blockBody(b){if(!b)return '';
+  if(b.kind==='asm'){const parts=(b.parts||[]).map(sid=>{const st=CO.STR.find(x=>x.id===sid);return st?st.name:sid});
+    return `<p class="pv-p pv-soft">${parts.length?'Parts: '+esc(parts.join(', '))+'. ':''}${b.est?'Date worked out from the daily log. ':''}${mins(b.ms||0)}.</p>`+(b.q&&b.q.length?qsetBody(b.q):'<p class="pv-p pv-soft">No questions were saved for this block.</p>')}
+  const nm=a=>a.filter(id=>S[id]).map(id=>esc(conceptName(id))).join(', '),L=[];
+  if(b.mastered.length)L.push(`<b>Mastered:</b> ${nm(b.mastered)}`);
+  if(b.refreshed.length)L.push(`<b>Mastered again:</b> ${nm(b.refreshed)}`);
+  if(b.seen)L.push(`<b>Memory check:</b> ${b.held} of ${b.seen} still strong${b.lapsed.length?`; to refresh: ${nm(b.lapsed)}`:''}`);
+  let h=L.length?`<p class="pv-p">${L.join('<br>')}</p>`:'';
+  if(!b.q)return h+'<p class="pv-p pv-soft">The problems of this block were not saved (blocks before Nov 21 kept only the totals). From now on every problem is.</p>';
+  let last=null;
+  b.q.forEach(q=>{const [id,d,seed,step,tag,ok1,ok,ms,typed,sk]=q;if(!S[id])return;
+    let pr=null;try{pr=seed!=null?fromRef(step!=null?{id,d:d|0,seed,step}:{id,d:d|0,seed}):MW.gen(id,d|0,MW.makeR(hashStr(id+':'+d)))}catch(e){pr=null}if(!pr)return;
+    if(id!==last){last=id;h+=`<h4 class="pv-h4">${esc(conceptName(id))} <small class="pv-soft">${ord(S[id].g)} grade</small></h4>`}
+    const good=ok1||(tag==='a'&&ok),fa=typed!=null?` (first answer ${esc(typed)})`:'';
+    const her=sk?'Skipped':tag==='a'?(ok?'Right':'Wrong'+(typed!=null?'. She answered '+esc(typed):'')):ok1?'Right first try':ok?'Right on the second try'+fa:'Missed twice, then shown the answer'+fa;
+    h+=`<div class="pv-q ${sk?'sk':good?'ok':'no'}"><div class="pv-qh"><span class="pv-qi">${sk?'–':good?'✓':ok?'~':'✗'}</span><b>${esc(BTAG[tag]||'practice')}</b><small class="pv-soft">${['easy','medium','hard'][d|0]||''} · ${Math.max(1,Math.round(ms/1000))} s</small></div>
+      <div class="pv-qt">${pr.html||pr.text}</div>${pr.vis?`<div class="pv-qvis">${pr.vis}</div>`:''}<div class="pv-qa"><span>Answer: <b>${MW.ansText(pr)}</b></span><span>${her}</span></div></div>`});
+  return h||'<p class="pv-p pv-soft">No problems in this block.</p>'}
 /* ---------- history: charts over a chosen span ---------- */
 let PVR='30d';
 const RANGES=[['7d','7 days'],['30d','30 days'],['3m','3 months'],['1y','1 year'],['all','All']];

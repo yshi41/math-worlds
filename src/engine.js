@@ -287,7 +287,7 @@ function pretestAdvance(pre) {
   pretestFix(pre); const blk = blockOf(pre);
   /* her pace: the time she took over the time an average kid takes on the same questions */
   const est = pre.be || blk.reduce((a, sid) => a + (pre.st[sid].log.length * avgSec(pre.st[sid].log[0] ? pre.st[sid].log[0][0] : STR.find(x => x.id === sid).core[0]) * 1000), 0);
-  const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0; pre.be = 0;
+  const ms = pre.bt || 0; pre.bms.push(Math.round(ms)); pre.bt = 0; pre.be = 0; pre.bend = (Array.isArray(pre.bend) ? pre.bend : []).concat([Date.now()]);
   /* a block she tapped through says nothing about her pace */
   if (est > 0 && ms > 0 && ms / est >= 0.25) { const r = ms / est, n = (pre.pn != null ? pre.pn : pre.bms.length - 1) + 1; pre.pn = n; pre.pace = ((pre.pace || 1) * (n - 1) + r) / n; }
   /* parts she tapped through are asked again, once */
@@ -319,11 +319,12 @@ function pretestApply(p, pre, now, doneOnly) {
   pre.nm = (pre.nm | 0) + out.mastered; out.total = pre.nm; p.now = null; return out;
 }
 /* every question of a check, in order of its parts: [part, concept, level, right, skipped, ms (negative: the part's average,
-   from before each question was timed), seed, typed, didn't count];
+   from before each question was timed), seed, typed, didn't count, block (0-based)];
    questions from a part she tapped through (asked again) come first in that part, marked as not counted */
 function asmQuestions(pre) {
-  const out = []; if (!pre || !pre.st) return out;
-  pre.order.forEach(sid => { const x = pre.st[sid]; if (!x) return; const row = (e, nc) => out.push([sid, e[0], e[1], e[2] ? 1 : 0, e[3] ? 1 : 0, e[4] != null ? e[4] : -Math.round((x.ms || 0) / Math.max(1, (x.log || []).length)), typeof e[5] === 'number' ? e[5] : null, e[6] != null ? e[6] : null, nc]);
+  const out = []; if (!pre || !pre.st) return out; const bl = Array.isArray(pre.blocks) ? pre.blocks : [];
+  pre.order.forEach(sid => { const x = pre.st[sid]; if (!x) return; const I = bl.map((b, i) => Array.isArray(b) && b.includes(sid) ? i : -1).filter(i => i >= 0), b0 = I.length ? I[0] : 0, b1 = x.prev && I.length ? I[I.length - 1] : b0;
+    const row = (e, nc) => out.push([sid, e[0], e[1], e[2] ? 1 : 0, e[3] ? 1 : 0, e[4] != null ? e[4] : -Math.round((x.ms || 0) / Math.max(1, (x.log || []).length)), typeof e[5] === 'number' ? e[5] : null, e[6] != null ? e[6] : null, nc, nc ? b0 : b1]);
     ((x.prev && x.prev.log) || []).forEach(e => row(e, 1)); (x.log || []).forEach(e => row(e, 0)); });
   return out;
 }
@@ -334,7 +335,8 @@ function asmNote(p, pre, now) {
   let n = 0, ok = 0, sk = 0, done = 0, again = 0; pre.order.forEach(sid => { const x = pre.st[sid]; (x.log || []).forEach(e => { n++; if (e[2]) ok++; if (e[3]) sk++; }); if (x.done) done++; if (x.redo) again++; });
   const ge = gradeLevel(p, null).ge, st = schoolTime(now), grade = pre.grade || 3;
   const e = { t0: pre.started || pre.t || now, t: now, by: pre.by || 'placement', done: !!pre.done, parts: pre.order.length, partsDone: done, again, n, ok, sk, ms: (pre.bms || []).reduce((a, b) => a + b, 0) + (pre.bt || 0),
-    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p), grade, q: asmQuestions(pre) };
+    ge: Math.round(ge * 100) / 100, pct: percentileFor(ge, grade, st.week).pct, m: masteredCount(p), grade, q: asmQuestions(pre),
+    bl: (pre.blocks || []).map(b => (b || []).slice()), bi: pre.bi | 0, bms: (pre.bms || []).slice(), bend: (pre.bend || []).slice() };
   const L = (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t0 !== e.t0); L.push(e); L.sort((a, b) => a.t0 - b.t0);
   L.forEach((x, i) => { if (i < L.length - 12) delete x.q; }); p.asm = L.slice(-50); return e;
 }
@@ -363,6 +365,49 @@ function resetToAssessment(p, now) {
     set: p.set || null, log, apace: p.apace == null ? null : p.apace, help: [], blk: null, ppace: null, bhist: [], asm: (Array.isArray(p.asm) ? p.asm : []).slice(), reset: { t: now, from: q.started || T }, updated: now };
   const res = pretestApply(np, q, T); asmNote(np, q, T);
   return { p: np, mastered: res.mastered, again };
+}
+
+/* ---------- every block, for the parent view ----------
+   One list of every block done so far, newest first: each block of each assessment (its questions are the ones of the
+   parts planned in that block; a part asked again because she went too fast counts in the block it was asked again in)
+   and each practice block (from bhist, plus the one open or left unfinished in p.blk). Assessment blocks from before
+   their end times were saved are dated from the daily log. */
+function asmBlocks(p, a) {
+  const pre = p.pre, live = !!(pre && pre.st && (pre.started || pre.t) === a.t0);
+  const Q = live ? asmQuestions(pre) : Array.isArray(a.q) ? a.q : null;
+  const bl = live ? pre.blocks : a.bl, bms = (live ? pre.bms : a.bms) || [], bend = (live ? pre.bend : a.bend) || [];
+  const bi = live ? (pre.done ? (bl || []).length : pre.bi | 0) : a.bi != null ? a.bi : a.done ? (bl ? bl.length : 1) : 0, nb = bl && bl.length ? bl.length : 1;
+  const out = [];
+  for (let i = 0; i < nb; i++) {
+    const q = Q ? Q.filter(x => (x[9] != null ? x[9] : 0) === i) : null, done = i < bi || (!!a.done && !live);
+    if (!done && !(q && q.length)) continue;
+    const c = (q || []).filter(x => !x[8]);
+    out.push({ kind: 'asm', key: 'a' + a.t0 + '-' + i, t0: a.t0, by: a.by || 'placement', i, of: nb, done, t: bend[i] || null, ms: bms[i] != null ? bms[i] : (q || []).reduce((s, x) => s + Math.abs(x[5] || 0), 0),
+      q, n: q ? c.length : (i === 0 ? a.n | 0 : 0), ok: q ? c.filter(x => x[3]).length : (i === 0 ? a.ok | 0 : 0), sk: q ? c.filter(x => x[4]).length : 0, parts: bl && bl[i] ? bl[i].slice() : [] });
+  }
+  /* dates for blocks from before their end times were saved: the days with assessment questions in the daily log,
+     taken in order: a block goes on a day while that day's time still covers it */
+  if (out.some(b => !b.t)) { const d0 = dayKey(a.t0), d1 = dayKey(a.t || a.t0), log = p.log || {};
+    const days = Object.keys(log).filter(k => k >= d0 && k <= d1 && (log[k].pre | 0) > 0).sort().map(k => [k, log[k].ms || 0]); let di = 0;
+    out.forEach(b => { if (b.t) return; while (days[di] && di < days.length - 1 && (b.ms || 0) > days[di][1] + 2000) di++;
+      const k = days[di]; b.t = k ? new Date(k[0] + 'T12:00').getTime() : (a.t || a.t0); b.est = 1; if (k) k[1] -= b.ms || 0; }); }
+  return out;
+}
+function blockList(p) {
+  const out = [], A = (Array.isArray(p.asm) ? p.asm : []).filter(a => a && a.t0), pre = p.pre, t0 = pre && (pre.started || pre.t);
+  if (pre && pre.st && pre.started && !A.some(a => a.t0 === t0)) A.push({ t0, t: pre.t, by: pre.by, done: !!pre.done });
+  A.forEach(a => asmBlocks(p, a).forEach(b => out.push(b)));
+  const H = (Array.isArray(p.bhist) ? p.bhist : []).filter(b => b && b.t0).slice();
+  if (p.blk && p.blk.t0 && (p.blk.n | 0) > 0 && !H.some(b => b.t0 === p.blk.t0)) H.push(Object.assign({}, p.blk, { open: !p.blk.done && p.blk.day === dayKey(Date.now()), partial: !p.blk.done }));
+  H.forEach(b => out.push({ kind: 'practice', key: 'p' + b.t0, t0: b.t0, t: b.t || b.t0, done: !b.partial && !b.open, open: !!b.open, n: b.n | 0, ok: b.ok | 0, ms: b.ms || 0, goal: b.goal || null,
+    q: Array.isArray(b.q) ? b.q : null, mastered: b.mastered || [], refreshed: b.refreshed || [], seen: Array.isArray(b.seen) ? b.seen.length : b.seen | 0, held: b.held | 0, lapsed: b.lapsed || [] }));
+  return out.sort((x, y) => ((y.t || y.t0) - (x.t || x.t0)) || ((y.i | 0) - (x.i | 0)));
+}
+/* the totals behind the report: every block, assessment and practice */
+function blockTotals(L) {
+  const o = { count: L.length, asm: 0, asmQ: 0, asmOk: 0, prac: 0, pracN: 0, pracOk: 0, ms: 0 };
+  L.forEach(b => { o.ms += b.ms || 0; if (b.kind === 'asm') { o.asm++; o.asmQ += b.n; o.asmOk += b.ok; } else { o.prac++; o.pracN += b.n; o.pracOk += b.ok; } });
+  return o;
 }
 
 /* ---------- the parent report ----------
@@ -459,9 +504,11 @@ function report(p, grade, now) {
     lapsed: csv.filter(([id]) => isLapsed(p, id)).map(([id, s]) => ({ id, at: s.lx, lv: s.lv })).sort((a, b) => b.at - a.at),
     recent: csv.filter(([, s]) => s.at).map(([id, s]) => ({ id, at: s.at, res: s.lx && s.lx === s.at ? 'lapse' : s.sh ? 'shaky' : 'pass' })).sort((a, b) => b.at - a.at).slice(0, 12) };
   let fastChecks = 0; for (const k in log) fastChecks += (log[k] && log[k].ar) | 0; /* memory checks tapped through, which did not count */
-  const answered = Math.max(all.r + all.w, ever.n);
+  /* the report rests on every block: assessment questions and practice problems both count toward how firm it is */
+  const BL = blockList(p), blocks = blockTotals(BL); let everPre = 0; for (const k in log) everPre += (log[k] && log[k].pre) | 0;
+  const answered = Math.max(all.r + all.w, ever.n, blocks.pracN) + Math.max(everPre, blocks.asmQ);
   const confidence = !placed ? 'none' : answered < 150 ? 'low' : answered < 600 ? 'medium' : 'high';
-  return { now, grade, week: st.week, expect, placed, partial, fastChecks, capG, overall, domains, pct, ceilPct, confidence, answered,
+  return { now, grade, week: st.week, expect, placed, partial, fastChecks, blocks, capG, overall, domains, pct, ceilPct, confidence, answered,
     days, week7: sum(7), month: sum(30), ever, streak, learned, mastered: mastered.length, byPlacement: mastered.length - learned.length,
     learnedWeek: learned.filter(x => x.at >= now - 7 * DAY).length, working, hard, spots, due: due(p, now).length, current: current(p), trend, placement, retention, help: (p.help || []).filter(h => h && S[h.id]).slice(-12).reverse() };
 }
@@ -490,7 +537,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, asmQuestions, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, asmQuestions, blockList, blockTotals, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

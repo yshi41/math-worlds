@@ -490,6 +490,12 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(await ev(p, () => { const pl = window.__mw.saves.riley; return pl.ppace > 1 && pl.bhist.length === 1 && window.COACH.blockGoal(pl) < pl.bhist[0].goal + 99; }), 'a block that ran long raises her pace and is kept in the block history');
   await until(() => ev(p, () => window.__mw.net.idle()));
   check(m14.store.riley.state.blk && m14.store.riley.state.blk.done === true && m14.store.riley.state.blk.n >= 9, 'the block is saved online');
+  check(await ev(p, () => { const b = window.__mw.saves.riley.bhist[0]; return Array.isArray(b.q) && b.q.length >= b.n && b.q.every(q => q[0] && q[4]); }), 'every problem of the block is kept for the parent view');
+  { await ev(p, () => window.__mw.openParent('riley')); await wait(250);
+    const bv = await ev(p, () => { const ds = [...document.querySelectorAll('#pvBody details.pv-blk')], d = ds.find(x => /Practice block/.test(x.textContent)); if (!d) return { n: ds.length };
+      d.open = true; d.dispatchEvent(new Event('toggle')); const b = d.querySelector('.pv-qbody');
+      return { n: ds.length, asm: ds.some(x => /block \d+ of \d+/.test(x.textContent)), q: b.querySelectorAll('.pv-q').length, bad: /NaN|undefined|\[object/.test(b.textContent), conf: /every block/.test(document.querySelector('#pvBody').textContent) }; });
+    check(bv.n >= 1 && bv.q >= 9 && !bv.bad && bv.conf, 'the parent view lists every block and opens one to review its problems (' + JSON.stringify(bv) + ')'); }
   check(m14.store.riley.state.cs[ids14[2]].lx > 0, 'the slipped concept is saved online');
   await ev(p, () => document.querySelector('#hubBtn').click()); await wait(150);
   check(await ev(p, () => /done/.test(document.querySelector('#nextTitle').textContent) && document.querySelectorAll('#map .chip.lapsed').length >= 1), 'the map says today is done and marks what slipped');

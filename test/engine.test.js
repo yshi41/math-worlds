@@ -291,4 +291,13 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
 { const pre = E.pretestStart(3), nx = E.pretestNext(pre); E.pretestRecord(pre, false, 9000, { seed: 42, ans: '12' }); const nx2 = E.pretestNext(pre); E.pretestSkip(pre, 4000, { seed: 7 });
   const Q = E.asmQuestions(pre); ok(Q.length === 2 && Q[0][1] === nx.skill && Q[0][6] === 42 && Q[0][7] === '12' && Q[1][1] === nx2.skill && Q[1][4] === 1 && Q[1][6] === 7 && Q[1][7] === null, 'questions keep their seed and the wrong answer typed');
   const p = { cs: {}, asm: [] }; E.asmNote(p, pre); ok(p.asm[0].q.length === 2, 'the history line carries the questions'); }
+/* the parent view lists every block, assessment and practice; the report counts all of them */
+{ const pre = E.pretestStart(3); let k = 0; while (k < 800) { if (!E.pretestNext(pre)) { if (!E.pretestAdvance(pre)) break; continue; } E.pretestRecord(pre, k % 3 > 0, 40000, { seed: k }); k++; }
+  const p = { cs: {}, mist: {}, now: null, log: {}, pre, asm: [], bhist: [{ t0: Date.now() - 5000, t: Date.now() - 1000, n: 12, ok: 9, ms: 600000, q: [['x', 1, 5, null, 'm', 1, 1, 9000, null, 0]] }], blk: { t0: Date.now(), t: Date.now(), day: E.dayKey(Date.now()), n: 3, ok: 2, ms: 60000 } };
+  E.asmNote(p, pre); const L = E.blockList(p), A = L.filter(b => b.kind === 'asm'), P = L.filter(b => b.kind === 'practice');
+  ok(A.length === pre.blocks.length && A.every(b => b.done && b.t), 'every assessment block is listed, dated (' + A.length + ')');
+  eq(A.reduce((a, b) => a + b.q.length, 0), E.asmQuestions(pre).length, 'each question of the assessment is in exactly one block');
+  ok(P.length === 2 && P.some(b => b.open) && P.some(b => b.q && b.q.length === 1), 'practice blocks: finished ones and the one in progress');
+  const T = E.blockTotals(L); ok(T.count === L.length && T.pracN === 15 && T.asm === A.length, 'block totals');
+  const R = E.report(p, 3); ok(R.blocks.count === L.length && R.answered >= T.asmQ + 15, 'the report counts assessment questions and practice problems'); }
 console.log('engine: ' + n + ' checks ok' + (warns ? ', ' + warns + ' warnings' : '') + '; ' + C.LIST.length + ' concepts');
