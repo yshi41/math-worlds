@@ -298,6 +298,57 @@ sup{font-size:.62em;line-height:0}
 .side{display:grid;justify-items:center;gap:8px;text-align:center}
 @media (max-width:760px){.play-grid{grid-template-columns:1fr}.play-grid .side{display:none}}
 .side .axo-box{max-width:170px}
+/* one problem, one screen: no scrolling to see the question, the picture and the keys.
+   The problem and the answer sit side by side on a wide screen and stacked on a narrow one; the page is no taller than
+   the window, and fitQ (game.js) shrinks the picture and then the text and keys until the whole problem is in view. */
+.q-main,.q-ans{display:grid;gap:12px;min-width:0;align-content:start}
+.wrap:has(#play:not([hidden])){padding-block:10px 10px}
+.play-top{margin-bottom:8px}
+.q-vis{zoom:var(--vz,1)}
+@media (min-width:900px){
+  .wrap:has(#play:not([hidden])){max-width:1180px}
+  .play-grid{grid-template-columns:minmax(0,1fr) 170px}
+  .qcard{grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:12px 22px;align-items:start}
+  .qcard .q-ans{position:sticky;top:0}
+  .q-ans .kp{max-width:none}
+  .fb-top .fb-hero{display:none}
+}
+@media (max-width:760px){
+  .play-top{flex-wrap:nowrap;gap:8px}
+  .play-title{flex:1 1 0;font-size:.82rem}
+  .dots{flex-wrap:nowrap;gap:3px}
+  .dots i{width:9px;height:9px;border-width:1.5px}
+  #quitBtn{padding:6px 12px;min-height:36px}
+  .qcard,.q-main,.q-ans{gap:8px}
+  .card.qcard{padding:12px}
+  .q-mode{padding:5px 10px;gap:8px}
+  .q-mode .qm-ic{width:28px;height:28px}
+  .q-mode .qm-ic svg{width:17px;height:17px}
+  .q-mode small{display:none}
+  .q-tags .q-mode{flex:1 1 auto}
+  .q-tags{flex-wrap:nowrap}
+  .q-badge{white-space:nowrap;font-size:.68rem;padding:2px 8px}
+}
+@media (max-height:900px){
+  .key{min-height:clamp(40px,6.6vh,54px)}
+  .kp-display{min-height:clamp(46px,7.4vh,62px)}
+  .kp,.kp-keys{gap:7px}
+}
+/* the steps fitQ takes when a problem is still too tall: smaller text, then smaller keys and gaps */
+.qcard.fit1 .q-text{font-size:clamp(1.05rem,3.7vw,1.4rem);line-height:1.35}
+.qcard.fit1 .ql+.ql{margin-top:.25em}
+.qcard.fit2 .key{min-height:38px;font-size:1.3rem}
+.qcard.fit2 .kp-display{min-height:44px;font-size:1.6rem}
+.qcard.fit2,.qcard.fit2 .q-main,.qcard.fit2 .q-ans,.qcard.fit2 .kp,.qcard.fit2 .kp-keys{gap:6px}
+.qcard.fit2 .q-mode{padding:3px 10px}
+.qcard.fit2 .q-mode small{display:none}
+.qcard.fit2 .action-row .btn{min-height:44px;padding-block:6px}
+.qcard.fit2 .kp-hint{font-size:.72rem}
+.qcard.fit3 .q-text{font-size:1rem}
+.qcard.fit3 .key{min-height:34px;font-size:1.15rem}
+.qcard.fit3 .kp-display{min-height:40px}
+.qcard.fit3 .action-row .btn{min-height:40px}
+.qcard.fit3 .q-badge{display:none}
 .streak{font-weight:900;color:var(--ink-soft)}
 /* drawings from the curriculum */
 .seq{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -681,11 +732,13 @@ g[data-tip]:hover .pv-bar{opacity:.8}
     <div class="play-top"><button id="quitBtn" class="btn btn-ghost btn-sm" type="button">Stop</button><div id="playTitle" class="play-title"></div><div id="dots" class="dots"></div><span class="stat" id="playCur"></span></div>
     <div class="play-grid">
       <div class="card qcard">
-        <div id="qMode" class="q-mode" role="note"></div>
-        <div class="q-tags"><div id="qBadge" class="q-badge" hidden></div></div>
+        <div class="q-main">
+        <div class="q-tags"><div id="qMode" class="q-mode" role="note"></div><div id="qBadge" class="q-badge" hidden></div></div>
         <div id="qReady" class="q-ready" hidden><div class="qr-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.4L16.6 4.2a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.4 18.8z"/><path d="M14.6 6.2l3.2 3.2"/></svg></div><b>Pencil and paper</b><p>These problems are worked out on paper. Get your pencil and paper ready.</p><button id="qReadyBtn" class="btn btn-big" type="button">I have them</button></div>
         <div class="q-row"><div id="qText" class="q-text"></div><button id="readBtn" class="icon-btn" type="button" aria-label="Read it to me"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button></div>
         <div id="qVis" class="q-vis"></div>
+        </div>
+        <div class="q-ans">
         <div id="answerArea" class="answer-area"></div>
         <div id="feedback" class="feedback" hidden></div>
         <div class="action-row">
@@ -693,6 +746,7 @@ g[data-tip]:hover .pv-bar{opacity:.8}
           <button id="hintBtn" class="btn btn-ghost" type="button">Hint</button>
           <button id="checkBtn" class="btn btn-good btn-big" type="button">Check</button>
           <button id="nextQBtn" class="btn btn-big" type="button" hidden>Next</button>
+        </div>
         </div>
       </div>
       <div class="card side"><div id="playBubble" class="bubble">You can do it!</div><div id="playHero" class="axo-box"></div><div id="streak" class="streak"></div></div>

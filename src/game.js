@@ -430,13 +430,26 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   if(ask){RD.ready=1;$('#qReadyBtn').onclick=()=>{Snd.click();rdy.hidden=true;if(RD&&RD.cur===it&&RD.phase==='ask')RD.t0=Date.now()}}
   const fb=$('#feedback');fb.hidden=true;fb.className='feedback';fb.innerHTML='';
   $('#nextQBtn').hidden=true;$('#skipBtn').hidden=it.kind!=='pre'&&it.kind!=='aud';$('#skipBtn').textContent=it.kind==='aud'?'I don’t remember':'I haven’t learned this yet';$('#hintBtn').hidden=it.kind==='pre'||it.kind==='aud'||RD.kind==='test'||!p.how||!p.how.length;$('#hintBtn').disabled=false;
-  const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;
+  const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;fitQ();
   renderDots();$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${P().cur}`;
   $('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
   /* a problem written above the child's grade (a concept two or more grades ahead of her) is read to her */
   const sc=S[p.skill],above=!!sc&&MW.readGrade(sc)>gradeOf(kid(player));
   if(Voice.on||(above&&Snd.on))Voice.say(p.say);
   setMood('neutral');persist()}
+/* one problem, one screen: if the page is taller than the window, shrink the picture (down to half size), then the
+   text, then the keys and gaps, and last of all text, keys and picture a little more, until the question, the picture, the keys and Check are all in view without scrolling.
+   It runs when a problem is shown and when the window changes size. */
+function fitQ(){if(screen!=='play')return;const qc=$('#play .qcard'),vis=$('#qVis'),de=document.documentElement;
+  qc.classList.remove('fit1','fit2','fit3');vis.style.setProperty('--vz','1');let zmin=.5;
+  const over=()=>de.scrollHeight-innerHeight;
+  const shrinkVis=()=>{const o=over();if(o<=0||!vis.innerHTML)return;const h=vis.getBoundingClientRect().height;if(h<40)return;
+    const z0=parseFloat(vis.style.getPropertyValue('--vz'))||1,z=Math.max(zmin,z0*(h-o-2)/h);vis.style.setProperty('--vz',z.toFixed(3))};
+  shrinkVis();if(over()<=0)return;
+  qc.classList.add('fit1');shrinkVis();if(over()<=0)return;
+  qc.classList.add('fit2');shrinkVis();if(over()<=0)return;
+  qc.classList.add('fit3');zmin=.4;shrinkVis()}
+let fitT=0;addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(()=>{if(RD&&RD.phase==='ask')fitQ()},120)});
 function renderDots(pop){const d=$('#dots');if(RD.kind==='audit'){d.innerHTML=`<span class="streak">${Math.min(RD.mainDone+1,RD.mainTotal)} of ${RD.mainTotal}</span>`;return}if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
   let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}${pop&&i===RD.results.length-1?' pop':''}"></i>`}d.innerHTML=h}
 function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m)}

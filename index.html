@@ -6,11 +6,10 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-21 13:37';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-21 22:17';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Math Worlds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
@@ -705,6 +704,57 @@ sup{font-size:.62em;line-height:0}
 .side{display:grid;justify-items:center;gap:8px;text-align:center}
 @media (max-width:760px){.play-grid{grid-template-columns:1fr}.play-grid .side{display:none}}
 .side .axo-box{max-width:170px}
+/* one problem, one screen: no scrolling to see the question, the picture and the keys.
+   The problem and the answer sit side by side on a wide screen and stacked on a narrow one; the page is no taller than
+   the window, and fitQ (game.js) shrinks the picture and then the text and keys until the whole problem is in view. */
+.q-main,.q-ans{display:grid;gap:12px;min-width:0;align-content:start}
+.wrap:has(#play:not([hidden])){padding-block:10px 10px}
+.play-top{margin-bottom:8px}
+.q-vis{zoom:var(--vz,1)}
+@media (min-width:900px){
+  .wrap:has(#play:not([hidden])){max-width:1180px}
+  .play-grid{grid-template-columns:minmax(0,1fr) 170px}
+  .qcard{grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:12px 22px;align-items:start}
+  .qcard .q-ans{position:sticky;top:0}
+  .q-ans .kp{max-width:none}
+  .fb-top .fb-hero{display:none}
+}
+@media (max-width:760px){
+  .play-top{flex-wrap:nowrap;gap:8px}
+  .play-title{flex:1 1 0;font-size:.82rem}
+  .dots{flex-wrap:nowrap;gap:3px}
+  .dots i{width:9px;height:9px;border-width:1.5px}
+  #quitBtn{padding:6px 12px;min-height:36px}
+  .qcard,.q-main,.q-ans{gap:8px}
+  .card.qcard{padding:12px}
+  .q-mode{padding:5px 10px;gap:8px}
+  .q-mode .qm-ic{width:28px;height:28px}
+  .q-mode .qm-ic svg{width:17px;height:17px}
+  .q-mode small{display:none}
+  .q-tags .q-mode{flex:1 1 auto}
+  .q-tags{flex-wrap:nowrap}
+  .q-badge{white-space:nowrap;font-size:.68rem;padding:2px 8px}
+}
+@media (max-height:900px){
+  .key{min-height:clamp(40px,6.6vh,54px)}
+  .kp-display{min-height:clamp(46px,7.4vh,62px)}
+  .kp,.kp-keys{gap:7px}
+}
+/* the steps fitQ takes when a problem is still too tall: smaller text, then smaller keys and gaps */
+.qcard.fit1 .q-text{font-size:clamp(1.05rem,3.7vw,1.4rem);line-height:1.35}
+.qcard.fit1 .ql+.ql{margin-top:.25em}
+.qcard.fit2 .key{min-height:38px;font-size:1.3rem}
+.qcard.fit2 .kp-display{min-height:44px;font-size:1.6rem}
+.qcard.fit2,.qcard.fit2 .q-main,.qcard.fit2 .q-ans,.qcard.fit2 .kp,.qcard.fit2 .kp-keys{gap:6px}
+.qcard.fit2 .q-mode{padding:3px 10px}
+.qcard.fit2 .q-mode small{display:none}
+.qcard.fit2 .action-row .btn{min-height:44px;padding-block:6px}
+.qcard.fit2 .kp-hint{font-size:.72rem}
+.qcard.fit3 .q-text{font-size:1rem}
+.qcard.fit3 .key{min-height:34px;font-size:1.15rem}
+.qcard.fit3 .kp-display{min-height:40px}
+.qcard.fit3 .action-row .btn{min-height:40px}
+.qcard.fit3 .q-badge{display:none}
 .streak{font-weight:900;color:var(--ink-soft)}
 /* drawings from the curriculum */
 .seq{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -19025,11 +19075,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
     <div class="play-top"><button id="quitBtn" class="btn btn-ghost btn-sm" type="button">Stop</button><div id="playTitle" class="play-title"></div><div id="dots" class="dots"></div><span class="stat" id="playCur"></span></div>
     <div class="play-grid">
       <div class="card qcard">
-        <div id="qMode" class="q-mode" role="note"></div>
-        <div class="q-tags"><div id="qBadge" class="q-badge" hidden></div></div>
+        <div class="q-main">
+        <div class="q-tags"><div id="qMode" class="q-mode" role="note"></div><div id="qBadge" class="q-badge" hidden></div></div>
         <div id="qReady" class="q-ready" hidden><div class="qr-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.4L16.6 4.2a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.4 18.8z"/><path d="M14.6 6.2l3.2 3.2"/></svg></div><b>Pencil and paper</b><p>These problems are worked out on paper. Get your pencil and paper ready.</p><button id="qReadyBtn" class="btn btn-big" type="button">I have them</button></div>
         <div class="q-row"><div id="qText" class="q-text"></div><button id="readBtn" class="icon-btn" type="button" aria-label="Read it to me"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button></div>
         <div id="qVis" class="q-vis"></div>
+        </div>
+        <div class="q-ans">
         <div id="answerArea" class="answer-area"></div>
         <div id="feedback" class="feedback" hidden></div>
         <div class="action-row">
@@ -19037,6 +19089,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
           <button id="hintBtn" class="btn btn-ghost" type="button">Hint</button>
           <button id="checkBtn" class="btn btn-good btn-big" type="button">Check</button>
           <button id="nextQBtn" class="btn btn-big" type="button" hidden>Next</button>
+        </div>
         </div>
       </div>
       <div class="card side"><div id="playBubble" class="bubble">You can do it!</div><div id="playHero" class="axo-box"></div><div id="streak" class="streak"></div></div>
@@ -19500,13 +19553,26 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
   if(ask){RD.ready=1;$('#qReadyBtn').onclick=()=>{Snd.click();rdy.hidden=true;if(RD&&RD.cur===it&&RD.phase==='ask')RD.t0=Date.now()}}
   const fb=$('#feedback');fb.hidden=true;fb.className='feedback';fb.innerHTML='';
   $('#nextQBtn').hidden=true;$('#skipBtn').hidden=it.kind!=='pre'&&it.kind!=='aud';$('#skipBtn').textContent=it.kind==='aud'?'I don’t remember':'I haven’t learned this yet';$('#hintBtn').hidden=it.kind==='pre'||it.kind==='aud'||RD.kind==='test'||!p.how||!p.how.length;$('#hintBtn').disabled=false;
-  const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;
+  const area=$('#answerArea');area.innerHTML='';area.hidden=false;ANS=null;buildKeypad(area,p);$('#checkBtn').hidden=false;$('#checkBtn').disabled=false;fitQ();
   renderDots();$('#playCur').innerHTML=`${CUR_ICON[lookOf(player)]} ${P().cur}`;
   $('#streak').textContent=RD.streak>=2?`${RD.streak} in a row!`:'';
   /* a problem written above the child's grade (a concept two or more grades ahead of her) is read to her */
   const sc=S[p.skill],above=!!sc&&MW.readGrade(sc)>gradeOf(kid(player));
   if(Voice.on||(above&&Snd.on))Voice.say(p.say);
   setMood('neutral');persist()}
+/* one problem, one screen: if the page is taller than the window, shrink the picture (down to half size), then the
+   text, then the keys and gaps, and last of all text, keys and picture a little more, until the question, the picture, the keys and Check are all in view without scrolling.
+   It runs when a problem is shown and when the window changes size. */
+function fitQ(){if(screen!=='play')return;const qc=$('#play .qcard'),vis=$('#qVis'),de=document.documentElement;
+  qc.classList.remove('fit1','fit2','fit3');vis.style.setProperty('--vz','1');let zmin=.5;
+  const over=()=>de.scrollHeight-innerHeight;
+  const shrinkVis=()=>{const o=over();if(o<=0||!vis.innerHTML)return;const h=vis.getBoundingClientRect().height;if(h<40)return;
+    const z0=parseFloat(vis.style.getPropertyValue('--vz'))||1,z=Math.max(zmin,z0*(h-o-2)/h);vis.style.setProperty('--vz',z.toFixed(3))};
+  shrinkVis();if(over()<=0)return;
+  qc.classList.add('fit1');shrinkVis();if(over()<=0)return;
+  qc.classList.add('fit2');shrinkVis();if(over()<=0)return;
+  qc.classList.add('fit3');zmin=.4;shrinkVis()}
+let fitT=0;addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(()=>{if(RD&&RD.phase==='ask')fitQ()},120)});
 function renderDots(pop){const d=$('#dots');if(RD.kind==='audit'){d.innerHTML=`<span class="streak">${Math.min(RD.mainDone+1,RD.mainTotal)} of ${RD.mainTotal}</span>`;return}if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
   let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}${pop&&i===RD.results.length-1?' pop':''}"></i>`}d.innerHTML=h}
 function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m)}

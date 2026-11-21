@@ -23,6 +23,12 @@ Every problem is laid out the same way (`layout` in `src/core.js`), so a child t
 - A sentence that only says how to type the answer ("Type a mixed number or a fraction.") is small print under the
   question. It is not part of the math.
 - Long problems are set in a smaller size so the whole problem stays in view.
+- One problem, one screen: no scrolling to see the question, the picture, the keys and Check. On a wide screen (900 px
+  and up) the keys sit beside the problem; on a phone the header, mode strip and keys are compact. When a problem is
+  still taller than the window, `fitQ` in `src/game.js` shrinks the picture (to half size), then the text, then the keys
+  and gaps. `node test/fit-probe.js ../index.html` checks every concept at every level: all fit on a 390×750 phone, a
+  tablet, an iPad in landscape and a 1280×600 laptop; on a small 390×664 phone 27 of 4,032 (big 3D and line-plot
+  pictures) still scroll a little. `node test/fit-shot.js ../index.html <folder> id/level ...` takes screenshots.
 
 `test/concepts.test.js` holds every concept in grades 2 to 8 to reading limits, over 200 problems a level:
 
