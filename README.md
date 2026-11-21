@@ -113,7 +113,7 @@ the easy level if both were wrong). In the save it keeps `m` (first mastered, wh
 gets `lx` (when it slipped); mastering it again clears `lx` and sets `rm`.
 
 A check answered faster than anyone can read it (under 7 seconds a problem on average) was tapped through. It does
-not count: nothing changes, the results say "Too fast to count", the parent view and the daily email note it, and the
+not count: nothing changes, the results say "Too fast to count", the parent view and the parent report email note it, and the
 same concepts come back in a later block.
 
 ### Earlier-grade spot checks
@@ -257,3 +257,14 @@ Sentences are regular weight; headings, numbers and buttons are bold. The layout
   - `node logic.test.js`: the merge rules.
   - `node phone-shots.js <folder> .`: phone-size screenshots of each screen, for a look by eye.
   - `node test.js ../index.html`: headless Chrome, against an in-memory stand-in for the save service.
+
+## The parent report email, after every block
+
+`tools/daily-report.js --after-block --state <file>` makes the parent report email whenever a block has finished since
+the last report: a practice or assessment block that is done, or one left untouched for 45 minutes (she stopped part
+way; it is reported again if she goes on with it). The email opens with the block just finished (score, time, what was
+mastered, the memory check, what she missed on the first try), then today, then grade levels worked out from every
+block so far. With no new block it writes nothing and prints `NO NEW BLOCK`; `--force` makes the report anyway. The
+blocks already reported are kept in the state file (on the Legion: `%LOCALAPPDATA%\math-worlds\report-state.json`).
+A Claude scheduled task, "Math Worlds parent report after each block", runs it every hour from 6 AM to 10 PM Central
+and emails the report when there is one. Without `--after-block` the script makes the old once-a-day report.
