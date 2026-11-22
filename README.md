@@ -19,7 +19,7 @@ Every problem is laid out the same way (`layout` in `src/core.js`), so a child t
 
 - A story goes one short sentence to a line, and the question comes last with a mark beside it.
 - A bare sum always looks like a sum: "What is 45 × 9?" and "Work it out: 45 × 9" are both shown as `45 × 9 = ?`.
-  A method keeps its name and the sum goes on the next line ("Add in columns:" then `36 + 47`).
+  A method keeps its name and the sum goes on the next line ("Break it apart on paper:" then `3 × 13 = ?`).
 - A sentence that only says how to type the answer ("Type a mixed number or a fraction.") is small print under the
   question. It is not part of the math.
 - Long problems are set in a smaller size so the whole problem stays in view.
@@ -42,6 +42,40 @@ Every problem is laid out the same way (`layout` in `src/core.js`), so a child t
 Typing notes are not counted. There are no semicolons, no asides in brackets up to 5th grade (say it in a sentence),
 and nothing after the question except a typing note: an instruction such as "Round each number to the nearest ten."
 comes before the question it belongs to. Stories use one fact to a sentence, the same name each time and no pronouns.
+
+### Say it once, and ask what you say
+
+A problem states each thing one time, and every instruction in it is one the answer checks (the 11/22/2026 pass over
+grades 2 to 8):
+
+- When the picture is the written sum (columns, a division bracket), the text is only the instruction: "Add in
+  columns." above the stack, not "Add in columns: 36 + 47." beside the same sum. The same goes for a price on a tag,
+  hops drawn on a line and rules written on a table's rows. `say` keeps the numbers for reading aloud.
+- No instruction that is never checked. "Find the mistake", "Find the rule" and "Estimate first" were said but only
+  the final answer was typed. They are now either asked (below) or gone.
+- One question, not two ("Which pack is the better buy? How much do you save…" is now one question).
+- A typing note only says what is really accepted ("Type a mixed number or a fraction.").
+
+`test/concepts.test.js` fails a problem whose picture is a written sum and whose sentences hold numbers, a sentence
+said twice, and the unchecked instructions above.
+
+### Two-part problems
+
+A problem can carry a first part (`first: { text, ans, hint }`): part 1 is asked on its own screen with the same
+picture, typed and checked, and then the main question is part 2. The problem is right only when both parts are
+right. The screen says "Part 1 of 2" and "Part 2 of 2".
+
+- Find the mistake (`a_fixit`, `m_fixit`): part 1 finds it, part 2 fixes it. Part 1 asks which digit of the worked
+  answer is wrong first, checking one digit at a time from the ones (typed 1, 10, 100) for adding, taking away and
+  multiplying, and from the left (typed 1, 2, 3) for long division. For a long multiplication with a wrong line,
+  part 1 asks what the first wrong line should be.
+- Big numbers in columns (`a_bigcol`): part 1 is the estimate, part 2 the exact answer.
+- In practice a wrong part 1 is a miss like any other: a hint and one more try, then the worked answer. A right part 1
+  says so and moves on. An assessment or a memory check takes both answers without a word and judges them together;
+  Back in part 2 returns to part 1.
+- The parent view shows both answers and what she typed for each ("10, then 442"; "part 1: 100" for a miss in part 1).
+- `text` and `ans` stay a whole problem by themselves, for the places that ask one question (print sheets, lessons,
+  break-down steps).
 
 ## In your head, or pencil and paper
 

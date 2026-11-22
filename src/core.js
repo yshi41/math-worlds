@@ -341,7 +341,12 @@ function defs(arr) {
    type 'rem'   ans is {q, r}: a quotient and a remainder, typed 7r2.
    steps: the idea broken into smaller questions using the same numbers (each its own little problem).
    traps: likely wrong answers {v, c, why}: v in the same form as ans, c the concept that mistake points to, why a
-   one-sentence hint aimed at that mistake. */
+   one-sentence hint aimed at that mistake.
+   first: a two-part problem. { text, ans, type, hint } is part 1, asked on its own screen with the same picture and
+   typed and checked before the main question (part 2). The problem is right only when both parts are right. text
+   and ans stay a whole problem by themselves, for the places that ask one question (print sheets, lessons, steps).
+   A problem says something once: when the picture shows the sum (a column layout, a division bracket, a price
+   tag), the text does not repeat it, and every instruction in the text is one the answer checks. */
 function sayOf(html) {
   return String(html).replace(/<span class="fr-n">([^<]*)<\/span><span class="fr-d">([^<]*)<\/span>/g, ' $1 over $2 ')
     .replace(/<sup>2<\/sup>/g, ' squared ').replace(/<sup>3<\/sup>/g, ' cubed ').replace(/<sup>([^<]*)<\/sup>/g, ' to the power $1 ')
@@ -422,6 +427,7 @@ function gen(id, d, R) {
   for (let k = 0; k < 40; k++) {
     const p = s.gen(d, R); if (!p) continue; finish(p, id, d);
     p.steps = (p.steps || []).map(q => { q = finish(q, id, d); q.step = true; return q; });
+    if (p.first) { p.first = finish(p.first, id, d); p.first.part = 1; }
     p.traps = (p.traps || []).filter(t => t && t.v != null && !eqAns(p, t.v));
     return p;
   }
@@ -495,6 +501,8 @@ function ansText(p, v) {
    never give the answer away for older kids and never clutter the pad for younger ones */
 function keysFor(p) {
   const g = S[p.skill] ? S[p.skill].g : 2, out = [];
+  /* part 1 of a two-part problem asks for a place, a digit or an estimate: digits only, so the picture keeps its room */
+  if (p.part === 1 && p.type === 'num' && Number.isInteger(p.ans) && p.ans >= 0) return out;
   if (p.type === 'num' || p.type === 'frac') {
     const val = p.type === 'num' ? p.ans : p.ans.n / p.ans.d, nonInt = Math.abs(val - Math.round(val)) > 1e-9;
     if (p.type === 'num' ? (nonInt || g >= 4) : (!p.low && g >= 5)) out.push('.');

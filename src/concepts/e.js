@@ -22,6 +22,13 @@ const digs = v => String(v).split('').reverse().map(Number);        /* ones digi
 const PV = ['ones', 'tens', 'hundreds', 'thousands', 'ten thousands', 'hundred thousands', 'millions'];
 const PV1 = ['one', 'ten', 'hundred', 'thousand', 'ten thousand', 'hundred thousand', 'million'];
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+/* find the mistake, part 1: how to type which digit is wrong, and the hint after a miss */
+const placeKeys = n => 'Type 1 for ones, 10 for tens, 100 for hundreds' + (n > 3 ? ', 1000 for thousands' : '') + '.';
+const DIGIT_HINT = 'Work out each digit yourself, starting with the ones. Stop at the first digit that is different.';
+const DIGIT_HINT_DIV = 'Divide it yourself, one digit at a time. Stop at the first digit that is different.';
+/* a written sum shown as a picture (columns, a division bracket) is not repeated in the text: the text is the
+   instruction (with a typing note after it, if any), and say keeps the numbers for reading aloud */
+const shownAs = (text, sumT, note) => ({ text: text + (note ? ' ' + note : ''), say: C.sayOf(text.slice(0, -1) + ': ' + sumT + '.') });
 const fm = (n, d) => { const [a, b] = reduce(n, d); return b === 1 ? nm(a) : a > b ? mixed(Math.floor(a / b), a % b, b) : frac(a, b); };
 const fr = (n, d) => frac(n, d);
 const fq = (t, b) => '<span class="fr"><span class="fr-n">' + t + '</span><span class="fr-d">' + b + '</span></span>'; /* a fraction with a ? in it */
@@ -898,7 +905,7 @@ defs([
     const nums = genAdd(R, d); if (!nums) return null;
     const cols = addCols(nums), ans = sum(nums), L = cols.length;
     const how = cols.map((c, i) => addLine(c, i === L - 1)); how[L - 1] += ' The answer is ' + B(nm(ans)) + '.';
-    return { text: 'Add in columns: ' + B(nums.join(' + ')) + '.', ans, vis: stackHTML(nums, '+'), howVis: stackHTML(nums, '+', { carry: carryRow(cols), ans }),
+    return { ...shownAs('Add in columns.', nums.join(' + ')), ans, vis: stackHTML(nums, '+'), howVis: stackHTML(nums, '+', { carry: carryRow(cols), ans }),
       how, steps: cols.map(c => st(cap(PV[c.i]) + ': ' + B((c.c ? c.c + ' + ' : '') + c.ds.join(' + ')) + ' = ?', c.s)),
       traps: [tr(wrongNoCarry(nums), 'a_regroup', 'A column made 10 or more. Write the ones digit and carry the ten to the next column.'), tr(wroteSum(nums), 'a_regroup', 'Only one digit fits in each place. Write the ones digit and carry the rest.'), nums.length === 2 && String(nums[1]).length < String(nums[0]).length ? tr(nums[0] + nums[1] * 10, 'n_place', 'Line up the ones under the ones before you add.') : null] };
   } },
@@ -907,7 +914,7 @@ defs([
   gen(d, R) {
     const ab = genSub(R, d); if (!ab) return null; const [a, b] = ab, cols = subCols(a, b), ans = a - b;
     const how = cols.filter(c => c.has || c.d || c.i < String(ans).length).map(c => subLine(c, cols, a)); how[how.length - 1] += ' The answer is ' + B(nm(ans)) + '.';
-    return { text: 'Take away in columns: ' + B(mi(a, b)) + '.', ans, vis: stackHTML([a, b], MINUS), howVis: stackHTML([a, b], MINUS, { ans }),
+    return { ...shownAs('Take away in columns.', mi(a, b)), ans, vis: stackHTML([a, b], MINUS), howVis: stackHTML([a, b], MINUS, { ans }),
       how, steps: cols.filter(c => c.has).map(c => st(cap(PV[c.i]) + ': ' + B(mi(c.top, c.bd)) + ' = ?', c.d)).slice(0, 4),
       traps: [tr(noBorrow(a, b), 'a_borrow', 'You took the smaller digit from the bigger one. When the top digit is smaller, trade from the next place first.'), tr(ans + sum(cols.filter(c => c.j >= 0).map(c => P10(c.i + 1))), 'a_borrow', 'After trading, the digit you traded from goes down by 1.'), tr(a + b, 'a_colsub', 'This is taking away: the answer is smaller than ' + nm(a) + '.')] };
   } },
@@ -923,16 +930,18 @@ defs([
     else { how.push(colTxt(shown[0])); how.push(colTxt(shown[1]) + ' ' + colTxt(shown[2])); shown.slice(3).forEach(c => how.push(colTxt(c))); }
     how[how.length - 1] += ' The answer is ' + B(nm(ans)) + '.';
     const zeroCols = []; for (let k = 1; k < j; k++) zeroCols.push(k);
-    return { text: 'Take away in columns: ' + B(mi(a, b)) + '.', ans, vis: stackHTML([a, b], MINUS), howVis: stackHTML([a, b], MINUS, { ans }),
+    return { ...shownAs('Take away in columns.', mi(a, b)), ans, vis: stackHTML([a, b], MINUS), howVis: stackHTML([a, b], MINUS, { ans }),
       how, steps: [st('Rename: ' + nm(a) + ' has how many ' + PV[0] + ' after trading?', t[0] + 10)].concat(shown.filter(c => c.has).map(c => st(cap(PV[c.i]) + ': ' + B(mi(c.top, c.bd)) + ' = ?', c.d))).slice(0, 4),
       traps: [tr(noBorrow(a, b), 'a_borrow', 'You took the smaller digit from the bigger one. Rename the top first.'), tr(ans + sum(zeroCols.map(k => P10(k))), 'a_zeros', 'A 0 that passes a ten along keeps 9, not 10: ' + nm(a) + ' = ' + ren.join(' + ') + '.'), tr(ans + P10(j), 'a_borrow', 'The ' + PV1[j] + ' you traded is gone: that digit goes down by 1.')] };
   } },
+/* find the mistake is asked in two parts (first): part 1 finds it (the first wrong digit of the worked answer, checked
+   one digit at a time from the ones), part 2 fixes it. The picture is the worked sum, so the text does not repeat it. */
 { id: 'a_fixit', s: 'add', g: 3, title: 'Find and fix the mistake', pre: [], paper: true,
   tip: 'Check a worked answer with the opposite operation. If it does not check, go column by column from the ones and find the first slip.',
   gen(d, R) {
-    const kind = d === 0 ? 'nocarry' : d === 1 ? R.pick(['nocarry', 'wrotesum', 'smallbig', 'nodec']) : R.pick(['zero10', 'smallbig', 'nocarry4']);
+    const kind = d === 0 ? R.pick(['nocarry', 'smallbig']) : d === 1 ? R.pick(['nocarry', 'wrotesum', 'smallbig', 'nodec']) : R.pick(['zero10', 'smallbig', 'nocarry4']);
     const [A] = people(R);
-    let a, b, op, wrong, ans, err, conceptC, redo;
+    let a, b, op, wrong, ans, err, conceptC, redo, steps;
     if (kind === 'nocarry' || kind === 'wrotesum' || kind === 'nocarry4') {
       const ab = genAdd(R, kind === 'nocarry4' ? 3 : d === 0 ? 0 : kind === 'wrotesum' ? 1 : 2, true); if (!ab) return null; [a, b] = ab; op = '+'; ans = a + b;
       const cols = addCols([a, b]), ci = cols.findIndex((c, i) => c.s >= 10 && i < cols.length - 1); if (ci < 0) return null; const c = cols[ci];
@@ -941,21 +950,28 @@ defs([
       err = kind === 'wrotesum' ? cap(PV[ci]) + ': ' + c.ds.join(' + ') + (c.c ? ' + ' + c.c : '') + ' = ' + c.s + ', and the whole ' + c.s + ' was written in the answer. Only the ' + (c.s % 10) + ' goes there; carry the 1 to the ' + PV[ci + 1] + '.'
         : cap(PV[ci]) + ': ' + c.ds.join(' + ') + ' = ' + c.s + ', but the carried 1 was never added in the ' + PV[ci + 1] + '.' + (later > 0 ? ' The same slip happens again in the ' + PV[later + 1] + '.' : '');
       redo = cols.map((cc, i) => PV[i] + ' ' + (cc.c ? cc.c + ' + ' : '') + cc.ds.join(' + ') + ' = ' + cc.s + (i < cols.length - 1 && cc.s >= 10 ? ' (write ' + cc.s % 10 + ', carry 1)' : '')).join('; ');
+      steps = cols.slice(0, 3).map(cc => st(cap(PV[cc.i]) + ': ' + B((cc.c ? cc.c + ' + ' : '') + cc.ds.join(' + ')) + ' = ?', cc.s));
     } else {
-      const ab = kind === 'zero10' ? genZero(R, R.pick([1, 2])) : genSub(R, d === 1 ? 1 : 2); if (!ab) return null; [a, b] = ab; op = MINUS; ans = a - b;
+      const ab = kind === 'zero10' ? genZero(R, R.pick([1, 2])) : genSub(R, d); if (!ab) return null; [a, b] = ab; op = MINUS; ans = a - b;
       const cols = subCols(a, b), ci = cols.findIndex(c => c.j >= 0), c = cols[ci], t = digs(a);
       if (kind === 'smallbig') { wrong = noBorrow(a, b); conceptC = 'a_borrow'; err = cap(PV[ci]) + ': ' + c.before + ' is less than ' + c.bd + ', but it was done as ' + c.bd + ' ' + MINUS + ' ' + c.before + '. Trade first: ' + c.top + ' ' + MINUS + ' ' + c.bd + ' = ' + c.d + '.'; }
       else if (kind === 'nodec') { if (c.j !== ci + 1) return null; wrong = ans + sum(cols.filter(cc => cc.j >= 0).map(cc => P10(cc.i + 1))); conceptC = 'a_borrow'; err = cap(PV[ci]) + ': a ' + PV1[ci + 1] + ' was traded for 10 ' + PV[ci] + ', but the ' + t[ci + 1] + ' in the ' + PV[ci + 1] + ' was not made 1 smaller.'; }
       else { const zc = []; for (let k = 1; k < c.j; k++) zc.push(k); wrong = ans + sum(zc.map(k => P10(k))); conceptC = 'a_zeros'; err = 'The zeros that passed the trade along were made 10. They should be 9: ' + nm(a) + ' = ' + pvn(t[c.j] - 1, c.j) + ' + ' + zc.slice().reverse().map(k => pvn(9, k)).join(' + ') + ' + ' + pvn(t[0] + 10, 0) + '.'; }
       redo = cols.filter(cc => cc.has).map(cc => PV[cc.i] + ' ' + mi(cc.top, cc.bd) + ' = ' + cc.d).join('; ');
+      steps = cols.filter(cc => cc.has).slice(0, 3).map(cc => st(cap(PV[cc.i]) + ': ' + B(mi(cc.top, cc.bd)) + ' = ?', cc.d));
     }
     if (wrong == null || wrong === ans || wrong < 0) return null;
     const check = op === '+' ? mi(wrong, b) + ' = ' + nm(wrong - b) + ', not ' + nm(a) : pl(wrong, b) + ' = ' + nm(wrong + b) + ', not ' + nm(a);
     const wd = digs(wrong), ad = digs(ans); let fi = 0; while (fi < Math.max(wd.length, ad.length) && wd[fi] === ad[fi]) fi++;
-    return { text: A + ' worked out ' + B(op === '+' ? pl(a, b) : mi(a, b)) + ' and got ' + B(nm(wrong)) + '. Find the mistake. What is the correct answer?', ans,
+    if (wd[fi] === undefined || ad[fi] === undefined) return null;
+    const sumT = op === '+' ? pl(a, b) : mi(a, b), lead = A + '’s answer is wrong.', told = A + ' worked out ' + sumT + ' and got ' + nm(wrong) + '. That is wrong. ';
+    const part1 = 'Check it one digit at a time, starting with the ones. Which digit is wrong first? ' + placeKeys(Math.max(wd.length, ad.length));
+    steps.push(st('What is the correct answer to ' + B(sumT) + '?', ans));
+    return { text: lead + ' What is the correct answer?', ans, say: C.sayOf(told + 'What is the correct answer?'),
+      first: { text: lead + ' ' + part1, ans: P10(fi), say: C.sayOf(told + part1), hint: DIGIT_HINT },
       vis: stackHTML([a, b], op, { ans: wrong }), howVis: stackHTML([a, b], op, { ans }),
-      how: ['Check with the opposite: ' + check + '. So there is a mistake.', 'The mistake: ' + err, 'Redo: ' + redo + '.', 'The correct answer is ' + B(nm(ans)) + '.'],
-      steps: [st('Which place has the first wrong digit? Type 1 for ones, 10 for tens, 100 for hundreds, 1000 for thousands.', P10(fi)), st('What is the correct answer to ' + B(op === '+' ? pl(a, b) : mi(a, b)) + '?', ans)],
+      how: ['Check with the opposite: ' + check + '. So there is a mistake.', 'The first wrong digit is the ' + PV[fi] + ' digit: it should be ' + ad[fi] + ', not ' + wd[fi] + '.', 'The mistake: ' + err, 'Redo: ' + redo + '.', 'The correct answer is ' + B(nm(ans)) + '.'],
+      steps,
       traps: [tr(wrong, conceptC, 'That is the answer on the paper. Check each column from the ones.'), tr(op === '+' ? wroteSum([a, b]) : noBorrow(a, b), op === '+' ? 'a_regroup' : 'a_borrow', op === '+' ? 'Only one digit fits in each place; carry the ten.' : 'When the top digit is smaller, trade before you take away.'), tr(op === '+' ? wrongNoCarry([a, b]) : ans + P10(fi + 1), op === '+' ? 'a_regroup' : 'a_borrow', op === '+' ? 'Remember to add the carried 1.' : 'After a trade, the digit you traded from goes down by 1.')] };
   } },
 { id: 'a_bigcol', s: 'add', g: 4, title: 'Big numbers in columns', pre: ['n_roundbig'], paper: true,
@@ -969,7 +985,9 @@ defs([
     else { const cols = subCols(a, b); phr = cols.filter(c => c.has || c.d || c.i < String(ans).length).map(c => PV[c.i] + ' ' + (c.j >= 0 ? '(trade' + (c.j > c.i + 1 ? ' across the 0s' : '') + ') ' : '') + (c.has ? mi(c.top, c.bd) + ' = ' + c.d : c.top + ' (nothing to take away)')); }
     if (Math.abs(ans - est) > rp * 1.5 || est <= 0) return null;
     const cl = add ? addCols([a, b]) : null;
-    return { text: 'Estimate first, then work it out in columns: ' + B(nm(a) + opS + nm(b)) + '.', ans,
+    const near = 'Round each number to the nearest ' + (rp === 10000 ? 'ten thousand' : 'thousand') + '. About how much is the answer?';
+    return { ...shownAs(add ? 'Add in columns.' : 'Take away in columns.', nm(a) + opS + nm(b)), ans,
+      first: { text: 'Estimate first. ' + near, ans: est, say: C.sayOf('Estimate ' + nm(a) + opS + nm(b) + '. ' + near), hint: nm(a) + ' rounds to ' + nm(ra) + '. Round ' + nm(b) + ' too, then ' + (add ? 'add' : 'take away') + '.' },
       vis: stackHTML([a, b], add ? '+' : MINUS), howVis: stackHTML([a, b], add ? '+' : MINUS, add ? { ans, carry: carryRow(cl) } : { ans }),
       how: ['Estimate: ' + nm(ra) + opS + nm(rb) + ' = ' + nm(est) + '.', 'Ones to hundreds: ' + phr.slice(0, 3).join('; ') + '.', 'Thousands and up: ' + phr.slice(3).join('; ') + '.', 'The answer is ' + B(nm(ans)) + ', close to the estimate ' + nm(est) + '.'],
       steps: [st('Estimate: ' + B(nm(ra) + opS + nm(rb)) + ' = ?', est), st('Work the ones, tens and hundreds. What number do the last three digits of the answer make?', ans % 1000), st('What is the whole answer?', ans)],
@@ -1009,7 +1027,7 @@ defs([
     const run = ldRun(String(N), dv), ansT = r ? q + ' r ' + r : String(q), steps = ldSteps(run, dv);
     if (r && steps.length < 4) steps.push(st('What is left over at the end?', r));
     const noZero = +String(q).replace(/0(?=\d)/g, '');
-    return asNum0(d, { text: 'Use long division: ' + B(nm(N) + ' ÷ ' + dv) + '.' + (d ? ' Write any remainder like 7r2.' : ''), ans: { q, r }, type: 'rem',
+    return asNum0(d, { ...shownAs('Use long division.', nm(N) + ' ÷ ' + dv, d ? 'Write any remainder like 7r2.' : ''), ans: { q, r }, type: 'rem',
       vis: ldHTML(String(N), dv), howVis: ldHTML(String(N), dv, { work: true }), how: ldLines(run, dv, 'The answer is ' + B(ansT) + '.'), steps,
       traps: [noZero !== q ? tr({ q: noZero, r }, 'm_longdiv', 'When ' + dv + ' does not fit after you bring down a digit, write 0 in the answer before you go on.') : null, r ? tr({ q, r: 0 }, 'm_remain', 'Something is left over at the end. Write it as the remainder.') : null, q > 1 ? tr({ q: q - 1, r: r + dv }, 'm_longdiv', 'A remainder must be less than ' + dv + '. With ' + (r + dv) + ' left over, another ' + dv + ' fits.') : null, tr({ q: q + 1, r: 0 }, 'm_divfam', 'Check the last digit: multiply it back by ' + dv + '.')] });
   } },
@@ -1022,12 +1040,12 @@ defs([
     const ans = a * b;
     if (b < 10) {
       const rw = mulRow(a, b); if (!rw.carried) return null; const how = rw.lines.slice(); how[how.length - 1] += ' The answer is ' + B(nm(ans)) + '.';
-      return { text: 'Multiply the standard way: ' + B(a + ' × ' + b) + '.', ans, vis: stackHTML([a, b], '×'), howVis: stackHTML([a, b], '×', { ans, carry: rw.carry }),
+      return { ...shownAs('Multiply the standard way.', a + ' × ' + b), ans, vis: stackHTML([a, b], '×'), howVis: stackHTML([a, b], '×', { ans, carry: rw.carry }),
         how, steps: rw.steps.slice(0, 4),
         traps: [tr(droppedCarries(a, b), 'm_std', 'After you multiply the next digit, add the number you carried.'), tr(rw.noShift, 'm_std', 'Write one digit in each place and carry the rest.'), tr(ans + b, factC(b, a % 10), 'Check each times fact.')] };
     }
     const b0 = b % 10, b1 = Math.floor(b / 10), p1 = a * b0, p2 = a * b1 * 10, r1 = mulRow(a, b0), r2 = mulRow(a, b1);
-    return { text: 'Multiply the standard way: ' + B(a + ' × ' + b) + '.', ans, vis: stackHTML([a, b], '×'),
+    return { ...shownAs('Multiply the standard way.', a + ' × ' + b), ans, vis: stackHTML([a, b], '×'),
       howVis: colsHTML([{ s: a }, { s: b, op: '×', line: true }, { s: p1 }, { s: p2, op: '+', line: true }, { s: ans }]),
       how: ['Line 1, times the ' + b0 + ' ones: ' + r1.short + ' → ' + nm(p1) + '.', 'Line 2, times the ' + b1 + ' tens: write a 0 first, then ' + r2.short + ' → ' + nm(p2) + '.', 'Add the lines: ' + nm(p1) + ' + ' + nm(p2) + ' = ' + B(nm(ans)) + '.'],
       steps: [st('Line 1: ' + B(a + ' × ' + b0) + ' = ?', p1), st('Line 2: ' + B(a + ' × ' + b1 * 10) + ' = ?', p2), st(B(nm(p1) + ' + ' + nm(p2)) + ' = ?', ans)],
@@ -1044,28 +1062,41 @@ defs([
     const run = ldRun(String(N), dv), ansT = r ? q + ' r ' + r : String(q), steps = ldSteps(run, dv);
     if (r && steps.length < 4) steps.push(st('What is left over at the end?', r));
     const noZero = +String(q).replace(/0(?=\d)/g, '');
-    return asNum0(d, { text: 'Use long division: ' + B(nm(N) + ' ÷ ' + dv) + '.' + (d ? ' Write any remainder like 7r2.' : ''), ans: { q, r }, type: 'rem',
+    return asNum0(d, { ...shownAs('Use long division.', nm(N) + ' ÷ ' + dv, d ? 'Write any remainder like 7r2.' : ''), ans: { q, r }, type: 'rem',
       vis: ldHTML(String(N), dv), howVis: ldHTML(String(N), dv, { work: true }), how: ldLines(run, dv, 'The answer is ' + B(ansT) + '.'), steps,
       traps: [noZero !== q ? tr({ q: noZero, r }, 'm_longdiv', 'When ' + dv + ' does not fit after you bring down a digit, write 0 in the answer.') : null, q > 1 ? tr({ q: q - 1, r: r + dv }, 'm_longdiv2', 'A remainder must be less than ' + dv + '. With ' + (r + dv) + ' left over, one more ' + dv + ' fits: that estimate was too small.') : null, r ? tr({ q, r: 0 }, 'm_remain', 'Something is left over at the end. Write it as the remainder.') : null] });
   } },
+/* two parts, like a_fixit: part 1 finds the mistake (the first wrong digit, from the ones for multiplying and from the
+   left for dividing, or the first wrong line of a long multiplication), part 2 gives the correct answer */
 { id: 'm_fixit', s: 'mul', g: 5, title: 'Find and fix: times and divide', pre: [], paper: true,
   tip: 'Check with an estimate or the opposite operation. Classic slips: no 0 on the tens line, a carry not added, a missing 0 in a quotient, a remainder bigger than the divisor.',
   gen(d, R) {
     const [A] = people(R), kind = R.pick(d === 0 ? ['carry', 'bigrem'] : d === 1 ? ['zero', 'qzero'] : ['zero', 'qzero', 'bigrem']);
+    const lead = A + '’s answer is wrong.', fixQ = 'What is the correct answer?', remNote = ' Write any remainder like 7r2.';
+    const told = (sumT, got) => A + ' worked out ' + sumT + ' and got ' + got + '. That is wrong. ';
+    const NTH = ['first', 'second', 'third', 'fourth'];
+    const fromLeft = n => 'Check it one digit at a time, starting from the left. Which digit is wrong first? Type 1 for the first digit, 2 for the second' + (n > 2 ? ', 3 for the third' : '') + (n > 3 ? ', 4 for the fourth' : '') + '.';
     if (kind === 'carry') {
-      const a = R.i(23, 98), m = R.i(3, 9), ans = a * m, wrong = droppedCarries(a, m), rw = mulRow(a, m); if (wrong === ans) return null;
-      const ra = Math.round(a / 10) * 10, c0 = Math.floor((a % 10) * m / 10);
-      return { text: A + ' worked out ' + B(a + ' × ' + m) + ' and got ' + B(nm(wrong)) + '. Find the mistake. What is the correct answer?', ans,
+      const a = R.chance(0.5) ? R.i(23, 98) : R.i(123, 989), m = R.i(3, 9), ans = a * m, wrong = droppedCarries(a, m), rw = mulRow(a, m); if (wrong === ans) return null;
+      const ds = digs(a), ci = ds.findIndex((dg, i) => i < ds.length - 1 && dg * m >= 10), wd = digs(wrong), ad = digs(ans); if (ci < 0) return null;
+      let fi = 0; while (fi < Math.max(wd.length, ad.length) && wd[fi] === ad[fi]) fi++; if (wd[fi] === undefined || ad[fi] === undefined) return null;
+      const ra = Math.round(a / 10) * 10, pc = ds[ci] * m, c0 = Math.floor(pc / 10), sumT = a + ' × ' + m;
+      const part1 = 'Check it one digit at a time, starting with the ones. Which digit is wrong first? ' + placeKeys(ad.length);
+      return { text: lead + ' ' + fixQ, ans, say: C.sayOf(told(sumT, nm(wrong)) + fixQ),
+        first: { text: lead + ' ' + part1, ans: P10(fi), say: C.sayOf(told(sumT, nm(wrong)) + part1), hint: DIGIT_HINT },
         vis: stackHTML([a, m], '×', { ans: wrong }), howVis: stackHTML([a, m], '×', { ans, carry: rw.carry }),
-        how: ['Check with an estimate: ' + a + ' is about ' + ra + ', and ' + ra + ' × ' + m + ' = ' + nm(ra * m) + '. ' + nm(wrong) + ' is too far off.', 'The mistake: ones ' + m + ' × ' + (a % 10) + ' = ' + (a % 10) * m + ', write ' + ((a % 10) * m) % 10 + ' and carry ' + c0 + '. The carried ' + c0 + ' was never added to the tens.', 'Redo: ' + rw.short + '.', 'The correct answer is ' + B(nm(ans)) + '.'],
-        steps: rw.steps.concat([st('What is the correct answer?', ans)]),
-        traps: [tr(wrong, 'm_std', 'That is the answer on the paper. Add the carry after you multiply the tens.'), tr(rw.noShift, 'm_std', 'Write one digit in each place and carry the rest.')] };
+        how: ['Check with an estimate: ' + a + ' is about ' + ra + ', and ' + ra + ' × ' + m + ' = ' + nm(ra * m) + '. ' + nm(wrong) + ' is too far off.', 'The first wrong digit is the ' + PV[fi] + ' digit: it should be ' + ad[fi] + ', not ' + wd[fi] + '.',
+          'The mistake: ' + PV[ci] + ' ' + m + ' × ' + ds[ci] + ' = ' + pc + ', write ' + pc % 10 + ' and carry ' + c0 + '. The carried ' + c0 + ' was never added to the ' + PV[ci + 1] + '.', 'Redo: ' + rw.short + '.', 'The correct answer is ' + B(nm(ans)) + '.'],
+        steps: rw.steps.slice(0, 3).concat([st(B(sumT) + ' = ?', ans)]),
+        traps: [tr(wrong, 'm_std', 'That is the answer on the paper. Add the carry after you multiply the next digit.'), tr(rw.noShift, 'm_std', 'Write one digit in each place and carry the rest.')] };
     }
     if (kind === 'zero') {
       const a = d === 1 ? R.i(23, 98) : R.i(123, 989), b = R.i(13, 98); if (b % 10 < 2) return null;
       const b0 = b % 10, b1 = Math.floor(b / 10), p1 = a * b0, p2 = a * b1 * 10, ans = a * b, wrong = p1 + p2 / 10;
-      const ra = a < 100 ? Math.round(a / 10) * 10 : Math.round(a / 100) * 100, rb = Math.round(b / 10) * 10;
-      return { text: A + ' worked out ' + B(a + ' × ' + b) + ' and got ' + B(nm(wrong)) + '. Find the mistake. What is the correct answer?', ans,
+      const ra = a < 100 ? Math.round(a / 10) * 10 : Math.round(a / 100) * 100, rb = Math.round(b / 10) * 10, sumT = a + ' × ' + b;
+      const part1 = 'Find the first wrong line in the work. What number should that line be?';
+      return { text: lead + ' ' + fixQ, ans, say: C.sayOf(told(sumT, nm(wrong)) + fixQ),
+        first: { text: lead + ' ' + part1, ans: p2, say: C.sayOf(told(sumT, nm(wrong)) + part1), hint: 'Work out each line yourself. Line 1 is ' + a + ' × ' + b0 + '. Line 2 is ' + a + ' × ' + b1 * 10 + '.' },
         vis: colsHTML([{ s: a }, { s: b, op: '×', line: true }, { s: p1 }, { s: p2 / 10, op: '+', line: true }, { s: wrong }]),
         howVis: colsHTML([{ s: a }, { s: b, op: '×', line: true }, { s: p1 }, { s: p2, op: '+', line: true }, { s: ans }]),
         how: ['Check with an estimate: ' + nm(ra) + ' × ' + rb + ' = ' + nm(ra * rb) + '. ' + nm(wrong) + ' is much too small.', 'The mistake is line 2. It is ' + a + ' × ' + b1 * 10 + ' (tens), so it needs a 0 at the end: ' + nm(p2) + ', not ' + nm(p2 / 10) + '.', 'Add again: ' + nm(p1) + ' + ' + nm(p2) + ' = ' + B(nm(ans)) + '.'],
@@ -1083,18 +1114,24 @@ defs([
       if (!N) return null;
       const wq = +String(q).replace(/0(?=\d)/g, ''), run = ldRun(String(N), dv), zc = run.cyc.find((cy, k) => k > 0 && cy.q === 0), ansT = r ? q + ' r ' + r : String(q);
       if (!zc) return null;
-      return { text: A + ' worked out ' + B(nm(N) + ' ÷ ' + dv) + ' and got ' + B(wq + (r ? ' r ' + r : '')) + '. Find the mistake. What is the correct answer? Write any remainder like 7r2.', ans: { q, r }, type: 'rem',
-        vis: ldHTML(String(N), dv, { q: wq + (r ? ' r ' + r : '') }), howVis: ldHTML(String(N), dv, { work: true }),
-        how: ['Check: ' + wq + ' × ' + dv + (r ? ' + ' + r : '') + ' = ' + nm(wq * dv + r) + ', not ' + nm(N) + '.', 'The mistake: after bringing down to make ' + zc.cur + ', ' + dv + ' does not go into ' + zc.cur + ', so a 0 must be written in the answer.', 'Redo: ' + run.cyc.map(cy => cy.cur + ' ÷ ' + dv + ' = ' + cy.q + (cy.rem ? ' r ' + cy.rem : '')).join(', ') + '.', 'The answer is ' + B(ansT) + '.'],
+      const wS = String(wq), qS = String(q), got = wq + (r ? ' r ' + r : ''), sumT = nm(N) + ' ÷ ' + dv; let k = 0; while (k < wS.length && wS[k] === qS[k]) k++;
+      if (k >= wS.length) return null;
+      const part1 = fromLeft(qS.length);
+      return { text: lead + ' ' + fixQ + remNote, ans: { q, r }, type: 'rem', say: C.sayOf(told(sumT, got) + fixQ),
+        first: { text: lead + ' ' + part1, ans: k + 1, say: C.sayOf(told(sumT, got) + part1), hint: DIGIT_HINT_DIV },
+        vis: ldHTML(String(N), dv, { q: got }), howVis: ldHTML(String(N), dv, { work: true }),
+        how: ['Check: ' + wq + ' × ' + dv + (r ? ' + ' + r : '') + ' = ' + nm(wq * dv + r) + ', not ' + nm(N) + '.', 'The first wrong digit is the ' + NTH[k] + ' digit: it should be ' + qS[k] + ', not ' + wS[k] + '.', 'The mistake: after bringing down to make ' + zc.cur + ', ' + dv + ' does not go into ' + zc.cur + ', so a 0 must be written in the answer.', 'Redo: ' + run.cyc.map(cy => cy.cur + ' ÷ ' + dv + ' = ' + cy.q + (cy.rem ? ' r ' + cy.rem : '')).join(', ') + '.', 'The answer is ' + B(ansT) + '.'],
         steps: ldSteps(run, dv),
         traps: [tr({ q: wq, r }, 'm_longdiv', 'That is the answer on the paper. Every digit you bring down needs a digit in the answer, even a 0.'), r ? tr({ q, r: 0 }, 'm_remain', 'Keep the remainder.') : null] };
     }
     const q = d === 0 ? R.i(11, Math.floor(90 / dv)) : R.i(112, Math.floor(999 / dv)), r = R.i(0, dv - 1), N = q * dv + r; if (q < 11) return null;
     const run = ldRun(String(N), dv), last = run.cyc[run.cyc.length - 1], ansT = r ? q + ' r ' + r : String(q);
     if (last.q < 1) return null;
-    return { text: A + ' worked out ' + B(nm(N) + ' ÷ ' + dv) + ' and got ' + B((q - 1) + ' r ' + (r + dv)) + '. Find the mistake. What is the correct answer? Write any remainder like 7r2.', ans: { q, r }, type: 'rem',
-      vis: ldHTML(String(N), dv, { q: (q - 1) + ' r ' + (r + dv) }), howVis: ldHTML(String(N), dv, { work: true }),
-      how: ['Check the remainder: ' + (r + dv) + ' is bigger than ' + dv + ', so another ' + dv + ' fits.', 'The last digit should be one more: ' + last.cur + ' ÷ ' + dv + ' = ' + last.q + ' r ' + r + ', not ' + (last.q - 1) + ' r ' + (r + dv) + '.', 'Check: ' + q + ' × ' + dv + (r ? ' + ' + r : '') + ' = ' + nm(N) + '. The answer is ' + B(ansT) + '.'],
+    const qS = String(q), got = (q - 1) + ' r ' + (r + dv), sumT = nm(N) + ' ÷ ' + dv, part1 = fromLeft(qS.length);
+    return { text: lead + ' ' + fixQ + remNote, ans: { q, r }, type: 'rem', say: C.sayOf(told(sumT, got) + fixQ),
+      first: { text: lead + ' ' + part1, ans: qS.length, say: C.sayOf(told(sumT, got) + part1), hint: DIGIT_HINT_DIV },
+      vis: ldHTML(String(N), dv, { q: got }), howVis: ldHTML(String(N), dv, { work: true }),
+      how: ['Check the remainder: ' + (r + dv) + ' is bigger than ' + dv + ', so another ' + dv + ' fits.', 'The first wrong digit is the ' + NTH[qS.length - 1] + ' digit. It should be one more: ' + last.cur + ' ÷ ' + dv + ' = ' + last.q + ' r ' + r + ', not ' + (last.q - 1) + ' r ' + (r + dv) + '.', 'Check: ' + q + ' × ' + dv + (r ? ' + ' + r : '') + ' = ' + nm(N) + '. The answer is ' + B(ansT) + '.'],
       steps: [st('How many ' + dv + 's fit in ' + B(last.cur) + '?', last.q), st('What is left over?', r)],
       traps: [tr({ q: q - 1, r: r + dv }, 'm_longdiv', 'That is the answer on the paper. A remainder must be smaller than the divisor.'), r ? tr({ q, r: 0 }, 'm_remain', 'Keep the remainder.') : null, tr({ q: q + 1, r: Math.max(0, r - dv) }, 'm_divfam', 'Only add one more ' + dv + '. Multiply back to check.')] };
   } },
@@ -1147,7 +1184,7 @@ defs([
     if (L !== b || L !== e) { steps.push(st('What is the smallest common bottom for ' + b + ' and ' + e + '?', L)); steps.push(st(fr(add ? a : a, b) + ' = ' + fq('?', L) + '. What is the top?', A)); }
     steps.push(add ? st('Add the fractions: ' + fr(A, L) + ' + ' + fr(Cc, L) + ' = ?', F(A + Cc, L), { type: 'frac' }) : st('After trading 1 whole, ' + mx(w1, A, L) + ' = ' + (w1 - 1) + ' and ' + fq('?', L) + '. What is the top?', A + L));
     steps.push(st('What is the answer?', F(ansN, L), { type: 'frac' }));
-    return { text: 'Work it out on paper: ' + B(mx(w1, a, b) + opS + mx(w2, c, e)) + '. Write the answer as a mixed number.', ans: F(ansN, L), type: 'frac',
+    return { text: 'Work it out on paper: ' + B(mx(w1, a, b) + opS + mx(w2, c, e)) + '. Type a mixed number or a fraction.', ans: F(ansN, L), type: 'frac',
       how: how.slice(0, 5), steps: steps.slice(-4),
       traps: [add ? tr(F((w1 + w2) * (b + e) + a + c, b + e), 'f_addunlike', 'Do not add the bottoms. Make them the same, then add the tops.') : tr(F((w1 - w2) * L + Cc - A, L), 'f_mixedops', 'You took the small fraction from the big one. Trade 1 whole for ' + L + '/' + L + ' first.'),
         !add && L !== 10 && A + 10 - Cc >= 0 ? tr(F((w1 - 1 - w2) * L + A + 10 - Cc, L), 'f_mixed', 'One whole is ' + L + '/' + L + ', not 10/' + L + '.') : null,
@@ -1174,7 +1211,7 @@ defs([
     }
     const run = ldRun(work, dv); if (Math.abs(run.quo - Q) > 1e-9 || run.cyc.length > 4) return null;
     const how = [first].concat(ldLines(run, dv, 'The answer is ' + B(nm(Q)) + '.'));
-    return { text: 'Divide on paper: ' + B(shown + ' ÷ ' + shownDv) + '.', ans: Q, vis: d < 2 ? ldHTML(shown, dv) : '', howVis: ldHTML(work, dv, { work: true }),
+    return { ...(d < 2 ? shownAs('Divide on paper.', shown + ' ÷ ' + shownDv) : { text: 'Divide on paper: ' + B(shown + ' ÷ ' + shownDv) + '.' }), ans: Q, vis: d < 2 ? ldHTML(shown, dv) : '', howVis: ldHTML(work, dv, { work: true }),
       how, steps: (d === 2 ? [st('Move both points: ' + shown + ' ÷ ' + shownDv + ' = ? ÷ ' + dv + '. What number goes in the box?', +work)] : []).concat(ldSteps(run, dv)).slice(0, 4),
       traps: [tr(+(Q * 10).toFixed(6), 'n_times10', 'Put the point in the answer straight above the point in the number you divide.'), tr(+(Q / 10).toFixed(6), 'n_times10', 'Check the point: estimate first. ' + shown + ' ÷ ' + shownDv + ' is about ' + nm(Math.round(Q)) + '.'), d === 2 ? tr(+(Q / P10(String(shownDv).split('.')[1].length)).toFixed(8), 'f_divdec', 'Move the point in both numbers by the same number of places.') : tr(Math.floor(Q), 'f_decdiv', 'Keep going past the point: write 0s on the end and bring them down.')] };
   } },

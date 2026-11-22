@@ -467,7 +467,7 @@ defs([
     const pad = v => v.toFixed(u);
     const lineUp = p1 !== p2 ? 'Write one under the other with the points lined up: ' + [p1 < u ? num(v1) + ' is ' + pad(v1) : '', p2 < u ? num(v2) + ' is ' + pad(v2) : ''].filter(Boolean).join(', ') + '.' : 'Write one under the other with the points lined up (both have ' + u + ' ' + plural(u, 'place') + ' after the point).';
     const lowDigit = v => v % 10, carry = !sub && lowDigit(H1) + lowDigit(H2) >= 10, borrow = sub && lowDigit(H1) < lowDigit(H2);
-    return { text: B(num(v1) + op + num(v2)) + ' = ?', ans, vis: C.stackHTML([pad(v1), pad(v2)], sub ? MINUS : '+'),
+    return { text: sub ? 'Take away in columns.' : 'Add in columns.', say: C.sayOf(num(v1) + op + num(v2)), ans, vis: C.stackHTML([pad(v1), pad(v2)], sub ? MINUS : '+'),
       how: [lineUp + (p1 !== p2 ? ' Fill the empty places with 0.' : ''), (sub ? 'Take away' : 'Add') + ' column by column from the right, just like whole numbers: ' + nm(H1) + op + nm(H2) + ' = ' + nm(H) + ' (' + un + ').', 'Bring the point straight down: ' + B(num(ans)) + '.'],
       steps: [st(B(num(v1)) + ' = ? ' + un, H1), st(B(num(v2)) + ' = ? ' + un, H2), st(B(nm(H1) + op + nm(H2)) + ' = ?', H), st(B(nm(H) + ' ' + un) + ' = ?', ans)],
       traps: [tr(p1 !== p2 && p1 > 0 && p2 > 0 ? (sub ? (k1 > k2 ? dv(k1 - k2, u) : null) : dv(k1 + k2, u)) : null, 'f_decadd', 'Line up the points, not the last digits. Write ' + (p1 < u ? num(v1) + ' as ' + pad(v1) : num(v2) + ' as ' + pad(v2)) + '.'),

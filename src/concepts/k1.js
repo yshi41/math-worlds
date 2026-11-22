@@ -351,7 +351,7 @@ defs([
       const a = R.i(11, 59), tenHops = R.chance(0.35), T = R.i(1, tenHops ? 3 : 4) * 10, o = R.i(2, 9), end = a + T + o;
       if (end > 99) return null;
       const hops = tenHops ? Array(T / 10).fill(10).concat([o]) : [T, o];
-      return { text: 'Start at ' + B(a) + '. Make the hops: ' + B(hops.map(h => '+' + h).join(', ')) + '. Where do you land?', ans: end,
+      return { text: 'Follow the hops. Where do you land?', say: C.sayOf('Start at ' + a + '. Make the hops: ' + hops.map(h => '+' + h).join(', ') + '. Where do you land?'), ans: end,
         vis: hopsSVG(a, hops, { fmt: lbl([a], [end]) }),
         how: [(tenHops ? 'Each +10 hop changes only the tens: ' + hops.slice(0, -1).map((h, i) => nm(a + 10 * (i + 1))).join(', ') + '.' : 'The +' + T + ' hop changes only the tens: ' + a + ' + ' + T + ' = ' + (a + T) + '.'), 'Then hop +' + o + ': ' + pl(a + T, o) + ' = ' + (a + T + o) + '.', 'You land on ' + B(end) + '. So ' + pl(a, T + o) + ' = ' + end + '.'],
         steps: [st('After the tens: ' + B(pl(a, T)) + ' = ?', a + T), st('Then the ones: ' + B(pl(a + T, o)) + ' = ?', end)],
@@ -359,7 +359,7 @@ defs([
     }
     if (d === 1 && R.chance(0.5)) {
       const a = R.i(52, 99), T = R.i(2, Math.floor((a - 10) / 10)) * 10, o = R.i(2, 9), end = a - T - o; if (end < 5 || a % 10 === 0) return null;
-      return { text: 'Start at ' + B(a) + '. Hop back ' + B(T) + ', then hop back ' + B(o) + '. Where do you land?', ans: end,
+      return { text: 'Follow the hops back. Where do you land?', say: C.sayOf('Start at ' + a + '. Hop back ' + T + ', then hop back ' + o + '. Where do you land?'), ans: end,
         vis: hopsSVG(a, [-T, -o], { fmt: lbl([a], [end]) }),
         how: ['Hopping back ' + T + ' changes only the tens: ' + mi(a, T) + ' = ' + (a - T) + '.', 'Then hop back ' + o + ': ' + mi(a - T, o) + ' = ' + end + '.', 'You land on ' + B(end) + '. So ' + mi(a, T + o) + ' = ' + end + '.'],
         steps: [st('After the tens: ' + B(mi(a, T)) + ' = ?', a - T), st('Then the ones: ' + B(mi(a - T, o)) + ' = ?', end)],
@@ -378,14 +378,14 @@ defs([
     if (kind === 'misshop' || kind === 'missback') {
       const back = kind === 'missback', a = back ? R.i(55, 99) : R.i(12, 50), T = R.i(2, 4) * 10, o = R.i(2, 9), mid = back ? a - T : a + T, end = back ? mid - o : mid + o;
       if (end < 5 || end > 99 || a % 10 === 0 || T === o) return null;
-      return { text: 'Start at ' + B(a) + '. Hop ' + (back ? 'back ' + B(T) : B('+' + T)) + ', then make one more hop ' + (back ? 'back ' : '') + 'to land on ' + B(end) + '. How big is the last hop?', ans: o,
+      return { text: 'How big is the last hop?', say: C.sayOf('Start at ' + a + '. Hop ' + (back ? 'back ' + T : '+' + T) + ', then make one more hop ' + (back ? 'back ' : '') + 'to land on ' + end + '. How big is the last hop?'), ans: o,
         vis: hopsSVG(a, back ? [-T, -o] : [T, o], { fmt: lbl([a, end], []), lab: v => v === o ? '?' : nm(v) }),
         how: ['After the first hop: ' + (back ? mi(a, T) : pl(a, T)) + ' = ' + mid + '.', 'From ' + mid + ' to ' + end + ': ' + (back ? mid + ' ' + MINUS + ' ? = ' + end + ', so ? = ' + mi(mid, end) : mid + ' + ? = ' + end + ', so ? = ' + mi(end, mid)) + '.', 'The last hop is ' + B(o) + '.'],
         steps: [st('Where are you after the first hop? ' + B(back ? mi(a, T) : pl(a, T)) + ' = ?', mid), st('From ' + mid + ' to ' + end + ' is how far?', o)],
         traps: [tr(Math.abs(end - a), 'a_hopline', 'That is the whole trip. Take away the ' + T + ' you already hopped.'), tr(end, 'a_hopline', 'That is where you land. The question asks how big the last hop is.'), tr(Math.abs(end - a) + T, 'a_hopline', 'The first hop already went ' + T + '. What is left?')] };
     }
     const T = R.i(2, 5) * 10, o = R.i(2, 9), a = R.i(12, 99 - T - o), end = a + T + o; if (a % 10 === 0) return null;
-    return { text: 'You start somewhere, hop ' + B('+' + T) + ', then hop ' + B('+' + o) + ', and land on ' + B(end) + '. Where did you start?', ans: a,
+    return { text: 'Where did the hops start?', say: C.sayOf('You start somewhere, hop +' + T + ', then hop +' + o + ', and land on ' + end + '. Where did you start?'), ans: a,
       vis: hopsSVG(a, [T, o], { fmt: lbl([end], [a]) }),
       how: ['Go backwards from the end: undo each hop.', 'Undo +' + o + ': ' + mi(end, o) + ' = ' + (end - o) + '.', 'Undo +' + T + ': ' + mi(end - o, T) + ' = ' + B(a) + '. You started at ' + a + '.'],
       steps: [st('Undo the last hop: ' + B(mi(end, o)) + ' = ?', end - o), st('Undo the tens hop: ' + B(mi(end - o, T)) + ' = ?', a)],
@@ -937,30 +937,30 @@ defs([
     const tbl = (q) => table([['A: add ' + a].concat(cols.map(i => a * i)), ['B: add ' + b].concat(cols.map(i => q && i === 4 ? '?' : b * i))]);
     const rel = 'B goes up by ' + b + ' each step and A by ' + a + ', so each B is ' + b + ' ÷ ' + a + ' = ' + k + ' times its A.';
     if (d === 0) {
-      return { text: 'Both patterns start at 0. Pattern A adds ' + B(a) + ' each time. Pattern B adds ' + B(b) + ' each time. When A is ' + B(4 * a) + ', what is B?', ans: 4 * b, vis: tbl(true),
+      return { text: 'When A is ' + B(4 * a) + ', what is B?', ans: 4 * b, vis: tbl(true),
         how: ['Keep adding: ' + 3 * b + ' + ' + b + ' = ' + 4 * b + '.', 'Check with the link: ' + rel + ' ' + k + ' × ' + 4 * a + ' = ' + B(4 * b) + '.'],
         steps: [st('B is 4 jumps of ' + b + ': ' + B('4 × ' + b) + ' = ?', 4 * b)],
         traps: [tr(4 * a + (b - a), 'p_twopat', 'B does not stay the same distance above A: it grows faster, ' + b + ' each step.'), tr(3 * b, 'p_twopat', 'That is B one step earlier. Line up the B under A = ' + 4 * a + '.'), tr(4 * a + b, 'p_twopat', 'B is a pattern of its own: add ' + b + ' to the B before it.')] };
     }
     const kind = R.pick(d === 1 ? ['far', 'times', 'far'] : ['rev', 'graph', 'diff']);
-    if (kind === 'times') return { text: 'Both patterns start at 0. Pattern A adds ' + B(a) + ' each time. Pattern B adds ' + B(b) + ' each time. Each number in B is how many times the number above it in A?', ans: k, vis: tbl(false),
+    if (kind === 'times') return { text: 'Each number in B is how many times the number above it in A?', ans: k, vis: tbl(false),
       how: ['Look at one pair: A = ' + 2 * a + ', B = ' + 2 * b + '. ' + 2 * b + ' ÷ ' + 2 * a + ' = ' + k + '.', 'It is the same for every pair, because B adds ' + b + ' while A adds ' + a + ', and ' + b + ' = ' + k + ' × ' + a + '. So B is ' + B(k) + ' times A.'],
       steps: [st('A pair: A = ' + 3 * a + ', B = ' + 3 * b + '. ' + B(3 * b + ' ÷ ' + 3 * a) + ' = ?', k)],
       traps: [tr(b - a, 'p_twopat', 'How many times means divide, not take away.'), tr(2 * b - 2 * a, 'p_twopat', 'The gap between A and B keeps growing. Compare by dividing.')] };
     const n = R.i(7, 15), An = n * a, Bn = n * b;
-    if (kind === 'far') return { text: 'Both patterns start at 0. Pattern A adds ' + B(a) + ' each time. Pattern B adds ' + B(b) + ' each time. When A is ' + B(An) + ', what is B?', ans: Bn, vis: tbl(false),
+    if (kind === 'far') return { text: 'When A is ' + B(An) + ', what is B?', ans: Bn, vis: tbl(false),
       how: [rel, 'When A is ' + An + ', B is ' + k + ' × ' + An + ' = ' + B(Bn) + '. (Or: ' + An + ' is ' + n + ' jumps of ' + a + ', so B is ' + n + ' jumps of ' + b + '.)'],
       steps: [st('Each B is how many times its A?', k), st(B(k + ' × ' + An) + ' = ?', Bn)],
       traps: [tr(An + (b - a), 'p_twopat', 'B does not stay the same distance above A: B grows ' + k + ' times as fast.'), tr(An + b, 'p_twopat', 'B is not A plus ' + b + '. Find the link: each B is ' + k + ' times its A.'), tr(n * b + b, 'p_twopat', 'Count the jumps: ' + An + ' is ' + n + ' jumps of ' + a + '.')] };
-    if (kind === 'rev') return { text: 'Both patterns start at 0. Pattern A adds ' + B(a) + ' each time. Pattern B adds ' + B(b) + ' each time. When B is ' + B(Bn) + ', what is A?', ans: An, vis: tbl(false),
+    if (kind === 'rev') return { text: 'When B is ' + B(Bn) + ', what is A?', ans: An, vis: tbl(false),
       how: [rel, 'So A is B ÷ ' + k + ': ' + Bn + ' ÷ ' + k + ' = ' + B(An) + '.'],
       steps: [st('Each B is how many times its A?', k), st(B(Bn + ' ÷ ' + k) + ' = ?', An)],
       traps: [tr(Bn * k, 'p_twopat', 'A is the smaller pattern: divide by ' + k + '.'), tr(Bn - (b - a), 'p_twopat', 'A is not a fixed distance below B. Use the link: B is ' + k + ' times A.'), tr(n, 'p_twopat', 'That is how many steps. The question asks for A.')] };
-    if (kind === 'graph') return { text: 'Both patterns start at 0. Pattern A adds ' + B(a) + ' each time. Pattern B adds ' + B(b) + ' each time. Each pair (A, B) is graphed as a point (x, y). What is the y-coordinate of the point with x = ' + B(An) + '?', ans: Bn, vis: tbl(false),
+    if (kind === 'graph') return { text: 'Each pair (A, B) is graphed as a point (x, y). What is the y-coordinate of the point with x = ' + B(An) + '?', ans: Bn, vis: tbl(false),
       how: ['A point (x, y) is (A, B), so x = ' + An + ' means A = ' + An + '.', rel + ' y = ' + k + ' × ' + An + ' = ' + B(Bn) + '.'],
       steps: [st('Each B is how many times its A?', k), st('y = ' + B(k + ' × ' + An) + ' = ?', Bn)],
       traps: [tr(An, 'x_coord', 'x is A and y is B: find the B that goes with this A.'), tr(An + (b - a), 'p_twopat', 'B grows ' + k + ' times as fast as A, so the gap is not fixed.')] };
-    return { text: 'Both patterns start at 0. Pattern A adds ' + B(a) + ' each time. Pattern B adds ' + B(b) + ' each time. When A is ' + B(An) + ', how much bigger is B than A?', ans: Bn - An, vis: tbl(false),
+    return { text: 'When A is ' + B(An) + ', how much bigger is B than A?', ans: Bn - An, vis: tbl(false),
       how: [rel + ' When A is ' + An + ', B is ' + k + ' × ' + An + ' = ' + Bn + '.', 'B ' + MINUS + ' A = ' + mi(Bn, An) + ' = ' + B(Bn - An) + '.'],
       steps: [st('B when A is ' + An + '?', Bn), st(B(mi(Bn, An)) + ' = ?', Bn - An)],
       traps: [tr(b - a, 'p_twopat', 'The gap grows by ' + (b - a) + ' each step. Find B first, then the gap.'), tr(Bn, 'p_twopat', 'That is B. How much bigger than A is it?')] };

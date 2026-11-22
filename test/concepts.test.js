@@ -92,6 +92,11 @@ function readable(id, p, where) {
   if (/ step /.test(where)) return; /* break-down steps are short prompts: only the length limits apply */
   if (/;/.test(t)) fail(id, where + ': semicolon: use two sentences', p);
   if (c.g <= 5 && /\([^()]*[A-Za-z]{3,}[^()]*\)/.test(t)) fail(id, where + ': an aside in brackets: say it in a sentence', p);
+  /* say it once: no sentence twice, and when the picture is the written sum (columns, a division bracket) the
+     sentences do not repeat its numbers (a typing note may show how to type) */
+  const said = main.map(x => C.bare(x.h).toLowerCase()); if (new Set(said).size < said.length) fail(id, where + ': the same sentence twice', p);
+  if (/class="stack"/.test(p.vis || '') && /\d/.test(t)) fail(id, where + ': the picture shows the sum, so the text must not repeat its numbers', p);
+  if (/\b(?:Find the (?:mistake|rule)|Estimate first, then)\b/.test(t)) fail(id, where + ': an instruction the answer does not check (ask it as part 1 with first, or drop it)', p);
   const ai = main.map(x => x.k).lastIndexOf('ask');
   if (ai >= 0 && main.slice(ai + 1).some(x => x.k === 'say')) fail(id, where + ': text after the question: put the question last', p);
 }
@@ -104,6 +109,7 @@ if (SHOW) {
     const p = C.gen(SHOW, d, R);
     console.log('\n[d' + d + '] ' + strip(p.text) + (p.vis ? '  [picture]' : '') + '\n   answer: ' + strip(C.ansText(p)) + '  (type ' + p.type + (p.low ? ', lowest terms' : '') + ', keys ' + C.keysFor(p).join(' ') + ')');
     (p.how || []).forEach(h => console.log('   how: ' + strip(h)));
+    if (p.first) console.log('   part 1: ' + strip(p.first.text) + ' -> ' + strip(C.ansText(p.first)) + '\n   part 2: the question above');
     (p.steps || []).forEach(s => console.log('   step: ' + strip(s.text) + ' -> ' + strip(C.ansText(s))));
     (p.traps || []).forEach(t => console.log('   trap: ' + strip(C.ansText(p, t.v)) + ' -> ' + (t.c || '(same)') + ': ' + strip(t.why || '')));
   }
@@ -127,6 +133,8 @@ for (const id of ids) {
       keys.add(p.key);
       if (!p.how.length) fail(id, 'd' + d + ': no how lines', p);
       p.steps.forEach((s, i) => { steps++; checkProblem(id, s, 'd' + d + ' step ' + (i + 1)); });
+      /* a two-part problem: part 1 is a whole question of its own, held to the same limits */
+      if (p.first) { checkProblem(id, p.first, 'd' + d + ' first'); if (p.first.part !== 1) fail(id, 'd' + d + ': part 1 was not finished', p); if (p.first.first || p.first.steps) fail(id, 'd' + d + ': part 1 cannot have parts or steps of its own', p); }
       p.traps.forEach(t => {
         traps++;
         if (!validAns(p.type, t.v, true) && !(p.type === 'frac' && typeof t.v === 'number')) fail(id, 'd' + d + ': trap value has the wrong form ' + JSON.stringify(t.v), p);

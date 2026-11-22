@@ -832,7 +832,7 @@ C.defs(polish([
     }
     if (!ds) return null;
     const [A, Bd] = ds, H = (A[0] + Bd[0]) * 100, Tt = (A[1] + Bd[1]) * 10, O = A[2] + Bd[2], ans = a + b;
-    return { text: 'Add place by place: ' + qq(add(a, b)), vis: stackHTML([a, b], '+'), ans,
+    return { text: 'Add place by place.', say: C.sayOf('Add place by place: ' + add(a, b)), vis: stackHTML([a, b], '+'), ans,
       hint: 'Add the hundreds, then the tens, then the ones. Then add the three answers.',
       how: [add(A[0] * 100, Bd[0] * 100) + ' = ' + N(H), add(A[1] * 10, Bd[1] * 10) + ' = ' + N(Tt), add(A[2], Bd[2]) + ' = ' + O, N(H) + ' + ' + N(Tt) + ' + ' + O + ' = ' + B(N(ans))],
       steps: [S(qq(add(A[0] * 100, Bd[0] * 100)), H), S(qq(add(A[1] * 10, Bd[1] * 10)), Tt), S(qq(add(A[2], Bd[2])), O), S(qq(N(H) + ' + ' + N(Tt) + ' + ' + O), ans)],
@@ -846,7 +846,7 @@ C.defs(polish([
     if (d === 0) {
       do { a = R.i(300, 999); b = R.i(111, a - 100); } while (digitsOf(b).some((x, i) => x > digitsOf(a)[i]) || digitsOf(b).includes(0));
       const A = digitsOf(a), Bd = digitsOf(b), H = (A[0] - Bd[0]) * 100, Tt = (A[1] - Bd[1]) * 10, O = A[2] - Bd[2], ans = a - b;
-      return { text: 'Take away place by place: ' + qq(sub(a, b)), vis: stackHTML([a, b], MINUS), ans,
+      return { text: 'Take away place by place.', say: C.sayOf('Take away place by place: ' + sub(a, b)), vis: stackHTML([a, b], MINUS), ans,
         hint: 'Every top digit is bigger, so take away the hundreds, the tens and the ones on their own.',
         how: [sub(A[0] * 100, Bd[0] * 100) + ' = ' + N(H), sub(A[1] * 10, Bd[1] * 10) + ' = ' + N(Tt), sub(A[2], Bd[2]) + ' = ' + O, N(H) + ' + ' + N(Tt) + ' + ' + O + ' = ' + B(N(ans))],
         steps: [S(qq(sub(A[0] * 100, Bd[0] * 100)), H), S(qq(sub(A[1] * 10, Bd[1] * 10)), Tt), S(qq(sub(A[2], Bd[2])), O), S(qq(N(H) + ' + ' + N(Tt) + ' + ' + O), ans)],
@@ -857,7 +857,7 @@ C.defs(polish([
     const hops = []; let at = b; const go = t => { if (t > at && t <= a) { hops.push([at, t]); at = t; } };
     if (at % 10) go(Math.ceil(at / 10) * 10); if (at % 100) go(Math.ceil(at / 100) * 100); go(a);
     const sizes = hops.map(h => h[1] - h[0]), ans = a - b;
-    return { text: 'Count up: ' + qq(sub(a, b)), vis: stackHTML([a, b], MINUS), ans, howVis: hopsSVG(b, sizes),
+    return { text: 'Count up: ' + qq(sub(a, b)), ans, howVis: hopsSVG(b, sizes),
       hint: 'Count up from ' + N(b) + ': first to the next ten, then to the next hundred, then to ' + N(a) + '.',
       how: hops.map(h => N(h[0]) + ' → ' + N(h[1]) + ' is ' + N(h[1] - h[0])).concat([sizes.map(N).join(' + ') + ' = ' + B(N(ans))]),
       steps: hops.map(h => S('From ' + B(N(h[0])) + ' up to ' + B(N(h[1])) + ' is how much?', h[1] - h[0])).concat([S(qq(sizes.map(N).join(' + ')), ans)]),
@@ -1089,12 +1089,12 @@ C.defs(polish([
     const [ri, ro] = rows[0], tableHow = ['When In goes up by 1, Out goes up by ' + k + ', so the rule starts with × ' + k + '.', ri + ' × ' + k + ' = ' + (k * ri) + ', and Out is ' + ro + ', so then ' + (c > 0 ? 'add ' + c : 'take away ' + (-c)) + '.'];
     const cStep = S(B((k * ri) + (c > 0 ? ' + ? = ' : ' ' + MINUS + ' ? = ') + ro), Math.abs(c));
     if (d === 1) { const x = R.i(6, 12), ans = f(x);
-      return { text: 'The rule has two steps: first ×, then + or ' + MINUS + '. Find the rule. What number comes out?', vis: ioTable(rows, [x, ans], false), ans,
+      return { text: 'The rule has two steps: first ×, then + or ' + MINUS + '. What number comes out?', vis: ioTable(rows, [x, ans], false), ans,
         how: tableHow.concat([x + ' × ' + k + ' ' + sg + ' = ' + (k * x) + ' ' + sg + ' = ' + B(ans) + '.']),
         steps: [S('How much does Out go up each time In goes up by 1?', k), cStep, S(qq(x + ' × ' + k + ' ' + sg), ans)],
         traps: traps([tp(k * x, 'p_twostep', 'Do the second step too: ' + sg + '.'), tp(x + (ro - ri), 'p_machine', 'Adding ' + (ro - ri) + ' fits only the first pair. Check every pair.'), tp(ans + k, 'p_twostep', 'Check the × step.'), tp(ans - k, 'p_twostep', 'Check the × step.')]), key: 'ts1' + rows.join(';') + x }; }
     const x = R.i(4, 15), out = f(x), table = R.chance(.5);
-    return { text: table ? 'Find the two-step rule. What number went in?' : 'The rule is ' + B(rule) + '. What went in if ' + B(out) + ' came out?', vis: table ? ioTable(rows, [x, out], true) : '', ans: x,
+    return { text: table ? 'The rule has two steps: first ×, then + or ' + MINUS + '. What number went in?' : 'The rule is ' + B(rule) + '. What went in if ' + B(out) + ' came out?', vis: table ? ioTable(rows, [x, out], true) : '', ans: x,
       how: (table ? [tableHow[0] + ' ' + tableHow[1]] : []).concat(['Work backwards: undo the last step first. Undo ' + sg + ': ' + (c > 0 ? sub(out, c) : add(out, -c)) + ' = ' + (out - c) + '.', 'Undo × ' + k + ': ' + k + ' × ? = ' + (out - c) + ', so ' + B(x) + ' went in.']),
       steps: (table ? [S('How much does Out go up each time In goes up by 1?', k), cStep] : []).concat([S(qq(c > 0 ? sub(out, c) : add(out, -c)), out - c), S(B(k + ' × ? = ' + (out - c)), x)]),
       traps: traps([tp(out % k === 0 ? out / k - c : null, 'p_twostep', 'Undo in reverse order: undo the ' + (c > 0 ? '+' : MINUS) + ' step first, then the ×.'), tp(f(out), 'p_twostep', 'This asks what went in. Work backwards.'), tp(out - c, 'p_twostep', 'Undo the × step too.'), tp(x + 1, 'm_divfam', 'Check: ' + k + ' × your answer ' + sg + ' should make ' + out + '.')]), key: 'ts2' + rule + out + table };
@@ -1128,7 +1128,7 @@ C.defs(polish([
         steps: [S('How many dots are in the new row?', n + 1), S(qq(add(t, n + 1)), t + n + 1)],
         traps: traps([tp(t + n, 'p_triangle', 'The new row has ' + (n + 1) + ' dots, one more than the last row.'), tp(t + n + 2, 'p_triangle', 'The new row has ' + (n + 1) + ' dots.'), tp(2 * t, 'p_triangle', 'Triangle numbers do not double. Add the new row.')]) }; }
     const n = R.i(11, 30), p = n * (n + 1), t = p / 2;
-    return { text: 'Find the ' + ord(n) + ' triangle number. ' + B('1 + 2 + 3 + … + ' + n + ' = ?'), ans: t,
+    return { text: 'The ' + ord(n) + ' triangle number is ' + B('1 + 2 + 3 + … + ' + n) + '. What is it?', ans: t,
       how: ['Two copies of the triangle fit together into a rectangle ' + n + ' by ' + (n + 1) + '.', n + ' × ' + (n + 1) + ' = ' + N(p) + '. Half of that is ' + B(N(t)) + '.'],
       steps: [S(qq(n + ' × ' + (n + 1)), p), S('Half of ' + B(N(p)) + ' = ?', t)],
       traps: traps([tp(p, 'p_triangle', 'Two triangles make the rectangle, so take half.'), tp(n * n % 2 === 0 ? n * n / 2 : null, 'p_triangle', 'The rectangle is ' + n + ' by ' + (n + 1) + ', not ' + n + ' by ' + n + '.'), tp(t - n, 'p_triangle', 'Count all the way up to ' + n + '.'), tp(t + n + 1, 'p_triangle', 'Stop at ' + n + '.')]) };

@@ -405,11 +405,11 @@ const DEFS = [
     const rev = d === 2 && R.chance(.4);
     let X; do { X = d === 2 ? R.i(12, 60) : R.i(4, 14); } while (xs.includes(X));
     const Y = f(X), wrongAdd = X + ys[0] - xs[0], wrongMul = isInt(ys[0] / xs[0]) ? X * ys[0] / xs[0] : null;
-    if (!rev) return { text: 'These two amounts change together. Find the rule, then the missing number.', ans: Y, vis: table([[C1[0], ...xs, X], [C1[1], ...ys, '?']]),
+    if (!rev) return { text: 'These two amounts change together. What is the missing number?', ans: Y, vis: table([[C1[0], ...xs, X], [C1[1], ...ys, '?']]),
       how: [found, 'Rule: ' + rule + '.', 'x = ' + X + ': y = ' + (mult ? k + ' × ' + X : X + ' + ' + k) + ' = ' + B(num(Y)) + '.'],
       steps: [st(mult ? 'Every y is how many times its x?' : 'Every y is how much more than its x?', k), st('x = ' + X + ': ' + B(mult ? k + ' × ' + X : X + ' + ' + k) + ' = ?', Y)],
       traps: [tr(mult ? wrongAdd : wrongMul, 'x_twovars', 'Check your rule on another row: it has to work for every row.'), tr(ys[2] + ys[2] - ys[1], 'p_rule', 'The x values do not go up by the same steps, so use the rule, not the jumps.'), tr(mult ? Y + k : null, fx(k, X), 'Check ' + k + ' × ' + X + '.')] };
-    return { text: 'These two amounts change together. Find the rule, then the missing number.', ans: X, vis: table([[C1[0], ...xs, '?'], [C1[1], ...ys, num(Y)]]),
+    return { text: 'These two amounts change together. What is the missing number?', ans: X, vis: table([[C1[0], ...xs, '?'], [C1[1], ...ys, num(Y)]]),
       how: [found, 'Rule: ' + rule + '.', 'Undo it for y = ' + num(Y) + ': x = ' + (mult ? num(Y) + ' ÷ ' + k : num(Y) + ' ' + MINUS + ' ' + k) + ' = ' + B(X) + '.'],
       steps: [st(mult ? 'Every y is how many times its x?' : 'Every y is how much more than its x?', k), st('Undo it: x = ?', X)],
       traps: [tr(mult ? Y * k : Y + k, 'x_onestep', 'Undo the rule: do the opposite to y.'), tr(mult ? Y - ys[0] + xs[0] : (isInt(Y * xs[0] / ys[0]) ? Y * xs[0] / ys[0] : null), 'x_twovars', 'Check your rule on another row: it has to work for every row.')] };

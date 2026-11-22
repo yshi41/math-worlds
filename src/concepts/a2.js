@@ -926,7 +926,7 @@ C.defs([
     }
     if (R.chance(.5)) {
       const h = R.i(1, 11), m = R.i(0, 11) * 5;
-      return { text: 'Write ' + B(fmtT(h, m) + ' PM') + ' in 24-hour time. What number is the hour?', ans: h + 12,
+      return { text: B(fmtT(h, m) + ' PM') + ' is ' + B('?:' + C.pad2(m)) + ' in 24-hour time. What is the missing hour?', ans: h + 12,
         how: ['PM hours come after noon, so 24-hour time adds 12.', h + ' + 12 = ' + (h + 12) + ', so it is ' + H24(h + 12, m) + '. The hour is ' + B(h + 12) + '.'],
         steps: [{ text: B(h + ' + 12 = ?'), ans: h + 12 }],
         traps: [{ v: h + 10, c: 't_24h', why: 'Add 12, not 10.' }, { v: h, c: 't_24h', why: 'In 24-hour time, PM hours add 12: 1 PM is 13.' }, { v: h + 11, c: 't_24h', why: 'One off. 1 PM is 13, 2 PM is 14.' }] };
@@ -1141,7 +1141,8 @@ C.defs([
     const traps = [{ v: ans + 10, c: paid === 100 && price % 10 ? 'a_from100' : 'c_change', why: paid === 100 && price % 10 ? 'For $1.00, the tens add up to 9, not 10, because the ones make another ten.' : price % 10 ? 'Count up in hops: to the next ten, then to ' + fmtM(paid) + '.' : 'Count up by 10s from ' + fmtM(price) + ' to ' + fmtM(paid) + '.' },
                    { v: ans - 10, c: 'c_change', why: price % 10 ? 'Count up in hops: to the next ten, then to ' + fmtM(paid) + '.' : 'Count up by 10s from ' + fmtM(price) + ' to ' + fmtM(paid) + '.' }];
     if (price % 5) traps.push({ v: ans + 5, c: 'c_change', why: 'Check the first hop, up to the next 5 or 10.' });
-    return money('The ' + it[1] + ' costs ' + B(fmtM(price)) + '. You pay ' + B(fmtM(paid)) + '. How much change do you get?', ans, { fmt: 'c', vis: tagsHTML([[...it, price]]), how,
+    return money('You buy the ' + it[1] + ' and pay ' + B(fmtM(paid)) + '. How much change do you get?', ans, { fmt: 'c', vis: tagsHTML([[...it, price]]), how,
+      say: C.sayOf('The ' + it[1] + ' costs ' + fmtM(price) + '. You pay ' + fmtM(paid) + '. How much change do you get?'),
       howVis: hopsSVG(price, hops, { fmt: fmtM, lab: fmtM }), steps, traps });
   } },
 
@@ -1154,14 +1155,14 @@ C.defs([
     else { paid = R.pick([1000, 2000]); price = R.i(paid / 200, paid / 100 - 1) * 100 + R.pick([99, 95, 65, 45, 15, 29, 79, 38, 52]); }
     const ans = paid - price, nd = Math.ceil(price / 100) * 100, a = nd - price, b = paid - nd, it = R.pick(SHOP);
     if (d > 0 && !b) return null;
-    const text = 'The ' + it[1] + ' costs ' + B(fmtD(price)) + '. You pay with ' + B(fmtD(paid)) + '. How much change do you get?';
-    if (!a) return money(text, ans, { fmt: 'd', vis: tagsHTML([[...it, price]]),
+    const text = 'You buy the ' + it[1] + ' and pay with ' + B(fmtD(paid)) + '. How much change do you get?', say = C.sayOf('The ' + it[1] + ' costs ' + fmtD(price) + '. You pay with ' + fmtD(paid) + '. How much change do you get?');
+    if (!a) return money(text, ans, { fmt: 'd', say, vis: tagsHTML([[...it, price]]),
       how: ['Count up the dollars from ' + fmtD(price) + ' to ' + fmtD(paid) + ': ' + Array.from({ length: b / 100 }, (_, i) => '$' + (price / 100 + i + 1)).join(', ') + '.', 'That is ' + (b / 100) + ' ' + plural(b / 100, 'dollar') + ': ' + B(fmtD(ans)) + '.'],
       traps: [{ v: ans + 100, c: 'c_change5', why: 'Count the jumps from dollar to dollar, not the numbers you say.' }, ans > 100 ? { v: ans - 100, c: 'c_change5', why: 'Count every dollar up to ' + fmtD(paid) + '.' } : null].filter(Boolean) });
     const traps = [{ v: ans + 100, c: 'c_change5', why: 'One dollar too many. After the hop to ' + fmtD(nd) + ', count just the whole dollars to ' + fmtD(paid) + '.' },
                    { v: b, c: 'c_change5', why: 'You counted the dollars but forgot the ' + fmtM(a) + ' up to ' + fmtD(nd) + '.' },
                    { v: ans + 10, c: a % 10 ? 'a_from100' : 'c_change5', why: a % 10 ? 'Check the cents hop: the tens add up to 9, not 10, because the ones make another ten.' : 'Check the cents hop up to ' + fmtD(nd) + '.' }];
-    return money(text, ans, { fmt: 'd', vis: tagsHTML([[...it, price]]),
+    return money(text, ans, { fmt: 'd', say, vis: tagsHTML([[...it, price]]),
       hint: 'Count up from ' + fmtD(price) + ' to the next whole dollar, ' + fmtD(nd) + ', first.',
       how: [fmtD(price) + ' → ' + fmtD(nd) + ' is ' + fmtM(a) + '.', fmtD(nd) + ' → ' + fmtD(paid) + ' is ' + fmtD(b) + '.', fmtM(a) + ' + ' + fmtD(b) + ' = ' + B(fmtD(ans))],
       howVis: hopsSVG(price, [a, b], { fmt: fmtD, lab: fmtM }),
@@ -1235,12 +1236,12 @@ C.defs([
     const how = ['Pack A: ' + each(t1, k1) + '.', 'Pack B: ' + each(t2, k2) + '.'];
     const steps = [money('What is the price for one ' + it[1] + ' in Pack A?', p1, { fmt: 'c' }), money('What is the price for one ' + it[1] + ' in Pack B?', p2, { fmt: 'c' })];
     if (big && R.chance(.5)) {
-      return money('Which pack is the better buy? How much do you save on each ' + it[1] + ' with the better buy?', hi - lo, { fmt: 'c', vis,
+      return money('One pack is the better buy. How much less does one ' + it[1] + ' cost in that pack?', hi - lo, { fmt: 'c', vis,
         how: how.concat([less(hi, lo) + ' = ' + B((hi - lo) + '¢') + ' saved on each one.']),
         steps: steps.concat([money(B(hi + '¢ ' + MINUS + ' ' + lo + '¢ = ?'), hi - lo, { fmt: 'c' })]),
         traps: [{ v: Math.abs(t1 - t2), c: 'c_unit', why: 'That compares whole packs. Compare the price for one.' }, { v: lo, c: 'c_unit', why: 'That is the price for one in the better pack. Now find the difference.' }, { v: hi, c: 'c_unit', why: 'That is a price for one. The question asks how much you save on each.' }] });
     }
-    return money('Which pack is the better buy? Type the price for one ' + it[1] + ' in the better pack.', lo, { fmt: 'c', vis,
+    return money('One pack is the better buy. How much does one ' + it[1] + ' cost in that pack?', lo, { fmt: 'c', vis,
       how: how.concat(['The better buy costs less for one: ' + B(lo + '¢') + '.']), steps,
       traps: [{ v: hi, c: 'c_unit', why: 'That pack costs more for each one. The better buy is the cheaper price for one.' }, { v: loT, c: 'c_unit', why: 'That is the price of the whole pack. Divide to find the price for one.' }, { v: lo + 5, c: 'm_divfam', why: 'Check the division: times your answer by the number in the pack.' }] });
   } },

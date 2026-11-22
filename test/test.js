@@ -562,6 +562,53 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(await ev(p, () => /Earlier-grade spot checks/.test(document.querySelector('#pvBody').textContent) && /too fast to count/.test(document.querySelector('#pvBody').textContent) && !/NaN|undefined/.test(document.querySelector('#pvBody').textContent)), 'the parent view reports the spot checks and the check that was too fast');
   await p.close();
 
+  /* 16. two-part problems (find the mistake): part 1 finds the mistake, part 2 fixes it, and the problem is right only
+     when both parts are right. Practice answers part 1 like any answer; a memory check takes both without a word. */
+  const m16 = create();
+  p = await newPage(m16); await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(200);
+  await ev(p, () => window.__mw.startLearn('a_fixit')); await wait(150);
+  const part = () => ev(p, () => { const R = window.__mw.RD, q = s => document.querySelector(s), fb = q('#feedback'), c = R.cur || {};
+    return { part: R.part, phase: R.phase, tries: R.tries, text: q('#qText').textContent, vis: /class="stack"/.test(q('#qVis').innerHTML), fb: fb.hidden ? '' : fb.textContent, back: !q('#backBtn').hidden,
+      res: R.results.slice(), first: !!(c.p && c.p.first), typed: c.typed || null, aud: R.aud ? Object.values(R.aud)[0] || [] : null, kind: c.kind, wide: document.documentElement.scrollWidth > innerWidth + 1 }; });
+  const sub = (which, right) => ev(p, (which, right) => { const R = window.__mw.RD, q = which === 1 ? R.cur.p.first : R.cur.p; window.__mw.submit(right ? q.ans : (which === 1 ? (q.ans === 1 ? 10 : 1) : q.ans + 1), null); }, which, right);
+  let s16 = await part();
+  check(s16.first && s16.part === 1 && /Part 1 of 2/.test(s16.text) && /Which digit is wrong first\?/.test(s16.text) && s16.vis, 'find the mistake opens on part 1, with the worked sum as its picture (' + s16.text + ')');
+  check(!/worked out|Find the mistake|\d\s*[+−]\s*\d/.test(s16.text), 'the text does not repeat the sum or give an instruction that is not asked');
+  await sub(1, false); s16 = await part();
+  check(s16.part === 1 && s16.tries === 1 && /Not quite/.test(s16.fb) && s16.phase === 'ask', 'a wrong part 1 is a miss with a hint, and part 1 is asked again (' + s16.fb.slice(0, 60) + ')');
+  await sub(1, true); s16 = await part();
+  check(s16.part === 2 && /Part 2 of 2/.test(s16.text) && /What is the correct answer\?/.test(s16.text) && /Part 1 is right/.test(s16.fb) && s16.phase === 'ask', 'a right part 1 moves on to part 2');
+  await sub(2, true); s16 = await part();
+  check(s16.phase === 'done' && s16.res.length === 1 && s16.res[0] === false && /^part 1: /.test(s16.typed || ''), 'both parts right after a miss in part 1 is not a first-try right (' + JSON.stringify(s16.res) + ', ' + s16.typed + ')');
+  await next(p); await sub(1, true); await sub(2, true); s16 = await part();
+  check(s16.phase === 'done' && s16.res.length === 2 && s16.res[1] === true, 'both parts right first time counts as right');
+  await next(p); await sub(1, true); await sub(2, false); s16 = await part();
+  check(s16.part === 2 && s16.tries === 1 && /, then /.test(s16.typed || ''), 'a wrong part 2 keeps part 1 and asks part 2 again (' + s16.typed + ')');
+  await sub(2, false); s16 = await part();
+  check(s16.phase === 'done' && /The answer is/.test(s16.fb) && /first wrong digit/i.test(s16.fb), 'a second miss shows the answer and names the first wrong digit');
+  /* a memory check on the same concept: no word on either part, Back returns to part 1, one wrong part makes it wrong */
+  await ev(p, () => window.__mw.startAudit(['a_fixit'])); await wait(150);
+  s16 = await part();
+  check(s16.kind === 'aud' && s16.part === 1, 'a memory check asks part 1 first too');
+  await sub(1, false); s16 = await part();
+  check(s16.part === 2 && s16.fb === '' && s16.back && s16.phase === 'ask', 'a wrong part 1 in a memory check moves on without a word');
+  await ev(p, () => window.__mw.goBack()); s16 = await part();
+  check(s16.part === 1 && s16.phase === 'ask', 'Back in part 2 returns to part 1');
+  await sub(1, true); await sub(2, true);
+  await until(async () => { const s = await part().catch(() => null); return s && s.phase === 'ask' && s.part === 1; }, 4000);
+  await sub(1, false); await sub(2, true);
+  await until(() => resultsShown(p), 6000);
+  const a16 = await ev(p, () => { const pl = window.__mw.saves.riley, b = pl.blk || {}, Q = (b.q || []).filter(q => q[0] === 'a_fixit' && q[4] === 'a'); return { q: Q.map(q => [q[6], q[8]]) }; });
+  check(a16.q.length === 2 && a16.q[0][0] === 1 && a16.q[1][0] === 0 && /, then /.test(a16.q[1][1] || ''), 'both parts right counts; a wrong part 1 with a right part 2 does not, and both typed answers are kept (' + JSON.stringify(a16) + ')');
+  await until(() => ev(p, () => window.__mw.net.idle())); await ev(p, () => window.__mw.openParent('riley')); await wait(300);
+  const pv16 = await ev(p, () => { const d = document.querySelector('#pvBody details.pv-blk'); if (!d) return null; d.open = true; d.dispatchEvent(new Event('toggle')); return d.querySelector('.pv-qbody').textContent; });
+  check(!!pv16 && /Asked in two parts. Part 1: Which digit is wrong first/.test(pv16) && /Answers: /.test(pv16) && /, then /.test(pv16) && !/undefined|NaN/.test(pv16), 'the parent view shows both parts, both answers and what she typed for each');
+  /* phone width: both parts fit without sideways scroll */
+  await p.setViewport({ width: 390, height: 780 }); await ev(p, () => window.__mw.startLearn('m_fixit')); await wait(200);
+  s16 = await part(); check(s16.part === 1 && !s16.wide, 'part 1 fits a phone'); await sub(1, true); await wait(100); s16 = await part(); check(s16.part === 2 && !s16.wide, 'part 2 fits a phone');
+  await p.close();
+
   check(errs.length === 0, 'no page errors: ' + errs.slice(0, 5).join(' | '));
   await browser.close();
   console.log(`${n - failed} of ${n} checks passed${failed ? ', ' + failed + ' FAILED' : ''}`);
