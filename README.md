@@ -142,6 +142,15 @@ Practice comes in blocks planned at about 20 minutes. A block is a number of pro
 sized to the problems left (4 to 10), and the block ends with the round that finishes them, with a summary that says
 how big the next block will be. Another block can be started from the map. The block lives in the online save.
 
+A block runs straight through (11/23/2026). The end of a round or of a concept is not a stop: when a concept is
+mastered its last problem says so ("Concept mastered", confetti, the button reads **Keep going**) and the next thing
+starts at once, whether more of the same concept, the next concept (a new one still opens on its short lesson), or a
+memory check. The streak, the "pencil and paper ready" tap and the way of working carry over (`CARRY` in
+`src/game.js`). The results screen comes once, at the end of the block, and shows the whole block: right first try,
+best streak, treats earned, the tricky spots found and how each idea of its memory checks did (`runsOn` and
+`finishRound`). Still a stop: a round she ends herself with Stop, a tricky-spot or test-out round, and a memory check
+that went by too fast to count, whose note she needs to read.
+
 Her pace is the time a finished block really took (answering, at most 4 minutes a problem, plus help lessons) over an
 average kid's time for the same problems, folded half-and-half into her running pace (`COACH.blockPace`). So a block
 that ran long, because the concept was hard or she needed break-downs, hints or a help lesson, makes the next block

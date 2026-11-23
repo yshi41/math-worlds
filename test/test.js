@@ -31,6 +31,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   const answer = async (p, right) => { await ev(p, r => r ? window.__mw.answerRight() : window.__mw.answerWrong(), right); await wait(50); };
   const next = async p => { await ev(p, () => { const b = document.querySelector('#nextQBtn'); if (!b.hidden) b.click(); }); await wait(50); };
   const resultsShown = p => ev(p, () => !document.querySelector('#results').hidden);
+  const audOver = p => ev(p, () => !document.querySelector('#results').hidden || !window.__mw.RD || window.__mw.RD.kind !== 'audit');
   const cur = p => ev(p, () => { const R = window.__mw.RD; if (!R || !R.cur) return null; return { kind: R.cur.kind, skill: R.cur.p.skill, d: R.cur.p.d, type: R.cur.p.type, steps: (R.cur.p.steps || []).length, phase: R.phase, tries: R.tries, qlen: R.queue.length, endQ: R.endQ.length, roundKind: R.kind, nx: R.cur.nx || null }; });
   const G = await (async () => { const p = await browser.newPage(); await p.goto(F); const g = await p.evaluate(() => { const S = window.MWC.S, CO = window.COACH; return { grade: Object.fromEntries(Object.keys(S).map(k => [k, S[k].g])), order: CO.ORDER, strands: Object.fromEntries(CO.STR.map(s => [s.id, s.list])) }; }); await p.close(); return g; })();
 
@@ -94,6 +95,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await ev(p, () => { const b = document.querySelector('#lsStepBtn'); for (let i = 0; i < 6; i++) if (!b.hidden) b.click(); });
   check(await ev(p, () => document.querySelectorAll('#lsExSteps li:not(.hide)').length >= 2), 'the worked example steps through');
   await ev(p, () => document.querySelector('#startBtn').click()); await wait(200);
+  await ev(p, () => { window.__mw.blk.goal = 40; }); /* a block with plenty left, so the concept ends inside it */
   const c0 = await cur(p);
   check(c0 && c0.roundKind === 'learn' && c0.skill === nextId && c0.d === 0, 'the first problem is easy, on that concept');
   await answer(p, false);
@@ -106,13 +108,16 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   if (c0.steps) check(await ev(p, () => /break it down/i.test(document.querySelector('#nextQBtn').textContent)), 'the button says Let\'s break it down');
   await next(p);
   if (c0.steps) check((await cur(p)).kind === 'step', 'the next question is a step');
-  let mains = 1, stepsSeen = 0, levelSeen = new Set();
-  for (let i = 0; i < 80; i++) { const c = await cur(p); if (!c || c.roundKind !== 'learn') break; if (c.phase !== 'ask') { await next(p); continue; } if (c.kind === 'main') { mains++; levelSeen.add(c.d); } if (c.kind === 'step') stepsSeen++; await answer(p, true); await next(p); if (await resultsShown(p)) break; }
-  await until(() => resultsShown(p));
+  let mains = 1, stepsSeen = 0, levelSeen = new Set(), masteredFb = '';
+  for (let i = 0; i < 80; i++) { const c = await cur(p); if (!c || c.roundKind !== 'learn' || c.skill !== nextId) break; if (c.phase !== 'ask') { await next(p); continue; } if (c.kind === 'main') { mains++; levelSeen.add(c.d); } if (c.kind === 'step') stepsSeen++; await answer(p, true);
+    const fb = await ev(p, () => document.querySelector('#feedback').textContent + ' | ' + document.querySelector('#nextQBtn').textContent); if (/Concept mastered/.test(fb)) masteredFb = fb;
+    await next(p); if (await resultsShown(p)) break; }
+  await wait(200);
   check(stepsSeen === c0.steps, 'every step was asked (' + stepsSeen + ')');
   check(levelSeen.has(1) && levelSeen.has(2), 'the problems got harder: levels ' + [...levelSeen].join(','));
-  check(await ev(p, () => /Concept mastered/.test(document.querySelector('#resTitle').textContent)), 'nine right in a row masters the concept (' + mains + ' problems)');
-  check(await ev(p, () => !document.querySelector('#nextLessonBtn').hidden && /Keep going/.test(document.querySelector('#nextLessonBtn').textContent)), 'the results offer to keep going');
+  check(/Concept mastered/.test(masteredFb) && /\| Keep going$/.test(masteredFb), 'nine right in a row masters the concept, and the button says Keep going (' + mains + ' problems)');
+  const on4 = await ev(p, () => ({ res: !document.querySelector('#results').hidden, lesson: !document.querySelector('#lesson').hidden, play: !document.querySelector('#play').hidden, kind: window.__mw.RD && window.__mw.RD.kind, skill: window.__mw.RD && window.__mw.RD.skill, blk: !!window.__mw.blk }));
+  check(!on4.res && on4.blk && (on4.lesson || (on4.play && on4.skill !== nextId)), 'the block does not stop at the end of a concept: it goes straight on to what comes next (' + JSON.stringify(on4) + ')');
   await until(() => ev(p, () => window.__mw.net.idle()));
   r = mock.store.riley.state;
   check(r.cs[nextId] && r.cs[nextId].m > 0, 'the mastery is saved online');
@@ -466,30 +471,30 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   const plan = {}; plan[a14.ids[0]] = [1, 1]; plan[a14.ids[1]] = [1, 0]; plan[a14.ids[2]] = [0, 0]; plan[a14.ids[3]] = ['s', 's'];
   const used = {}; let notes = new Set();
   for (let i = 0; i < 20; i++) {
-    if (await resultsShown(p)) break;
+    if (await ev(p, () => !document.querySelector('#results').hidden || !document.querySelector('#lesson').hidden)) break;
     const c = await ev(p, () => { const R = window.__mw.RD; return R && R.cur ? { aid: R.cur.aid, phase: R.phase } : null; });
     if (!c || c.phase !== 'ask') { await wait(80); continue; }
     const k = used[c.aid] = (used[c.aid] | 0) + 1, act = plan[c.aid][k - 1];
     if (act === 's') await ev(p, () => (document.querySelector('#skipBtn').click(), document.querySelector('#skipBtn').click())); else await answer(p, !!act);
     notes.add(await ev(p, () => document.querySelector('#feedback .fb-h').textContent.trim()));
-    await until(() => ev(p, () => !document.querySelector('#results').hidden || (window.__mw.RD && window.__mw.RD.phase === 'ask')), 3000);
+    await until(() => ev(p, () => !document.querySelector('#results').hidden || !document.querySelector('#lesson').hidden || (window.__mw.RD && window.__mw.RD.phase === 'ask')), 3000);
   }
   check([...notes].every(t => /saved|Skipped/.test(t)), 'no right or wrong during the check (' + [...notes].join(' / ') + ')');
-  const r14 = await ev(p, () => ({ title: document.querySelector('#resTitle').textContent, pass: document.querySelectorAll('.place.aud-pass').length, shaky: document.querySelectorAll('.place.aud-shaky').length, lapse: document.querySelectorAll('.place.aud-lapse').length, keep: !document.querySelector('#nextLessonBtn').hidden && document.querySelector('#nextLessonBtn').textContent }));
-  check(r14.pass === 1 && r14.shaky === 1 && r14.lapse === 2, 'the results show what held, what was wobbly and what slipped (' + JSON.stringify(r14) + ')');
   const st14 = await ev(p, ids => { const pl = window.__mw.saves.riley, CO = window.COACH; return { held: CO.isMastered(pl, ids[0]), wob: CO.isMastered(pl, ids[1]) && pl.cs[ids[1]].sh === 1, slip: !CO.isMastered(pl, ids[2]) && CO.isLapsed(pl, ids[2]) && CO.isLapsed(pl, ids[3]), cur: CO.current(pl) }; }, ids14);
   check(st14.held && st14.wob && st14.slip && (st14.cur === ids14[2] || st14.cur === ids14[3]), 'a slipped concept is no longer mastered and comes first on the path (' + JSON.stringify(st14) + ')');
-  check(r14.keep === 'Keep going', 'the results say Keep going');
-  await ev(p, () => document.querySelector('#nextLessonBtn').click()); await wait(200);
-  check(await ev(p, id => !document.querySelector('#lesson').hidden && document.querySelector('#lsTitle').textContent === window.MWC.S[id].title && /slipped/.test(document.querySelector('#lsStatus').textContent), st14.cur), 'Keep going opens the slipped concept’s lesson again');
+  const r14 = await ev(p, id => ({ res: !document.querySelector('#results').hidden, lesson: !document.querySelector('#lesson').hidden && document.querySelector('#lsTitle').textContent === window.MWC.S[id].title && /slipped/.test(document.querySelector('#lsStatus').textContent), toast: (document.querySelector('.toast2') || {}).textContent || '' }), st14.cur);
+  check(!r14.res && r14.lesson && /Memory check: 1 of 4 still strong/.test(r14.toast), 'the block runs straight on after the check: no results screen, a short word on how it went, and the slipped concept’s lesson opens (' + JSON.stringify(r14) + ')');
   /* the clock never ends a block; the last round is sized to the problems left, and the block ends with it */
   const g14 = await ev(p, () => { const b = window.__mw.blk; b.ms = 3 * window.COACH.SESSION_MS; b.goal = b.n + 4; document.querySelector('#startBtn').click(); return window.__mw.RD.mainTotal; }); await wait(150);
   check(g14 === 4, 'the round fits the 4 problems left in the block (' + g14 + ')');
   for (let i = 0; i < 3; i++) { await answer(p, true); await next(p); }
   check(await ev(p, () => document.querySelector('#results').hidden && window.__mw.RD && window.__mw.RD.phase === 'ask'), 'an hour on the clock does not stop the block');
   await answer(p, true); await next(p); await wait(150);
-  const e14 = await ev(p, () => ({ res: !document.querySelector('#results').hidden, block: document.querySelector('#resBlock').textContent, keep: document.querySelector('#nextLessonBtn').hidden, map: document.querySelector('#hubBtn').textContent }));
+  const e14 = await ev(p, () => ({ res: !document.querySelector('#results').hidden, block: document.querySelector('#resBlock').textContent, keep: document.querySelector('#nextLessonBtn').hidden, map: document.querySelector('#hubBtn').textContent,
+    pass: document.querySelectorAll('.place.aud-pass').length, shaky: document.querySelectorAll('.place.aud-shaky').length, lapse: document.querySelectorAll('.place.aud-lapse').length, right: Number(document.querySelector('#rRight').textContent), ok: window.__mw.saves.riley.blk.ok, earn: document.querySelector('#rCur').textContent, earned: window.__mw.saves.riley.blk.earn }));
   check(e14.res && /block is done/i.test(e14.block) && /Next block: about \d+ problems/.test(e14.block) && e14.keep && /map/i.test(e14.map), 'when its problems are done the block ends and says how big the next one is (' + JSON.stringify(e14) + ')');
+  check(e14.pass === 1 && e14.shaky === 1 && e14.lapse === 2, 'the end of the block shows what held, what was wobbly and what slipped in its memory check (' + JSON.stringify([e14.pass, e14.shaky, e14.lapse]) + ')');
+  check(e14.right === e14.ok && e14.ok >= 5 && e14.earn === '+' + e14.earned && e14.earned > 0, 'and its numbers are for the whole block, not the last round (' + e14.right + ' right, ' + e14.earn + ')');
   check(await ev(p, () => { const pl = window.__mw.saves.riley; return pl.ppace > 1 && pl.bhist.length === 1 && window.COACH.blockGoal(pl) < pl.bhist[0].goal + 99; }), 'a block that ran long raises her pace and is kept in the block history');
   await until(() => ev(p, () => window.__mw.net.idle()));
   check(m14.store.riley.state.blk && m14.store.riley.state.blk.done === true && m14.store.riley.state.blk.n >= 9, 'the block is saved online');
@@ -556,8 +561,8 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(/too fast/i.test(f15.title) && f15.lapsed === 0 && f15.assumed === as15 && f15.ar === 1 && f15.w === 0, 'a check tapped through does not count: nothing slips (' + JSON.stringify(f15) + ')');
   await ev(p, () => { window.__mwRushMs = 0; document.querySelector('#hubBtn').click(); }); await wait(150);
   const ids15 = await ev(p, () => { const pl = window.__mw.saves.charlie, ids = window.COACH.earlyPick(pl, 2, window.__mw.blk.seen); window.__mw.startAudit(ids); return ids; }); await wait(150);
-  for (let i = 0; i < 80 && !(await resultsShown(p)); i++) { if (await ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask')) await answer(p, true); await wait(120); }
-  await until(() => resultsShown(p), 5000);
+  for (let i = 0; i < 80 && !(await audOver(p)); i++) { if (await ev(p, () => window.__mw.RD && window.__mw.RD.phase === 'ask')) await answer(p, true); await wait(120); }
+  await until(() => audOver(p), 5000);
   const g15 = await ev(p, ids => { const pl = window.__mw.saves.charlie, CO = window.COACH; return { title: document.querySelector('#resTitle').textContent, pa: ids.map(id => pl.cs[id].pa), iv: ids.map(id => pl.cs[id].iv), left: CO.assumedList(pl).length, rep: CO.report(pl, 4).retention.early }; }, ids15);
   check(g15.pa.every(x => x === 1) && g15.iv.every(x => x === 27) && g15.left < as15 - 2 && g15.rep.checked === 2 && g15.rep.vouched >= 1, 'a check answered properly counts: both held, next check in 27 days, and each vouches for the one before it (' + JSON.stringify(g15) + ')');
   await until(() => ev(p, () => window.__mw.net.idle()));
@@ -602,7 +607,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   await sub(1, true); await sub(2, true);
   await until(async () => { const s = await part().catch(() => null); return s && s.phase === 'ask' && s.part === 1; }, 4000);
   await sub(1, false); await sub(2, true);
-  await until(() => resultsShown(p), 6000);
+  await until(() => audOver(p), 6000);
   const a16 = await ev(p, () => { const pl = window.__mw.saves.riley, b = pl.blk || {}, Q = (b.q || []).filter(q => q[0] === 'a_fixit' && q[4] === 'a'); return { q: Q.map(q => [q[6], q[8]]) }; });
   check(a16.q.length === 2 && a16.q[0][0] === 1 && a16.q[1][0] === 0 && /, then /.test(a16.q[1][1] || ''), 'both parts right counts; a wrong part 1 with a right part 2 does not, and both typed answers are kept (' + JSON.stringify(a16) + ')');
   await until(() => ev(p, () => window.__mw.net.idle())); await ev(p, () => window.__mw.openParent('riley')); await wait(300);

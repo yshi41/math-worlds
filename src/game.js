@@ -251,7 +251,7 @@ function renderMenu(){applyWorld('lagoon',3);const box=$('#kids');box.innerHTML=
     b.innerHTML=`${charSVG(charOf(p,w))}<span class="pc-name">${k.name}</span><span class="pc-world">${WNAME[w]}</span><span class="pc-meta"><span title="Concepts mastered">${starSvg(true)} ${p?CO.masteredCount(p):0}</span><span>${CUR_ICON[w]} ${p?p.cur:0}</span></span>`;
     b.onclick=()=>{Snd.init();Snd.click();player=k.id;openHub()};box.append(b)})}
 
-function openHub(){RD=null;const p0=P();if(applyStart(p0,kid(player)))persist();if(p0.set){if(typeof p0.set.snd==='boolean')Snd.on=p0.set.snd}show('hub');renderHub();const k=lookOf(player),p=P();
+function openHub(){RD=null;CARRY=null;const p0=P();if(applyStart(p0,kid(player)))persist();if(p0.set){if(typeof p0.set.snd==='boolean')Snd.on=p0.set.snd}show('hub');renderHub();const k=lookOf(player),p=P();
   const lines=preDone(p)?[`Hi ${kid(player).name}! Ready for a trick?`,'Mistakes show us what to practice!','Shortcuts make math fast!','Spot the pattern!']:[`Hi ${kid(player).name}! Let's find where to start.`];
   bubble($('#hubLine'),pickOne(lines))}
 /* a new concept, or one that just failed a memory check, opens on its lesson (the trick and a worked example) first */
@@ -367,6 +367,10 @@ $('#lessonBack').onclick=()=>{Snd.click();openHub()};
    concept, that concept becomes a tricky spot and gets practice at the end of the round. Mastering a concept ends
    the round with a celebration, and the path moves on. */
 let RD=null;
+/* a block runs straight through (see finishRound): what goes into the next round with her is the streak she is on, the
+   "pencil and paper ready" tap she has already given, and the way of working (so the strip marks a change) */
+let CARRY=null;
+const carried=quietRound=>{const c=CARRY||{};CARRY=null;const n=quietRound?0:c.streak|0;return {streak:n,bestStreak:n,ready:c.ready?1:0,mode:c.mode||''}};
 function newRound(o){RD=Object.assign({queue:[],endQ:[],mainDone:0,mainTotal:10,right:0,streak:0,bestStreak:0,earned:0,missed:{},inserted:{},results:[],keys:new Set(),R:MW.makeR(),fixMiss:0,fixRight:0,fixTotal:0,testRight:0,lvUps:0,phase:'ask',undo:[]},o)}
 /* every problem is made from its own seed and remembers it (ref), so the round in progress can be saved online as a
    short recipe and rebuilt exactly on any device */
@@ -374,11 +378,11 @@ function mk(id,d,concept){const seed=Math.floor(Math.random()*2147483647),q=MW.g
 function fromRef(r){let q=MW.gen(r.id,r.d,MW.makeR(r.seed));q.ref={id:r.id,d:r.d,seed:r.seed};if(r.step!=null){const st=q.steps[r.step];if(!st)return null;st.ref=Object.assign({},q.ref,{step:r.step});q=st}return q}
 function fixItems(id,two){return (two?[0,1]:[0,0,1,1,2,2]).map(d=>mk(id,d,id))}
 function uniqueGen(id,d){let p;for(let i=0;i<14;i++){p=mk(id,d);if(!RD.keys.has(p.key))break}RD.keys.add(p.key);return p}
-function startLearn(id){Snd.init();Snd.click();const p=P();if(!CO.isMastered(p,id))p.now=id;newRound({kind:'learn',skill:id});beginPlay()}
+function startLearn(id){Snd.init();Snd.click();const p=P();if(!CO.isMastered(p,id))p.now=id;newRound(Object.assign({kind:'learn',skill:id},carried()));beginPlay()}
 function startTest(id){Snd.init();Snd.click();newRound({kind:'test',skill:id,mainTotal:5});beginPlay()}
-function startReview(){Snd.init();Snd.click();newRound({kind:'review'});beginPlay()}
+function startReview(){Snd.init();Snd.click();newRound(Object.assign({kind:'review'},carried()));beginPlay()}
 /* a memory check: two problems on each concept (medium, then hard), mixed together, with no feedback until the end */
-function startAudit(ids,focus){Snd.init();Snd.click();newRound({kind:'audit',ids:ids.slice(),focus:focus||null,aud:{}});const b=ensureBlock();ids.forEach(id=>{if(!b.seen.includes(id))b.seen.push(id)});
+function startAudit(ids,focus){Snd.init();Snd.click();newRound(Object.assign({kind:'audit',ids:ids.slice(),focus:focus||null,aud:{}},carried(true)));const b=ensureBlock();ids.forEach(id=>{if(!b.seen.includes(id))b.seen.push(id)});
   RD.queue=[1,2].flatMap(d=>ids.map(id=>({p:mk(id,d),kind:'aud',aid:id})));RD.mainTotal=RD.queue.length;beginPlay()}
 function startFix(cid){Snd.init();Snd.click();newRound({kind:'fix',concept:cid});
   RD.queue=fixItems(cid).map(q=>({p:q,kind:'prac',concept:cid}));RD.fixTotal=RD.queue.length;RD.mainTotal=RD.fixTotal;beginPlay()}
@@ -416,6 +420,9 @@ function showTut(it){const p=it.p,x=it.x,T=P().tut,n=T.items.length;T.i=it.ti;RD
   $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=more?'Step by step':it.ti+1<n?'Next mistake':'Done';RD.phase='done';
   bubble($('#playBubble'),'Mistakes help you learn!');persist()}
 const quiet=()=>!!RD&&(RD.kind==='pre'||RD.kind==='audit');
+/* a round of practice (a concept, a review mix, a memory check that counted) inside a block that still has problems
+   left runs straight on into whatever comes next, with no results screen in between */
+const runsOn=(R,b)=>!!R&&!!b&&!b.done&&!(b.goal&&b.n>=b.goal)&&(R.kind==='learn'||R.kind==='review'||(R.kind==='audit'&&!R.fast));
 function beginPlay(){const p=P(),k=lookOf(player);if(RD.kind!=='pre'&&RD.kind!=='tut'){const b=ensureBlock();
     /* a practice round fits the problems left in the block (4 to 10), so the block ends at the end of a round */
     if((RD.kind==='learn'||RD.kind==='review')&&!RD.sized){RD.mainTotal=clamp(CO.blockLeft(b),4,10);RD.sized=1}}applyWorld(k,sceneLevel(p));show('play');$('#playHero').innerHTML=charSVG(charOf(p,k),'neutral');
@@ -612,7 +619,7 @@ function onRight(el){const it=RD.cur,p=it.p,first=RD.tries===0,k=lookOf(player),
      solution to check their work against, line by line. */
   if(first){const pp=p.paper&&it.kind!=='step'&&p.how.length>1;
     showFb('good',fbTop(praise,streak,pl.cur-cur0)+(it.kind==='step'?'':pp?`<div>Check your work against this:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`:`<div>${p.how[p.how.length-1]}</div>`)+extra);renderDots(counted(it));
-    $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=RD.stop?'See how you did':'Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;clearTimeout(RD.autoT);
+    $('#nextQBtn').hidden=false;$('#nextQBtn').textContent=RD.stop?(runsOn(RD,blkLive(pl))?'Keep going':'See how you did'):'Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true;clearTimeout(RD.autoT);
     if(auto)RD.autoT=setTimeout(()=>{if(RD&&RD.cur===it&&screen==='play')nextQ()},1100)}
   else{showFb('good',fbTop('You got it!',0,0)+`<div>Here is the shortcut again:</div><ol class="steps">${p.how.map(h=>`<li>${h}</li>`).join('')}</ol>`);renderDots();$('#nextQBtn').hidden=false;$('#nextQBtn').textContent='Next';$('#checkBtn').hidden=true;$('#hintBtn').hidden=true}
   bubble($('#playBubble'),RD.masteredNow&&it.kind==='main'?'You mastered it!':first?praise:'Way to keep trying!');persist()}
@@ -663,7 +670,7 @@ function afterPre(skipped){const pre=RD.kind==='pre'?P().pre:null;
 /* ---------- end of a round ---------- */
 function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTimeout(RD.autoT);const R0=RD;
   const ST=WORLDS[k].sumTitles||['Great work!','Nice work!','Good practice!'];
-  let title=ST[0],sub='',starsShown=null,note='',nextId=null;
+  let title=ST[0],sub='',starsShown=null,note='',nextId=null,chainMsg='';
   if(R0.kind==='learn'){const id=R0.skill;sub=conceptName(id);starsShown=CO.levelsDone(p,id);p.games++;
     if(R0.masteredNow){title=R0.refresh?'Mastered again!':'Concept mastered!';nextId=CO.current(p);p.now=nextId;note=nextId?`Next up: “${conceptName(nextId)}”.`:'You have mastered every concept!'}
     else if(CO.isMastered(p,id)){note='A practice round on a concept you have mastered.';if(R0.right<7)title=ST[2]}
@@ -681,6 +688,7 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     else R0.ids.forEach(id=>{const a=R0.aud[id]||[];if(a.length<2)return;const r=CO.auditResult(p,id,a);if(!r)return;AUD[id]=r;lg.ac=(lg.ac|0)+1;if(r==='pass')lg.ap=(lg.ap|0)+1;if(r==='lapse')lg.al=(lg.al|0)+1});
     const ids=R0.ids.filter(id=>AUD[id]),n=r=>ids.filter(id=>AUD[id]===r).length,bk=blkLive(p);if(bk){bk.held=(bk.held|0)+n('pass');ids.filter(id=>AUD[id]==='lapse').forEach(id=>bk.lapsed.push(id))}
     title=fast?'Too fast to count':!ids.length?'Saved!':n('lapse')?'Memory check done':n('pass')===ids.length?'Still strong!':'Memory check done';
+    R0.fast=fast;if(!fast&&ids.length)chainMsg=n('pass')===ids.length?'Memory check: all still strong!':`Memory check: ${n('pass')} of ${ids.length} still strong.`;
     sub="Ideas you learned before";note=fast?'That went by too fast to count, so nothing changed. These come back another time. Read each one and take your time.':!ids.length?'Not finished, so nothing changed. It comes back next time.':(R0.focus?`These are the ideas “${conceptName(R0.focus)}” is built on. `:'')+(n('lapse')?`${n('lapse')===1?'One idea needs':n('lapse')+' ideas need'} a refresh. It goes back on your path, and you master it again before anything new.`:n('pass')===ids.length?'Everything you checked is still strong.':'Wobbly ones come back tomorrow.')}
   else if(R0.kind==='fix'){const m=p.mist[R0.concept];sub='Tricky spot: '+conceptName(R0.concept);
     note=m&&m.ok>=3?'Fixed! That idea is solid now.':`${R0.fixRight} of ${R0.fixTotal} practice problems right the first time. Fixed after 3 in a row.`;
@@ -695,21 +703,36 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
     else{if(pre&&!pre.done){CO.pretestApply(p,pre,Date.now(),true);CO.asmNote(p,pre)}title='Saved!';note='Your check is saved. Pick up where you left off any time.'}}
   /* the block: count the round; when its problems are done, the block ends, her pace is updated and the next block is sized */
   const bk=R0.kind!=='pre'&&R0.kind!=='tut'?blkLive(p):null;let bEnd=false;
-  if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
+  if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;
+    /* kept for the results at the end of the block: the best streak, the treats earned and the tricky spots found */
+    bk.bs=Math.max(bk.bs|0,R0.bestStreak|0);bk.earn=(bk.earn|0)+(R0.earned|0);Object.keys(R0.missed||{}).forEach(id=>{const L=bk.spots||(bk.spots=[]);if(!L.includes(id))L.push(id)});
+    if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
     if(bk.goal&&bk.n>=bk.goal){bk.done=true;bEnd=true;CO.blockPace(p,bk);bk.next=CO.blockGoal(p);tutFromBlock(p,bk);
       blkArchive(p,bk)}}
   RD=null;LAST=R0;endRound();persist();
+  /* a block runs straight through: while it has problems left, the end of a round is not a stop. The next thing starts
+     at once (more of the concept, the next concept and its lesson, a memory check), and the results come once, at the
+     end of the block. Still a stop: a round she ended herself, a tricky-spot or test-out round, and a memory check
+     that went by too fast to count, whose note she needs to read. */
+  if(!early&&!bEnd&&runsOn(R0,bk)&&R0.mainDone>0&&!tutPending(p)){CARRY={streak:R0.streak,ready:R0.ready,mode:R0.mode};startBlock();if(screen!=='lesson')CARRY=null;
+    if(chainMsg&&screen!=='hub')toast(chainMsg);else if(RD&&RD.kind==='learn'&&RD.skill!==R0.skill)toast('Next: '+conceptName(RD.skill));return}
   show('results');applyWorld(k,sceneLevel(p));$('#resHero').innerHTML=charSVG(charOf(p,k),'happy');$('#resTitle').textContent=title;$('#resSub').textContent=sub;
   $('#resStars').innerHTML=starsShown!=null?[0,1,2].map(i=>starSvg(i<starsShown)).join(''):'';
-  $('#rRight').textContent=R0.kind==='pre'?R0.earned/2|0:R0.kind==='audit'||R0.kind==='tut'?R0.right:R0.kind==='fix'?R0.fixRight:R0.right;$('#rStreak').textContent=R0.bestStreak;$('#rCur').textContent='+'+R0.earned;$('#rCurL').textContent=cap(curName(k));
+  $('#rRight').textContent=R0.kind==='pre'?R0.earned/2|0:R0.kind==='audit'||R0.kind==='tut'?R0.right:R0.kind==='fix'?R0.fixRight:R0.right;$('#rStreak').textContent=R0.bestStreak;$('#rCur').textContent='+'+R0.earned;
+  /* the end of a block shows the whole block, not just its last round */
+  if(bEnd&&bk){$('#rRight').textContent=bk.ok|0;$('#rStreak').textContent=bk.bs|0;$('#rCur').textContent='+'+(bk.earn|0)}
+  $('#rCurL').textContent=cap(curName(k));
   $('#resNote').textContent=note;
   /* tricky spots found this round, with practice right here */
-  const rs=$('#resSpots');rs.innerHTML='';const found=Object.keys(R0.missed).filter(id=>S[id]&&(!p.mist[id]||p.mist[id].ok<3));
+  const rs=$('#resSpots');rs.innerHTML='';const found=(bEnd&&bk&&bk.spots?bk.spots:Object.keys(R0.missed)).filter(id=>S[id]&&(!p.mist[id]||p.mist[id].ok<3));
   if(found.length&&R0.kind!=='fix'){rs.innerHTML='<h3>Tricky spots found</h3>';const box=document.createElement('div');box.className='spots';
     found.slice(0,4).forEach(id=>{const d=document.createElement('div');d.className='spot';d.innerHTML=`<span class="spot-name">${esc(conceptName(id))}</span><small>${esc((p.mist[id]&&p.mist[id].why)||S[id].tip)}</small>`;const b=document.createElement('button');b.type='button';b.className='btn btn-sm';b.textContent='Practice';b.onclick=()=>startFix(id);d.append(b);box.append(d)});rs.append(box)}
   /* placement results */
   const pl=$('#resPlaces');pl.innerHTML='';
-  if(R0.kind==='audit')R0.ids.filter(id=>AUD[id]).forEach(id=>{const r=AUD[id],s=p.cs[id];pl.insertAdjacentHTML('beforeend',`<div class="place aud-${r}"><span class="st-ic">${r==='pass'?'✓':r==='shaky'?'~':'↻'}</span><span class="place-name">${esc(conceptName(id))}</span><small>${r==='pass'?`Still strong. Next check in ${s.iv} day${s.iv===1?'':'s'}.`:r==='shaky'?'A little wobbly. Checked again tomorrow.':'Needs a refresh. The trick: '+esc(S[id].tip)}</small></div>`)});
+  /* how each idea of a memory check did: after the check when it stops there, and at the end of the block for every check in it */
+  const audIds=(bEnd&&bk?[...new Set((bk.seen||[]).concat(R0.kind==='audit'?R0.ids:[]))]:R0.kind==='audit'?R0.ids:[]).filter(id=>AUD[id]);
+  if(audIds.length&&R0.kind!=='audit')pl.insertAdjacentHTML('beforeend','<h3>Memory check</h3>');
+  audIds.forEach(id=>{const r=AUD[id],s=p.cs[id];pl.insertAdjacentHTML('beforeend',`<div class="place aud-${r}"><span class="st-ic">${r==='pass'?'✓':r==='shaky'?'~':'↻'}</span><span class="place-name">${esc(conceptName(id))}</span><small>${r==='pass'?`Still strong. Next check in ${s.iv} day${s.iv===1?'':'s'}.`:r==='shaky'?'A little wobbly. Checked again tomorrow.':'Needs a refresh. The trick: '+esc(S[id].tip)}</small></div>`)});
   if(R0.kind==='pre'&&p.pre&&p.pre.done){p.pre.order.forEach(sid=>{const st=CO.STR.find(s=>s.id===sid),x=p.pre.st[sid],start=st.core[x.start];pl.insertAdjacentHTML('beforeend',`<div class="place"><span class="st-ic">${st.icon}</span><span class="place-name">${st.name}</span><small>${start?'Starts at: '+esc(conceptName(start)):'Everything here up to '+ord(p.pre.grade+1)+' grade is mastered'}</small></div>`)})}
   const cur=CO.current(p),nb=$('#nextLessonBtn'),rb=$('#resBlock');
   if(R0.kind==='pre'){nb.hidden=!cur||!preDone(p);nb.textContent='Next concept';nb.onclick=()=>{Snd.click();startBlock()};
