@@ -538,6 +538,14 @@ body{background:var(--bg)!important}
 .hl-task{display:grid;gap:8px}
 .hl-intro{line-height:1.5;font-size:1.05rem}
 .hl-intro .steps{margin:.5em 0 0}
+/* the problem a step belongs to, kept in view, with the steps already done as lines of work */
+.hl-prob{background:var(--surface-2);border:2px solid var(--line);border-radius:14px;padding:8px 12px;display:grid;gap:4px}
+.hl-prob .hv-q{font-size:1.02rem;font-weight:400;margin:0}
+.hl-prob .hv-vis svg{max-height:150px}
+.hl-k{font-size:.72rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
+.hl-work{margin:0;padding-left:1.4em;display:grid;gap:3px;line-height:1.4}
+.hl-work li.new{animation:workIn .6s ease-out both}
+@keyframes workIn{from{opacity:0;transform:translateX(-14px);background:color-mix(in srgb,var(--good) 30%,transparent)}to{opacity:1;transform:none;background:transparent}}
 
 /* parent view */
 .parent-row{margin-top:18px}
@@ -681,7 +689,6 @@ g[data-tip]:hover .pv-bar{opacity:.8}
         <h3>Settings</h3>
         <div class="toggles">
           <button id="tSound" class="tog" type="button" aria-pressed="true">Sounds</button>
-          <button id="tVoice" class="tog" type="button" aria-pressed="false">Read questions aloud</button>
           <button id="redoPre" class="tog" type="button">Redo placement check</button>
           <button id="hubParent" class="tog" type="button">Parent view</button>
         </div>
@@ -741,7 +748,7 @@ g[data-tip]:hover .pv-bar{opacity:.8}
         <div class="q-main">
         <div class="q-tags"><div id="qMode" class="q-mode" role="note"></div><div id="qBadge" class="q-badge" hidden></div></div>
         <div id="qReady" class="q-ready" hidden><div class="qr-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.4L16.6 4.2a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.4 18.8z"/><path d="M14.6 6.2l3.2 3.2"/></svg></div><b>Pencil and paper</b><p>These problems are worked out on paper. Get your pencil and paper ready.</p><button id="qReadyBtn" class="btn btn-big" type="button">I have them</button></div>
-        <div class="q-row"><div id="qText" class="q-text"></div><button id="readBtn" class="icon-btn" type="button" aria-label="Read it to me"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button></div>
+        <div class="q-row"><div id="qText" class="q-text"></div></div>
         <div id="qVis" class="q-vis"></div>
         </div>
         <div class="q-ans">
@@ -751,6 +758,7 @@ g[data-tip]:hover .pv-bar{opacity:.8}
           <button id="backBtn" class="btn btn-ghost" type="button" hidden>← Back</button>
           <button id="skipBtn" class="btn btn-ghost" type="button" hidden>I haven't learned this yet</button>
           <button id="hintBtn" class="btn btn-ghost" type="button">Hint</button>
+          <button id="clueBtn" class="btn btn-ghost" type="button" hidden>I have no clue</button>
           <button id="checkBtn" class="btn btn-good btn-big" type="button">Check</button>
           <button id="nextQBtn" class="btn btn-big" type="button" hidden>Next</button>
         </div>

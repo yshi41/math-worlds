@@ -40,13 +40,13 @@ function halfSay(v, bold) {
 }
 /* the trick for k × o broken into small questions */
 function trickSteps(k, o) {
-  const s = (text, ans) => ({ text: B(text), ans });
+  const s = (text, ans) => ({ text: B(text), ans }), w = (what, ans) => ({ text: 'What is ' + B(what) + '?', ans });
   switch (k) {
-    case 2: { const t = o - o % 10, u = o % 10; return o > 10 && u && t ? [s('Double ' + t + ' = ?', 2 * t), s('Double ' + u + ' = ?', 2 * u), s((2 * t) + ' + ' + (2 * u) + ' = ?', 2 * o)] : [s(o + ' + ' + o + ' = ?', 2 * o)]; }
+    case 2: { const t = o - o % 10, u = o % 10; return o > 10 && u && t ? [w('double ' + t, 2 * t), w('double ' + u, 2 * u), s((2 * t) + ' + ' + (2 * u) + ' = ?', 2 * o)] : [s(o + ' + ' + o + ' = ?', 2 * o)]; }
     case 3: return [s(o + ' + ' + o + ' = ?', 2 * o), s((2 * o) + ' + ' + o + ' = ?', 3 * o)];
-    case 4: return [s('Double ' + o + ' = ?', 2 * o), s('Double ' + (2 * o) + ' = ?', 4 * o)];
-    case 8: return [s('Double ' + o + ' = ?', 2 * o), s('Double ' + (2 * o) + ' = ?', 4 * o), s('Double ' + (4 * o) + ' = ?', 8 * o)];
-    case 5: return [s('10 × ' + o + ' = ?', 10 * o), s('Half of ' + n(10 * o) + ' = ?', 5 * o)];
+    case 4: return [w('double ' + o, 2 * o), w('double ' + (2 * o), 4 * o)];
+    case 8: return [w('double ' + o, 2 * o), w('double ' + (2 * o), 4 * o), w('double ' + (4 * o), 8 * o)];
+    case 5: return [s('10 × ' + o + ' = ?', 10 * o), w('half of ' + n(10 * o), 5 * o)];
     case 9: return [s('10 × ' + o + ' = ?', 10 * o), s(less(10 * o, o) + ' = ?', 9 * o)];
     case 6: return [s('5 × ' + o + ' = ?', 5 * o), s((5 * o) + ' + ' + o + ' = ?', 6 * o)];
     case 7: return [s('5 × ' + o + ' = ?', 5 * o), s('2 × ' + o + ' = ?', 2 * o), s((5 * o) + ' + ' + (2 * o) + ' = ?', 7 * o)];
@@ -175,7 +175,7 @@ C.defs([
   gen(d, R) {
     if (d === 0) {
       const r = R.i(2, 5), c = R.i(2, 5), p = r * c;
-      return { text: 'There are ' + B(r + ' rows of ' + c) + '. How many dots are there?', vis: dotsSVG(r, c), ans: p,
+      return { text: 'There are ' + B(r + ' rows') + '. Each row has ' + B(c + ' dots') + '. How many dots are there in all?', vis: dotsSVG(r, c), ans: p,
         how: ['Each row has ' + c + ' dots, and there are ' + r + ' rows. That is ' + r + ' groups of ' + c + ': ' + X(r, c) + '.',
               'Count by ' + c + 's, once for each row: ' + list(c, r) + '. That is ' + B(p) + ' dots.'],
         steps: [{ text: 'How many dots are in one row?', ans: c, vis: dotsSVG(r, c) },
@@ -193,20 +193,20 @@ C.defs([
                 { v: p + e, c: 'p_skip', why: 'One group too many. There are ' + g + ' groups.' }] };
     }
     if (R.chance(.55)) {
-      const g = R.i(3, 6), e = R.i(3, 9), p = g * e, w = R.pick([['bags', 'apples'], ['boxes', 'crayons'], ['plates', 'cookies'], ['vases', 'flowers'], ['teams', 'players'], ['nests', 'eggs'], ['packs', 'stickers']]);
-      return { text: 'There are ' + B(g + ' ' + w[0]) + ' with ' + B(e + ' ' + w[1]) + ' in each. How many ' + w[1] + ' are there in all?', ans: p,
+      const g = R.i(3, 6), e = R.i(3, 9), p = g * e, w = R.pick([['bags', 'apples'], ['boxes', 'crayons'], ['plates', 'cookies'], ['vases', 'flowers'], ['teams', 'players'], ['nests', 'eggs'], ['packs', 'stickers']]), one = w[0] === 'boxes' ? 'box' : w[0].slice(0, -1);
+      return { text: 'There are ' + B(g + ' ' + w[0]) + '. Each ' + one + ' has ' + B(e + ' ' + w[1]) + '. How many ' + w[1] + ' are there in all?', ans: p,
         how: [g + ' ' + w[0] + ' of ' + e + ' is ' + g + ' groups of ' + e + ': ' + X(g, e) + '.', 'Count by ' + e + 's: ' + list(e, g) + '. That is ' + B(p) + ' ' + w[1] + '.'],
-        steps: [{ text: 'How many ' + w[1] + ' are in ' + B('2 ' + w[0]) + '?', ans: 2 * e },
-                { text: 'Count on by ' + e + 's from ' + (2 * e) + ' until you have counted all ' + g + ' ' + w[0] + '. How many ' + w[1] + '?', ans: p }],
+        steps: [{ text: 'Each ' + one + ' has ' + B(e + ' ' + w[1]) + '. How many ' + w[1] + ' do ' + B('2 ' + w[0]) + ' have?', ans: 2 * e },
+                { text: B('2 ' + w[0]) + ' have ' + B((2 * e) + ' ' + w[1]) + '. Count on by ' + e + 's until you get to ' + B(g + ' ' + w[0]) + '. How many ' + w[1] + ' is that?', ans: p }],
         traps: [{ v: g + e, c: 'm_groups', why: 'You added ' + g + ' and ' + e + '. There are ' + g + ' groups of ' + e + '.' },
-                { v: p - e, c: 'p_skip', why: 'One ' + w[0].replace(/e?s$/, '') + ' short. Count by ' + e + 's once for each of the ' + g + ' ' + w[0] + '.' },
+                { v: p - e, c: 'p_skip', why: 'One ' + one + ' short. Count by ' + e + 's once for each of the ' + g + ' ' + w[0] + '.' },
                 { v: p + e, c: 'p_skip', why: 'One group too many. There are ' + g + ' ' + w[0] + '.' }] };
     }
     const k = R.i(3, 6), e = R.i(3, 9), adds = Array(k).fill(e).join(' + ');
-    return { text: B(adds) + ' is the same as ' + B('? × ' + e) + '. What number goes in the box?', ans: k,
+    return { text: B(adds) + ' is the same as ' + B('? × ' + e) + '. What is the missing number?', ans: k,
       how: ['Count how many ' + e + 's are added: there are ' + k + ' of them.', k + ' groups of ' + e + ' is ' + X(k, e) + ' = ' + (k * e) + '. The missing number is ' + B(k) + '.'],
       steps: [{ text: 'What is ' + B(adds) + '?', ans: k * e }, { text: B('? × ' + e + ' = ' + (k * e)), ans: k }],
-      traps: [{ v: k * e, c: 'm_groups', why: 'That is the total. The box asks how many groups of ' + e + ' there are.' },
+      traps: [{ v: k * e, c: 'm_groups', why: 'That is the total. The missing number is how many groups of ' + e + ' there are.' },
               { v: k + 1, c: 'm_groups', why: 'Count the ' + e + 's again, one for each group.' }, { v: k - 1, c: 'm_groups', why: 'Count the ' + e + 's again, one for each group.' }] };
   } },
 
@@ -335,7 +335,7 @@ C.defs([
   gen(d, R) {
     if (d === 0) {
       const q = R.i(2, 6), p = q * q, story = R.chance(.5);
-      return { text: story ? 'A square of dots has ' + B(q + ' dots') + ' on each side. How many dots are there?' : B(X(q, q) + ' = ?'), vis: dotsSVG(q, q), ans: p,
+      return { text: story ? 'A square of dots has ' + B(q + ' dots') + ' on each side. How many dots are there in all?' : B(X(q, q) + ' = ?'), vis: dotsSVG(q, q), ans: p,
         how: [X(q, q) + ' is a square: ' + q + ' rows of ' + q + '.', 'Count by ' + q + 's, ' + q + ' times: ' + list(q, q) + '. That is ' + B(p) + '.'],
         steps: [{ text: 'How many dots are in one row?', ans: q, vis: dotsSVG(q, q) }, { text: 'Count by ' + q + 's, ' + q + ' times: ' + B(list(q, q - 1) + ', ?'), ans: p }],
         traps: [{ v: 2 * q, c: 'm_groups', why: 'You added ' + q + ' and ' + q + '. ' + X(q, q) + ' is ' + q + ' rows of ' + q + '.' },
@@ -346,7 +346,7 @@ C.defs([
       const way = { 6: '6 × 6 is 5 sixes plus one more: 30 + 6 = ' + B(36) + '.', 7: '7 × 7 is 5 sevens plus 2 sevens: 35 + 14 = ' + B(49) + '.', 8: '8 × 8 is 8 doubled three times: 16, 32, ' + B(64) + '.',
         9: '9 × 9 is 10 nines take away one nine: 90 ' + MINUS + ' 9 = ' + B(81) + '.', 10: '10 × 10: put a zero on 10, ' + B(100) + '.', 11: '11 × 11 is 10 elevens plus one more: 110 + 11 = ' + B(121) + '.', 12: '12 × 12 is 10 twelves plus 2 twelves: 120 + 24 = ' + B(144) + '.' }[q];
       const tiles = R.chance(.4);
-      return { text: tiles ? 'A square patio has ' + B(q + ' rows of ' + q + ' tiles') + '. How many tiles is that?' : B(X(q, q) + ' = ?'), ans: p, how: [X(q, q) + ' is a square fact. Know it by heart, or build it from a fact you know.', way],
+      return { text: tiles ? 'A square floor has ' + B(q + ' rows') + ' of tiles. Each row has ' + B(q + ' tiles') + '. How many tiles are there in all?' : B(X(q, q) + ' = ?'), ans: p, how: [X(q, q) + ' is a square fact. Know it by heart, or build it from a fact you know.', way],
         steps: trickSteps(q, q),
         traps: [{ v: 2 * q, c: 'm_groups', why: 'You added ' + q + ' and ' + q + '. Times means ' + q + ' groups of ' + q + '.' },
                 { v: p - q, c: 'm_squares', why: 'One ' + q + ' short. ' + X(q, q) + ' is ' + q + ' groups of ' + q + '.' }, { v: p + q, c: 'm_squares', why: 'One ' + q + ' too many. ' + X(q, q) + ' is ' + q + ' groups of ' + q + '.' },
@@ -361,9 +361,9 @@ C.defs([
                 { v: q - 1, c: 'm_squares', why: X(q - 1, q - 1) + ' is ' + ((q - 1) * (q - 1)) + ', too small.' }, { v: q + 1, c: 'm_squares', why: X(q + 1, q + 1) + ' is ' + ((q + 1) * (q + 1)) + ', too big.' }] };
     }
     const q = R.i(3, 9), sq = q * q, p = q * (q + 1), [a, b] = order(R, q, q + 1);
-    return { text: 'Use ' + B(X(q, q) + ' = ' + sq) + ' to work out ' + B(X(a, b)) + '.', ans: p,
+    return { text: 'You know that ' + B(X(q, q) + ' = ' + sq) + '. So what is ' + B(X(a, b)) + '?', ans: p,
       how: [X(q, q + 1) + ' is ' + q + ' rows of ' + (q + 1) + ': the square ' + X(q, q) + ' plus one more column of ' + q + '.', sq + ' + ' + q + ' = ' + B(p) + '.'],
-      steps: [{ text: 'How much bigger is ' + B(X(q, q + 1)) + ' than ' + B(X(q, q)) + '? (one more group)', ans: q }, { text: B(sq + ' + ' + q + ' = ?'), ans: p }],
+      steps: [{ text: 'How much more is ' + B((q + 1) + ' groups of ' + q) + ' than ' + B(q + ' groups of ' + q) + '?', ans: q }, { text: B(sq + ' + ' + q + ' = ?'), ans: p }],
       traps: [{ v: sq + 1, c: 'm_squares', why: 'One more group of ' + q + ', not one more dot.' }, { v: (q + 1) * (q + 1), c: 'm_squares', why: 'That is ' + X(q + 1, q + 1) + '. Start from ' + X(q, q) + ' and add one ' + q + '.' },
               { v: sq + q + 1, c: 'm_squares', why: 'Add one group of ' + q + ' to ' + sq + ', no more.' }] };
   } },
@@ -373,11 +373,11 @@ C.defs([
   gen(d, R) {
     if (d === 0) {
       const g = R.i(2, 5), e = R.i(2, 5), tot = g * e, w = R.pick(['cookies', 'stickers', 'marbles', 'grapes', 'cards']);
-      return { text: B(tot + ' ' + w) + ' are shared equally by ' + B(g + ' friends') + '. How many does each friend get?', vis: rowDots(tot), ans: e,
+      return { text: B(g + ' friends') + ' share ' + B(tot + ' ' + w) + ' equally. How many ' + w + ' does each friend get?', vis: rowDots(tot), ans: e,
         how: ['Deal them out like cards: every round, each of the ' + g + ' friends gets one, so a round uses ' + g + '.', 'Count by ' + g + 's to ' + tot + ': ' + list(g, e) + '. That is ' + e + ' rounds, so each friend gets ' + B(e) + '.'],
         howVis: groupsSVG(g, e),
-        steps: [{ text: 'In one round, each friend gets one. How many ' + w + ' go out in one round?', ans: g },
-                { text: 'Count by ' + g + 's up to ' + tot + '. How many rounds is that?', ans: e }],
+        steps: [{ text: 'Give each of the ' + B(g + ' friends') + ' one ' + w.slice(0, -1) + '. How many ' + w + ' is that?', ans: g },
+                { text: 'Count by ' + g + 's up to ' + tot + '. How many ' + g + 's did you count?', ans: e }],
         traps: [{ v: tot - g, c: 'm_share', why: 'You took ' + g + ' away. Sharing means splitting ' + tot + ' into ' + g + ' equal groups.' },
                 { v: e + 1, c: 'm_share', why: 'Check: ' + g + ' friends with ' + (e + 1) + ' each would need ' + (g * (e + 1)) + '.' }, { v: e - 1, c: 'm_share', why: 'There are some left. Keep dealing until all ' + tot + ' are shared.' }] };
     }
@@ -455,12 +455,12 @@ C.defs([
     if (d < 2 || R.chance(.35)) {
       const dv = d === 0 ? R.i(2, 5) : R.i(3, 9), q = d === 0 ? R.i(2, 5) : d === 1 ? R.i(2, 9) : R.i(6, 12), r = R.i(1, dv - 1), v = dv * q + r, base = dv * q;
       const story = d === 0 && R.chance(.5), w = R.pick(['stickers', 'marbles', 'grapes', 'cards', 'beads']);
-      const text = story ? B(v + ' ' + w) + ' are shared equally by ' + B(dv + ' friends') + '. How many does each friend get, and how many are left over? Use r for the leftovers.'
+      const text = story ? B(dv + ' friends') + ' share ' + B(v + ' ' + w) + ' equally. How many ' + w + ' does each friend get, and how many are left over? Use r for the leftovers.'
         : B(v + ' ÷ ' + dv + ' = ?') + ' Use r for the leftovers.';
       return { type: 'rem', text, vis: d === 0 ? rowDots(v) : undefined, ans: { q, r }, howVis: q <= 6 ? (story ? groupsSVG(dv, q, r) : groupsSVG(q, dv, r)) : undefined,
         how: ['Find the biggest ' + dv + 's fact that fits in ' + v + ': ' + X(dv, q) + ' = ' + base + '. (' + X(dv, q + 1) + ' = ' + (base + dv) + ' is too big.)',
               less(v, base) + ' = ' + r + ' left over. ' + r + ' is less than ' + dv + ', so no more groups fit.', 'So ' + v + ' ÷ ' + dv + ' = ' + B(q + ' r ' + r) + '.'],
-        steps: [{ text: 'Count by ' + dv + 's. What is the biggest one that is not more than ' + B(v) + '?', ans: base }, { text: B(less(v, base) + ' = ?'), ans: r },
+        steps: [{ text: 'Count by ' + dv + 's. Stop before you go past ' + B(v) + '. What number do you stop at?', ans: base }, { text: B(less(v, base) + ' = ?'), ans: r },
                 { type: 'rem', text: B(v + ' ÷ ' + dv + ' = ?') + ' Use r for the leftovers.', ans: { q, r } }],
         traps: [{ v: { q: q - 1, r: r + dv }, c: 'm_remain', why: 'A leftover of ' + (r + dv) + ' is enough for another group of ' + dv + '. Make one more group.' },
                 { v: { q, r: 0 }, c: 'm_remain', why: 'Don’t forget the leftovers: type r and then how many are left.' },
@@ -475,9 +475,9 @@ C.defs([
     const traps = ask === 0 ? [{ v: q + 1, c: 'm_remain', why: 'The last ' + w[1] + ' would have only ' + r + ', so it is not full.' }, { v: r, c: 'm_remain', why: 'That is the leftover. The question asks how many ' + w[2] + ' are full.' }]
       : ask === 1 ? [{ v: q, c: 'm_remain', why: 'That is how many ' + w[2] + ' are full. The question asks how many ' + w[0] + ' are left over.' }, { v: dv - r, c: 'm_remain', why: 'Take the biggest ' + dv + 's fact that fits away from ' + v + '.' }]
       : [{ v: q, c: 'm_remain', why: 'The ' + r + ' left over need a ' + w[1] + ' too.' }, { v: r, c: 'm_remain', why: 'That is the leftover. Count the ' + w[2] + ' you need.' }];
-    return { text: 'There are ' + B(v + ' ' + w[0]) + ', and ' + B(dv) + ' fit in each ' + w[1] + '. ' + (ask === 0 ? 'How many ' + w[2] + ' can be filled?' : ask === 1 ? 'How many ' + w[0] + ' are left over?' : 'How many ' + w[2] + ' are needed for all of them?'), ans,
+    return { text: 'There are ' + B(v + ' ' + w[0]) + '. Each ' + w[1] + ' holds ' + B(dv + ' ' + w[0]) + '. ' + (ask === 0 ? 'How many ' + w[2] + ' will be full?' : ask === 1 ? 'How many ' + w[0] + ' are left over?' : 'How many ' + w[2] + ' do you need for all the ' + w[0] + '?'), ans,
       how: [v + ' ÷ ' + dv + ': ' + X(dv, q) + ' = ' + base + ', with ' + r + ' left over. So ' + q + ' r ' + r + '.', end],
-      steps: [{ text: 'Count by ' + dv + 's. What is the biggest one that is not more than ' + B(v) + '?', ans: base }, { text: B(less(v, base) + ' = ?'), ans: r }],
+      steps: [{ text: 'Count by ' + dv + 's. Stop before you go past ' + B(v) + '. What number do you stop at?', ans: base }, { text: B(less(v, base) + ' = ?'), ans: r }],
       traps };
   } },
 
@@ -589,7 +589,7 @@ C.defs([
     if (f % 10 === 0) how.push('Careful: ' + f + ' already ends in 0. That zero is part of the fact; keep it.');
     how.push('Count the zeros: ' + n(A) + ' has ' + za + ' and ' + n(Bv) + ' has ' + zb + ', so ' + z + ' zeros. Put them on the end of ' + f + ': ' + B(n(p)) + '.');
     return { text: B(X(x, y) + ' = ?'), ans: p, how,
-      steps: [{ text: B(X(a, b) + ' = ?'), ans: f }, { text: 'How many zeros are on the ends of ' + B(n(A)) + ' and ' + B(n(Bv)) + ' together?', ans: z }, { text: B(X(x, y) + ' = ?'), ans: p }],
+      steps: [{ text: B(X(a, b) + ' = ?'), ans: f }, { text: 'How many zeros do ' + B(n(A)) + ' and ' + B(n(Bv)) + ' have in all?', ans: z }, { text: B(X(x, y) + ' = ?'), ans: p }],
       traps: [{ v: p / 10, c: 'm_tensxtens', why: 'One zero short. Count the zeros in both numbers: ' + z + ' in all.' }, { v: p * 10, c: 'm_tensxtens', why: 'One zero too many. Count the zeros in both numbers: ' + z + ' in all.' },
               { v: (f - a) * 10 ** z, c: famOf(a, b), why: 'The zeros are right. Check the small fact ' + X(a, b) + '.' }] };
   } },
@@ -606,7 +606,7 @@ C.defs([
     const last = vs[vs.length - 1], qb = qs[qs.length - 1], A = v - last, qa = q - qb;
     const one = (x, i) => n(x) + ' ÷ ' + dv + ' = ' + qs[i] + (qs.length < 3 ? '   (' + X(dv, qs[i]) + ' = ' + n(x) + ')' : '');
     return { text: 'Split it on paper: ' + B(v + ' ÷ ' + dv + ' = ?'), ans: q,
-      hint: 'Split ' + v + ' into ' + vs.map(n).join(' + ') + ': each part shares nicely by ' + dv + '.',
+      hint: 'Split ' + v + ' into ' + vs.map(n).join(' + ') + '. Each part is easy to divide by ' + dv + '.',
       how: [v + ' ÷ ' + dv + ' = ' + vs.map(x => n(x) + ' ÷ ' + dv).join(' + ')].concat(qs.length < 3 ? vs.map(one) : [vs.map(one).join(', ')], [qs.join(' + ') + ' = ' + B(q)]),
       steps: vs.map((x, i) => ({ text: B(n(x) + ' ÷ ' + dv + ' = ?'), ans: qs[i] })).concat([{ text: B(qs.join(' + ') + ' = ?'), ans: q }]),
       traps: [{ v: qa + last, c: 'm_divbig', why: 'You split ' + v + ', but the ' + last + ' needs dividing by ' + dv + ' too.' },
@@ -645,10 +645,10 @@ C.defs([
     const m = R.pick([0, 30]), form = m ? R.i(0, 2) : R.i(0, 1);
     if (form === 1) return { type: 'time', ans: tm(h, m),
       text: m ? 'The long hand points to the ' + B(6) + '. The short hand is ' + B('halfway between the ' + h + ' and the ' + nx) + '. What time is it?'
-              : 'The short hand points to the ' + B(h) + ' and the long hand points to the ' + B(12) + '. What time is it?',
+              : 'The long hand points to the ' + B(12) + '. The short hand points to the ' + B(h) + '. What time is it?',
       how: [hourSay(h, m), m ? 'The long hand on the 6 means half past: 30 minutes.' : 'The long hand on the 12 means o’clock.', 'It is ' + B(fmtT(h, m)) + '.'],
       steps: [{ text: m ? 'The long hand is on the 6. How many minutes past the hour is that?' : 'The long hand is on the 12. How many minutes past the hour is that?', ans: m, unit: 'minutes' },
-              { type: 'time', text: 'So what time is it?', ans: tm(h, m) }],
+              { type: 'time', text: 'The long hand shows ' + m + ' minutes. ' + (m ? 'The short hand is halfway between the ' + h + ' and the ' + nx : 'The short hand points to the ' + h) + '. What time is it?', ans: tm(h, m) }],
       traps: m ? [{ v: tm(nx, 30), c: 't_hour', why: 'Halfway between the ' + h + ' and the ' + nx + ', the hour is the one the short hand has passed: ' + h + '.' }, { v: tm(h, 6), c: 't_hour', why: 'The long hand on the 6 means 30 minutes, not 6.' }, { v: tm(6, (h % 12) * 5), c: 't_hour', why: 'The short hand shows the hour; the long hand shows the minutes.' }]
                : [{ v: tm(h, 12), c: 't_hour', why: 'The long hand on the 12 means 0 minutes: o’clock.' }, { v: tm(12, (h % 12) * 5), c: 't_hour', why: 'The short hand shows the hour; the long hand shows the minutes.' }] };
     if (form === 2) return { type: 'time', ans: tm(h, 30),
@@ -658,7 +658,7 @@ C.defs([
       traps: [{ v: tm(nx, 30), c: 't_hour', why: 'Before ' + nx + ' o’clock, the hour is still ' + h + '.' }, { v: tm(nx, 0), c: 't_hour', why: 'Go back half an hour from ' + nx + ':00.' }] };
     return { type: 'time', ans: tm(h, m), text: 'Type the time for ' + B(m ? 'half past ' + h : h + ' o’clock') + '.',
       how: m ? ['Half past ' + h + ' means half an hour, 30 minutes, after ' + h + ':00.', 'So it is ' + B(fmtT(h, 30)) + '.'] : [h + ' o’clock means ' + h + ' hours and 0 minutes.', 'We write it ' + B(fmtT(h, 0)) + '.'],
-      steps: m ? [{ text: 'Half past means how many minutes past the hour?', ans: 30, unit: 'minutes' }, { type: 'time', text: 'So what time is half past ' + h + '?', ans: tm(h, 30) }] : [],
+      steps: m ? [{ text: 'How many minutes past the hour is half past?', ans: 30, unit: 'minutes' }, { type: 'time', text: 'So what time is half past ' + h + '?', ans: tm(h, 30) }] : [],
       traps: m ? [{ v: tm(nx, 30), c: 't_hour', why: 'Half past ' + h + ' comes after ' + h + ' o’clock, so the hour is ' + h + '.' }, { v: tm(h, 50), c: 't_hour', why: 'Half past means 30 minutes, half of the 60 in an hour.' }]
                : [{ v: tm(h, 12), c: 't_hour', why: 'O’clock means 0 minutes: type the hour, then 00.' }] };
   } },
@@ -680,7 +680,7 @@ C.defs([
     if (m === 15) return { type: 'time', ans: tm(h, 15),
       text: words ? 'Type the time for ' + B('quarter past ' + h) + '.' : 'What time is it ' + B('15 minutes after ' + h + ' o’clock') + '?',
       how: ['Quarter past ' + h + ' is a quarter of an hour, 15 minutes, after ' + h + ':00.', 'So it is ' + B(fmtT(h, 15)) + '.'],
-      steps: [{ text: 'A quarter of an hour is how many minutes?', ans: 15, unit: 'minutes' }, { type: 'time', text: 'What time is 15 minutes after ' + B(h + ':00') + '?', ans: tm(h, 15) }],
+      steps: [{ text: 'How many minutes are in a quarter of an hour?', ans: 15, unit: 'minutes' }, { type: 'time', text: 'What time is 15 minutes after ' + B(h + ':00') + '?', ans: tm(h, 15) }],
       traps: [{ v: tm(h, 45), c: 't_quarter', why: 'Quarter past is 15 minutes after the hour, not 45.' }, { v: tm(pv, 45), c: 't_quarter', why: 'That is quarter to ' + h + ', before ' + h + ' o’clock. Quarter past is after.' }, { v: tm(h, 25), c: 't_quarter', why: 'A quarter of an hour is 15 minutes: 60 ÷ 4.' }] };
     return { type: 'time', ans: tm(h, 45),
       text: words ? 'Type the time for ' + B('quarter to ' + nx) + '.' : 'What time is it ' + B('15 minutes before ' + nx + ' o’clock') + '?',
@@ -727,7 +727,7 @@ C.defs([
     return { type: 'time', text: 'What time does the clock show?', vis: clockSVG(h, m), ans: tm(h, m),
       how: [minSay(m), hourSay(h, m), 'It is ' + B(fmtT(h, m)) + '.'],
       steps: [{ text: 'The long hand has passed the ' + k + '. Count by 5s to the ' + k + '. How many minutes is that?', ans: 5 * k, vis: clockSVG(h, m) },
-              { text: 'Now count on the little marks after the ' + k + '. How many minutes past the hour?', ans: m, vis: clockSVG(h, m) },
+              { text: 'The ' + k + ' is ' + (5 * k) + ' minutes. Count 1 more minute for each little mark from the ' + k + ' to the long hand. How many minutes is that?', ans: m, vis: clockSVG(h, m) },
               { text: 'What hour does the short hand show?', ans: h, vis: clockSVG(h, m) }, { type: 'time', text: 'So what time is it?', ans: tm(h, m), vis: clockSVG(h, m) }],
       traps };
   } },
@@ -736,13 +736,13 @@ C.defs([
   tip: '1 hour = 60 minutes, so half an hour = 30 and a quarter hour = 15. 90 minutes = 60 + 30 = 1 hour 30 minutes. 1 minute = 60 seconds. 1 day = 24 hours.',
   gen(d, R) {
     const hund = 'An hour is 60 minutes, not 100.';
-    const Q = (text, ans, how, traps, steps) => ({ text, ans, how, traps, steps, unit: /seconds\?|in seconds/.test(text) ? 'seconds' : /hours are/.test(text) ? 'hours' : 'minutes' });
+    const Q = (text, ans, how, traps, steps) => ({ text, ans, how, traps, steps, unit: /How many seconds/.test(text) ? 'seconds' : /hours are/.test(text) ? 'hours' : 'minutes' });
     const toHM = (t) => { const a = dur(t), traps = [{ v: tm(0, t - 60 * a.h), c: 't_facts', why: 'You took out ' + a.h + ' ' + plural(a.h, 'hour') + '. Count ' + plural(a.h, 'it', 'them') + ' in the hours.' }];
       if (t >= 100 && t % 100 < 60) traps.push({ v: tm(Math.floor(t / 100), t % 100), c: 't_facts', why: hund + ' Take away 60s, not 100s.' });
       if (a.m + 60 < 100 && a.h >= 2) traps.push({ v: tm(a.h - 1, a.m + 60 < 60 ? a.m + 60 : a.m), c: 't_facts', why: 'There are still 60 minutes in what is left. Make another hour.' });
       return { type: 'time', dur: true, text: 'Write ' + B(t + ' minutes') + ' as hours and minutes. Type hours, then minutes.', ans: a,
         how: ['Take out 60 minutes for each hour: ' + (a.h > 1 ? a.h + ' × 60 = ' + 60 * a.h : '60') + ' minutes is ' + a.h + ' ' + plural(a.h, 'hour') + '.', less(t, 60 * a.h) + ' = ' + a.m + ' minutes left. So ' + t + ' minutes = ' + B(a.h + ' h ' + a.m + ' min') + '.'],
-        steps: [{ text: 'How many whole hours fit in ' + B(t + ' minutes') + '? (60 minutes each)', ans: a.h, unit: plural(a.h, 'hour') }, { text: B(less(t, 60 * a.h) + ' = ?'), ans: a.m, unit: 'minutes' }], traps }; };
+        steps: [{ text: 'An hour is 60 minutes. How many whole hours fit in ' + B(t + ' minutes') + '?', ans: a.h, unit: plural(a.h, 'hour') }, { text: B(less(t, 60 * a.h) + ' = ?'), ans: a.m, unit: 'minutes' }], traps }; };
     if (d === 0) return R.pick([
       () => Q('How many minutes are in ' + B('1 hour') + '?', 60, ['The long hand goes all the way around once in an hour, past 60 little marks.', '1 hour = ' + B(60) + ' minutes.'], [{ v: 100, c: 't_facts', why: hund }, { v: 12, c: 't_facts', why: 'There are 12 numbers on the clock, but each one is 5 minutes.' }]),
       () => Q('How many minutes are in ' + B('half an hour') + '?', 30, ['An hour is 60 minutes. Half of 60 is ' + B(30) + '.'], [{ v: 50, c: 't_facts', why: 'Half of 100 is 50, but an hour is 60 minutes.' }, { v: 15, c: 't_facts', why: 'That is a quarter of an hour. Half is 2 quarters.' }]),
@@ -753,14 +753,14 @@ C.defs([
       () => { const k = R.i(2, 3); return Q('How many minutes are in ' + B(k + ' hours') + '?', 60 * k, ['Each hour is 60 minutes.', list(60, k) + '. That is ' + B(60 * k) + ' minutes.'], [{ v: 100 * k, c: 't_facts', why: hund }, { v: 60 * k - 60, c: 't_facts', why: 'Add 60 once for each of the ' + k + ' hours.' }]); },
       () => { const h = R.i(1, 11); return Q('How many minutes is it from ' + B(h + ':00') + ' to ' + B((h + 1) + ':00') + '?', 60, ['From one o’clock time to the next is 1 hour.', '1 hour = ' + B(60) + ' minutes.'], [{ v: 100, c: 't_facts', why: hund }, { v: 1, c: 't_facts', why: 'That is 1 hour. How many minutes is that?' }]); }])();
     if (d === 1) return R.pick([
-      () => { const k = R.i(2, 5); return Q(B(k + ' hours') + ' = how many minutes?', 60 * k, ['Each hour is 60 minutes, so do ' + X(k, 60) + '.', X(k, 6) + ' = ' + (6 * k) + ', then put the zero back: ' + B(60 * k) + '.'], [{ v: 100 * k, c: 't_facts', why: hund }, { v: 6 * k, c: 'm_xtens', why: 'Put the zero back: 60 is 6 tens.' }], [{ text: B(X(k, 6) + ' = ?'), ans: 6 * k }, { text: B(X(k, 60) + ' = ?'), ans: 60 * k }]); },
-      () => { const m = R.i(1, 11) * 5; return Q(B('1 hour ' + m + ' minutes') + ' = how many minutes?', 60 + m, ['1 hour is 60 minutes.', '60 + ' + m + ' = ' + B(60 + m) + '.'], [{ v: 100 + m, c: 't_facts', why: hund }, { v: 1 + m, c: 't_facts', why: 'Change the 1 hour into 60 minutes first.' }]); },
+      () => { const k = R.i(2, 5); return Q('How many minutes are in ' + B(k + ' hours') + '?', 60 * k, ['Each hour is 60 minutes, so do ' + X(k, 60) + '.', X(k, 6) + ' = ' + (6 * k) + ', then put the zero back: ' + B(60 * k) + '.'], [{ v: 100 * k, c: 't_facts', why: hund }, { v: 6 * k, c: 'm_xtens', why: 'Put the zero back: 60 is 6 tens.' }], [{ text: B(X(k, 6) + ' = ?'), ans: 6 * k }, { text: B(X(k, 60) + ' = ?'), ans: 60 * k }]); },
+      () => { const m = R.i(1, 11) * 5; return Q('How many minutes are in ' + B('1 hour ' + m + ' minutes') + '?', 60 + m, ['1 hour is 60 minutes.', '60 + ' + m + ' = ' + B(60 + m) + '.'], [{ v: 100 + m, c: 't_facts', why: hund }, { v: 1 + m, c: 't_facts', why: 'Change the 1 hour into 60 minutes first.' }]); },
       () => toHM(R.i(13, 23) * 5)])();
     return R.pick([
-      () => { const h = R.i(2, 4), m = R.i(1, 11) * 5; return Q(B(h + ' hours ' + m + ' minutes') + ' = how many minutes?', 60 * h + m, [h + ' hours = ' + X(h, 60) + ' = ' + (60 * h) + ' minutes.', (60 * h) + ' + ' + m + ' = ' + B(60 * h + m) + '.'], [{ v: 100 * h + m, c: 't_facts', why: hund }, { v: 60 * h, c: 't_facts', why: 'Add the ' + m + ' minutes too.' }], [{ text: B(X(h, 60) + ' = ?'), ans: 60 * h }, { text: B((60 * h) + ' + ' + m + ' = ?'), ans: 60 * h + m }]); },
+      () => { const h = R.i(2, 4), m = R.i(1, 11) * 5; return Q('How many minutes are in ' + B(h + ' hours ' + m + ' minutes') + '?', 60 * h + m, [h + ' hours = ' + X(h, 60) + ' = ' + (60 * h) + ' minutes.', (60 * h) + ' + ' + m + ' = ' + B(60 * h + m) + '.'], [{ v: 100 * h + m, c: 't_facts', why: hund }, { v: 60 * h, c: 't_facts', why: 'Add the ' + m + ' minutes too.' }], [{ text: B(X(h, 60) + ' = ?'), ans: 60 * h }, { text: B((60 * h) + ' + ' + m + ' = ?'), ans: 60 * h + m }]); },
       () => toHM(R.i(25, 47) * 5),
       () => { const k = R.i(2, 3); return Q('How many hours are in ' + B(k + ' days') + '?', 24 * k, ['Each day is 24 hours.', X(k, 24) + ': ' + X(k, 20) + ' = ' + (20 * k) + ' and ' + X(k, 4) + ' = ' + (4 * k) + ', so ' + B(24 * k) + '.'], [{ v: 12 * k, c: 't_facts', why: 'A day is 24 hours: the clock goes around twice.' }, { v: 60 * k, c: 't_facts', why: 'A day has 24 hours. (An hour has 60 minutes.)' }]); },
-      () => { const mm = R.i(2, 4), s = R.pick([10, 15, 20, 30, 45]); return Q(B(mm + ' minutes ' + s + ' seconds') + ' = how many seconds?', 60 * mm + s, ['Each minute is 60 seconds: ' + X(mm, 60) + ' = ' + (60 * mm) + '.', (60 * mm) + ' + ' + s + ' = ' + B(60 * mm + s) + '.'], [{ v: 100 * mm + s, c: 't_facts', why: 'A minute has 60 seconds, not 100.' }, { v: 60 * mm, c: 't_facts', why: 'Add the ' + s + ' seconds too.' }]); }])();
+      () => { const mm = R.i(2, 4), s = R.pick([10, 15, 20, 30, 45]); return Q('How many seconds are in ' + B(mm + ' minutes ' + s + ' seconds') + '?', 60 * mm + s, ['Each minute is 60 seconds: ' + X(mm, 60) + ' = ' + (60 * mm) + '.', (60 * mm) + ' + ' + s + ' = ' + B(60 * mm + s) + '.'], [{ v: 100 * mm + s, c: 't_facts', why: 'A minute has 60 seconds, not 100.' }, { v: 60 * mm, c: 't_facts', why: 'Add the ' + s + ' seconds too.' }]); }])();
   } },
 
 { id: 't_elapsed', s: 'time', g: 3, title: 'How long? Count up', pre: ['a_countup'],
@@ -784,18 +784,18 @@ C.defs([
       return { text: 'How many minutes is it from ' + B(fmtT(h1, m1)) + ' to ' + B(fmtT(h2, m2)) + '?', unit: 'minutes', vis: pair(h1, m1, h2, m2), ans,
         how: ['Hop to the next o’clock: ' + fmtT(h1, m1) + ' → ' + h2 + ':00 is ' + a + ' minutes.', 'Then ' + h2 + ':00 → ' + fmtT(h2, m2) + ' is ' + m2 + ' minutes.', a + ' + ' + m2 + ' = ' + B(ans) + ' minutes.'],
         howVis: minHops(T.min(h1, m1), [a, m2]),
-        steps: [{ text: 'How many minutes from ' + B(fmtT(h1, m1)) + ' to ' + B(h2 + ':00') + '?', ans: a }, { text: 'How many minutes from ' + B(h2 + ':00') + ' to ' + B(fmtT(h2, m2)) + '?', ans: m2 }, { text: B(a + ' + ' + m2 + ' = ?'), ans }],
+        steps: [{ text: 'How many minutes is it from ' + B(fmtT(h1, m1)) + ' to ' + B(h2 + ':00') + '?', ans: a }, { text: 'How many minutes is it from ' + B(h2 + ':00') + ' to ' + B(fmtT(h2, m2)) + '?', ans: m2 }, { text: B(a + ' + ' + m2 + ' = ?'), ans }],
         traps: [{ v: Math.abs(m1 - m2), c: 'a_countup', why: 'You took one number of minutes from the other. Hop to the o’clock first, then on.' }, { v: ans + 40, c: 't_facts', why: 'It looks like you counted an hour as 100 minutes. An hour is 60 minutes.' },
                 { v: ans + 60, c: 't_elapsed', why: 'Less than an hour passed. Hop to ' + h2 + ':00, then on to ' + fmtT(h2, m2) + '.' }, { v: ans + 5, c: 't_five', why: 'Count by 5s carefully in each hop.' }] };
     }
     const m1 = R.i(1, 11) * 5, dh = R.i(1, 2), m2 = R.i(0, 11) * 5, h2 = h1 + dh + (m2 < m1 ? 1 : 0), tot = (h2 - h1) * 60 + m2 - m1, ans = dur(tot);
     let how, hops, steps;
     if (m2 >= m1) { how = [fmtT(h1, m1) + ' → ' + fmtT(h2, m1) + ' is ' + (h2 - h1) + ' ' + plural(h2 - h1, 'hour') + '.', fmtT(h2, m1) + ' → ' + fmtT(h2, m2) + ' is ' + (m2 - m1) + ' minutes.']; hops = [(h2 - h1) * 60, m2 - m1].filter(x => x);
-      steps = [{ text: 'How many whole hours from ' + B(fmtT(h1, m1)) + ' to ' + B(fmtT(h2, m1)) + '?', ans: h2 - h1, unit: plural(h2 - h1, 'hour') }, { text: 'How many minutes from ' + B(fmtT(h2, m1)) + ' to ' + B(fmtT(h2, m2)) + '?', ans: m2 - m1, unit: 'minutes' }]; }
+      steps = [{ text: 'How many whole hours is it from ' + B(fmtT(h1, m1)) + ' to ' + B(fmtT(h2, m1)) + '?', ans: h2 - h1, unit: plural(h2 - h1, 'hour') }, { text: 'How many minutes is it from ' + B(fmtT(h2, m1)) + ' to ' + B(fmtT(h2, m2)) + '?', ans: m2 - m1, unit: 'minutes' }]; }
     else { const mid = h2 - h1 - 1, a = 60 - m1; how = [fmtT(h1, m1) + ' → ' + (h1 + 1) + ':00 is ' + a + ' minutes.'].concat(mid ? [(h1 + 1) + ':00 → ' + h2 + ':00 is ' + mid + ' ' + plural(mid, 'hour') + '.'] : [], m2 ? [h2 + ':00 → ' + fmtT(h2, m2) + ' is ' + m2 + ' minutes.'] : []);
       how.push('Altogether: ' + (mid ? mid + ' h + ' : '') + a + ' min + ' + m2 + ' min = ' + B(ans.h + ' h ' + ans.m + ' min') + '.');
       hops = [a, mid * 60, m2].filter(x => x);
-      steps = [{ text: 'How many minutes from ' + B(fmtT(h1, m1)) + ' to ' + B((h1 + 1) + ':00') + '?', ans: a, unit: 'minutes' }, { text: 'How many whole hours from ' + B((h1 + 1) + ':00') + ' to ' + B(h2 + ':00') + '?', ans: mid, unit: plural(mid, 'hour') }, { text: 'How many minutes from ' + B(h2 + ':00') + ' to ' + B(fmtT(h2, m2)) + '?', ans: m2, unit: 'minutes' }].filter(s => s.ans); }
+      steps = [{ text: 'How many minutes is it from ' + B(fmtT(h1, m1)) + ' to ' + B((h1 + 1) + ':00') + '?', ans: a, unit: 'minutes' }, { text: 'How many whole hours is it from ' + B((h1 + 1) + ':00') + ' to ' + B(h2 + ':00') + '?', ans: mid, unit: plural(mid, 'hour') }, { text: 'How many minutes is it from ' + B(h2 + ':00') + ' to ' + B(fmtT(h2, m2)) + '?', ans: m2, unit: 'minutes' }].filter(s => s.ans); }
     if (m2 >= m1) how.push('Altogether: ' + B(ans.h + ' ' + plural(ans.h, 'hour') + ' ' + ans.m + ' minutes') + '.');
     const traps = [{ v: tm(ans.h + 1, ans.m), c: 't_elapsed', why: 'One hour too many. Count the whole hours between the hops again.' }];
     if (m2 < m1) traps.push({ v: tm(h2 - h1, m1 - m2), c: 't_elapsed', why: 'You took the minutes away backwards. Hop to the next o’clock first, then on.' });
@@ -818,8 +818,9 @@ C.defs([
     if (k % 60 && (m + k % 60) % 60 !== r.m) traps.push({ v: tm(r.h, (m + k) % 60), c: 't_later', why: 'Check the minutes: hop to the o’clock, then count on.' });
     const steps = [];
     if (f.H) { const s = T.add(h, m, 60 * f.H); steps.push({ type: 'time', text: 'What time is ' + B(f.H + ' ' + plural(f.H, 'hour')) + ' after ' + B(fmtT(h, m)) + '?', ans: s }); }
-    if (f.hops.length - (f.H ? 1 : 0) === 2) { const s = T.add(h, m, 60 * f.H), tp = 60 - s.m; steps.push({ text: 'How many minutes from ' + B(fmtT(s.h, s.m)) + ' to ' + B(NX(s.h) + ':00') + '?', ans: tp, unit: 'minutes' }, { text: B(less(f.M, tp) + ' = ?') + ' minutes are left after that.', ans: f.M - tp }); }
-    steps.push({ type: 'time', text: 'So what time will it be?', ans: r });
+    if (f.hops.length - (f.H ? 1 : 0) === 2) { const s = T.add(h, m, 60 * f.H), tp = 60 - s.m; steps.push({ text: 'How many minutes is it from ' + B(fmtT(s.h, s.m)) + ' to ' + B(NX(s.h) + ':00') + '?', ans: tp, unit: 'minutes' }, { text: 'You have ' + B(f.M + ' minutes') + ' to add. It takes ' + B(tp + ' minutes') + ' to get to ' + B(NX(s.h) + ':00') + '. How many minutes are left?', ans: f.M - tp }); }
+    const lh = f.hops[f.hops.length - 1]; /* the last hop, so the last step can say where it starts */
+    steps.push({ type: 'time', text: f.M ? 'What time is ' + B(lh + ' minutes') + ' after ' + B(T.fmtMin(T.min(r.h, r.m) + 720 - lh)) + '?' : 'It is ' + B(fmtT(h, m)) + '. What time will it be in ' + B(kTxt) + '?', ans: r });
     return { type: 'time', text: 'It is ' + B(fmtT(h, m)) + '. What time will it be in ' + B(kTxt) + '?', vis: clockSVG(h, m, { cls: 'sm' }), ans: r,
       how: f.lines.length ? f.lines : [fmtT(h, m) + ' plus ' + kTxt + ' is ' + B(fmtT(r.h, r.m)) + '.'], howVis: minHops(T.min(h, m), f.hops), steps: steps.length > 1 ? steps : [], traps };
   } },
@@ -837,10 +838,10 @@ C.defs([
       steps.push({ type: 'time', text: 'What time is ' + B(H + ' ' + plural(H, 'hour')) + ' before ' + B(fmtT(h, m)) + '?', ans: s }); }
     if (M) {
       if (M > cm) { lines.push('Hop back to the o’clock: ' + fmtT(ch, cm) + ' → ' + ch + ':00 is ' + cm + ' minutes.', 'Go back ' + (M - cm) + ' more minutes: ' + ch + ':00 → ' + B(fmtT(r.h, r.m)) + '.' + (ch === 1 ? ' (Before 1 comes 12.)' : '')); hops.push(-cm, -(M - cm));
-        steps.push({ text: B(less(M, cm) + ' = ?') + ' minutes still to go back after ' + ch + ':00.', ans: M - cm }); }
+        steps.push({ text: 'You have ' + B(M + ' minutes') + ' to go back. It takes ' + B(cm + ' minutes') + ' to get back to ' + B(ch + ':00') + '. How many minutes are left?', ans: M - cm }); }
       else { lines.push(fmtT(ch, cm) + ' take away ' + M + ' minutes is ' + B(fmtT(r.h, r.m)) + '.'); hops.push(-M); }
     } else lines[lines.length - 1] = lines[lines.length - 1].replace(/ → ([0-9:]+)\./, ' → ' + B(fmtT(r.h, r.m)) + '.');
-    steps.push({ type: 'time', text: 'So what time was it?', ans: r });
+    steps.push({ type: 'time', text: M ? 'What time is ' + B((M > cm ? M - cm : M) + ' minutes') + ' before ' + B(M > cm ? ch + ':00' : fmtT(ch, cm)) + '?' : 'It is ' + B(fmtT(h, m)) + '. What time was it ' + B(kTxt + ' ago') + '?', ans: r });
     const traps = [{ v: T.add(h, m, k), c: 't_earlier', why: '“Ago” means go back in time, not forward.' }];
     if (M > cm) traps.push({ v: tm(NX(r.h), r.m), c: 't_earlier', why: 'Going back past an o’clock, the hour goes down one.' });
     if (r.h === 12) traps.push({ v: tm(0, r.m), c: 't_earlier', why: 'There is no 0 on the clock. Before 1 comes 12.' });
@@ -856,7 +857,7 @@ C.defs([
       const h1 = R.i(6, 11), h2 = R.i(1, 7), a = 12 - h1, ans = a + h2;
       return { text: 'How many hours is it from ' + B(h1 + ' ' + p1) + ' to ' + B(h2 + ' ' + p2) + '?', unit: 'hours', ans,
         how: [h1 + ' ' + p1 + ' → 12 ' + mid + ' is ' + a + ' ' + plural(a, 'hour') + '.', '12 ' + mid + ' → ' + h2 + ' ' + p2 + ' is ' + h2 + ' ' + plural(h2, 'hour') + '.', a + ' + ' + h2 + ' = ' + B(ans) + ' hours.'],
-        steps: [{ text: 'How many hours from ' + B(h1 + ' ' + p1) + ' to ' + B('12 ' + mid) + '?', ans: a, unit: plural(a, 'hour') }, { text: 'How many hours from ' + B('12 ' + mid) + ' to ' + B(h2 + ' ' + p2) + '?', ans: h2, unit: plural(h2, 'hour') }, { text: B(a + ' + ' + h2 + ' = ?'), ans }],
+        steps: [{ text: 'How many hours is it from ' + B(h1 + ' ' + p1) + ' to ' + B('12 ' + mid) + '?', ans: a, unit: plural(a, 'hour') }, { text: 'How many hours is it from ' + B('12 ' + mid) + ' to ' + B(h2 + ' ' + p2) + '?', ans: h2, unit: plural(h2, 'hour') }, { text: B(a + ' + ' + h2 + ' = ?'), ans }],
         traps: [{ v: Math.abs(h1 - h2), c: 't_ampm', why: 'Across ' + mid + ' the clock starts again at 1. Count up to 12 first, then on.' }, { v: ans + 1, c: 't_elapsed', why: 'Count the hops from hour to hour, not the numbers you pass.' }, { v: 24 - ans, c: 't_ampm', why: 'That goes the long way around. Start at ' + h1 + ' ' + p1 + ' and go forward to 12 ' + mid + ', then on.' }] };
     }
     const across = (h1, m1, h2, m2, q1, q2, md, text) => {
@@ -866,7 +867,7 @@ C.defs([
       how.push('Altogether: ' + B(ans.h + ' h ' + ans.m + ' min') + '.');
       const naive = Math.abs(T.min(h1, m1) - T.min(h2, m2));
       return { type: 'time', dur: true, text: text + ' Type hours, then minutes.', ans, how,
-        steps: [{ type: 'time', dur: true, text: 'How long from ' + B(fmtT(h1, m1) + ' ' + q1) + ' to ' + B('12:00 ' + md) + '?', ans: dur(a) }, { type: 'time', dur: true, text: 'How long from ' + B('12:00 ' + md) + ' to ' + B(fmtT(h2, m2) + ' ' + q2) + '?', ans: dur(b) }, { type: 'time', dur: true, text: 'Add the two hops. How long is that altogether?', ans }],
+        steps: [{ type: 'time', dur: true, text: 'How long is it from ' + B(fmtT(h1, m1) + ' ' + q1) + ' to ' + B('12:00 ' + md) + '?', ans: dur(a) }, { type: 'time', dur: true, text: 'How long is it from ' + B('12:00 ' + md) + ' to ' + B(fmtT(h2, m2) + ' ' + q2) + '?', ans: dur(b) }, { type: 'time', dur: true, text: 'Add ' + B(T.words(a)) + ' and ' + B(T.words(b)) + '. How long is that altogether?', ans }],
         traps: [{ v: dur(naive), c: 't_ampm', why: 'You took one time from the other. Across ' + md + ', count up to 12:00 first, then on.' }, { v: tm(ans.h + 1, ans.m), c: 't_elapsed', why: 'One hour too many. Count the whole hours in each hop again.' },
                 { v: tm(Math.max(0, ans.h - 1), ans.m), c: 't_elapsed', why: 'One hour short. When the minutes add up past 60, that makes another hour.' }] };
     };
@@ -878,7 +879,7 @@ C.defs([
     if (T.min(h, m) + k < 720) return null;
     return { type: 'time', text: 'It is ' + B(fmtT(h, m) + ' PM') + '. What time will it be ' + B(T.words(k)) + ' later? (Type just the time.)', ans: r,
       how: f.lines.concat(['Going past 12 midnight, PM changes to AM: it is ' + fmtT(r.h, r.m) + ' AM.']).slice(-4).map((l, i, a) => i === a.length - 1 ? l.replace(fmtT(r.h, r.m) + ' AM', B(fmtT(r.h, r.m)) + ' AM') : l.replace(/<\/?b>/g, '')),
-      steps: [{ type: 'time', text: 'What time is ' + B(f.H + ' ' + plural(f.H, 'hour')) + ' after ' + B(fmtT(h, m)) + '?', ans: T.add(h, m, 60 * f.H) }, { type: 'time', text: 'Now add the ' + B(f.M + ' minutes') + '. What time is it?', ans: r }],
+      steps: [{ type: 'time', text: 'What time is ' + B(f.H + ' ' + plural(f.H, 'hour')) + ' after ' + B(fmtT(h, m)) + '?', ans: T.add(h, m, 60 * f.H) }, { type: 'time', text: 'What time is ' + B(f.M + ' minutes') + ' after ' + B(T.fmtMin(T.min(h, m) + 60 * f.H)) + '?', ans: r }],
       traps: [{ v: r.h === 12 ? tm(0, r.m) : tm(r.h + 12, r.m), c: 't_ampm', why: r.h === 12 ? 'There is no 0 on a 12-hour clock. The hour after midnight is 12.' : 'Clocks go up to 12. After 12 midnight comes 1 AM.' }, { v: tm(NX(r.h), r.m), c: 't_later', why: 'One hour too many. Count the o’clocks you pass.' }, { v: tm(PV(r.h), r.m), c: 't_later', why: 'You went past an o’clock, so the hour goes up one more.' }] };
   } },
 
@@ -886,21 +887,21 @@ C.defs([
   tip: '60 seconds = 1 minute, 60 minutes = 1 hour, 24 hours = 1 day, 7 days = 1 week. ×60 is ×6 then a zero: 4 minutes = 4 × 6 = 24, so 240 seconds.',
   gen(d, R) {
     const Q = (text, ans, unit, how, traps, steps) => ({ text, ans, unit, how, traps, steps });
-    const x60 = (k, big, small) => Q(B(k + ' ' + big) + ' = how many ' + small + '?', 60 * k, small,
+    const x60 = (k, big, small) => Q('How many ' + small + ' are in ' + B(k + ' ' + big) + '?', 60 * k, small,
       ['Each ' + big.replace(/s$/, '') + ' is 60 ' + small + ', so do ' + X(k, 60) + '.', X(k, 6) + ' = ' + (6 * k) + '. Put the zero back: ' + B(60 * k) + ' ' + small + '.'],
       [{ v: 100 * k, c: 't_facts', why: 'A' + (big === 'hours' ? 'n hour is 60 minutes' : ' minute is 60 seconds') + ', not 100.' }, { v: 6 * k, c: 'm_xtens', why: 'Put the zero back: 60 is 6 tens.' }, { v: 24 * k, c: 't_convert', why: '24 is hours in a day. Use 60 here.' }],
       [{ text: B(X(k, 6) + ' = ?'), ans: 6 * k }, { text: B(X(k, 60) + ' = ?'), ans: 60 * k }]);
     if (d === 0) return R.pick([
-      () => { const k = R.i(2, 6); return Q(B(k + ' weeks') + ' = how many days?', 7 * k, 'days', ['Each week is 7 days: ' + X(k, 7) + '.', '5 × ' + k + ' = ' + (5 * k) + ' and 2 × ' + k + ' = ' + (2 * k) + ', so ' + B(7 * k) + ' days.'], [{ v: k + 7, c: 'm_groups', why: 'You added. ' + k + ' weeks is ' + k + ' groups of 7 days.' }, { v: 7 * k - 7, c: 'm_x7', why: 'One week short. Check ' + X(k, 7) + '.' }, { v: 5 * k, c: 'm_x7', why: 'A week is 7 days, not 5.' }], trickSteps(7, k)); },
+      () => { const k = R.i(2, 6); return Q('How many days are in ' + B(k + ' weeks') + '?', 7 * k, 'days', ['Each week is 7 days: ' + X(k, 7) + '.', '5 × ' + k + ' = ' + (5 * k) + ' and 2 × ' + k + ' = ' + (2 * k) + ', so ' + B(7 * k) + ' days.'], [{ v: k + 7, c: 'm_groups', why: 'You added. ' + k + ' weeks is ' + k + ' groups of 7 days.' }, { v: 7 * k - 7, c: 'm_x7', why: 'One week short. Check ' + X(k, 7) + '.' }, { v: 5 * k, c: 'm_x7', why: 'A week is 7 days, not 5.' }], trickSteps(7, k)); },
       () => x60(R.i(2, 9), 'minutes', 'seconds'),
       () => x60(R.i(2, 9), 'hours', 'minutes'),
-      () => { const k = R.i(2, 4); return Q(B(k + ' days') + ' = how many hours?', 24 * k, 'hours', ['Each day is 24 hours: ' + X(k, 24) + '. Split 24 into 20 and 4.', X(k, 20) + ' = ' + (20 * k) + ' and ' + X(k, 4) + ' = ' + (4 * k) + ', so ' + B(24 * k) + ' hours.'], [{ v: 12 * k, c: 't_facts', why: 'A day is 24 hours: the clock goes around twice.' }, { v: 60 * k, c: 't_convert', why: 'A day has 24 hours. 60 is minutes in an hour.' }], [{ text: B(X(k, 20) + ' = ?'), ans: 20 * k }, { text: B(X(k, 4) + ' = ?'), ans: 4 * k }, { text: B((20 * k) + ' + ' + (4 * k) + ' = ?'), ans: 24 * k }]); }])();
+      () => { const k = R.i(2, 4); return Q('How many hours are in ' + B(k + ' days') + '?', 24 * k, 'hours', ['Each day is 24 hours: ' + X(k, 24) + '. Split 24 into 20 and 4.', X(k, 20) + ' = ' + (20 * k) + ' and ' + X(k, 4) + ' = ' + (4 * k) + ', so ' + B(24 * k) + ' hours.'], [{ v: 12 * k, c: 't_facts', why: 'A day is 24 hours: the clock goes around twice.' }, { v: 60 * k, c: 't_convert', why: 'A day has 24 hours. 60 is minutes in an hour.' }], [{ text: B(X(k, 20) + ' = ?'), ans: 20 * k }, { text: B(X(k, 4) + ' = ?'), ans: 4 * k }, { text: B((20 * k) + ' + ' + (4 * k) + ' = ?'), ans: 24 * k }]); }])();
     if (d === 1) return R.pick([
-      () => { const k = R.i(2, 5), s = R.i(1, 11) * 5; return Q(B(k + ' minutes ' + s + ' seconds') + ' = how many seconds?', 60 * k + s, 'seconds', [k + ' minutes = ' + X(k, 60) + ' = ' + (60 * k) + ' seconds.', (60 * k) + ' + ' + s + ' = ' + B(60 * k + s) + ' seconds.'], [{ v: 100 * k + s, c: 't_facts', why: 'A minute is 60 seconds, not 100.' }, { v: 60 * k, c: 't_convert', why: 'Add the ' + s + ' seconds too.' }], [{ text: B(X(k, 60) + ' = ?'), ans: 60 * k }, { text: B((60 * k) + ' + ' + s + ' = ?'), ans: 60 * k + s }]); },
-      () => { const k = R.i(2, 4), e = R.i(1, 6); return Q(B(k + ' weeks ' + e + ' ' + plural(e, 'day')) + ' = how many days?', 7 * k + e, 'days', [k + ' weeks = ' + X(k, 7) + ' = ' + (7 * k) + ' days.', (7 * k) + ' + ' + e + ' = ' + B(7 * k + e) + ' days.'], [{ v: 10 * k + e, c: 't_convert', why: 'A week is 7 days, not 10.' }, { v: 7 * k, c: 't_convert', why: 'Add the ' + e + ' extra ' + plural(e, 'day') + ' too.' }], [{ text: B(X(k, 7) + ' = ?'), ans: 7 * k }, { text: B((7 * k) + ' + ' + e + ' = ?'), ans: 7 * k + e }]); },
-      () => { const k = R.i(2, 9), unit = R.pick([['seconds', 'minutes'], ['minutes', 'hours']]); return Q(B((60 * k) + ' ' + unit[0]) + ' = how many ' + unit[1] + '?', k, unit[1], ['60 ' + unit[0] + ' make 1 ' + unit[1].replace(/s$/, '') + '. How many 60s are in ' + (60 * k) + '?', 'Drop a zero from both: 6 × ? = ' + (6 * k) + '. 6 × ' + k + ' = ' + (6 * k) + ', so ' + B(k) + ' ' + unit[1] + '.'], [{ v: 6 * k, c: 't_convert', why: 'Divide by 60, not by 10.' }, { v: k + 1, c: 'm_x3x6', why: 'Check: 6 × ' + (k + 1) + ' = ' + (6 * k + 6) + '.' }], [{ text: B('6 × ? = ' + (6 * k)), ans: k }]); },
-      () => { const k = R.i(2, 5); return Q(B((24 * k) + ' hours') + ' = how many days?', k, 'days', ['24 hours make a day. Count by 24s: ' + list(24, k) + '.', 'That is ' + B(k) + ' days.'], [{ v: 2 * k, c: 't_convert', why: 'A day is 24 hours, not 12.' }, { v: k + 1, c: 't_convert', why: 'Count by 24s again: ' + list(24, k) + '.' }], [{ text: B(X(k, 24) + ' = ?'), ans: 24 * k }]); },
-      () => { const k = R.i(3, 9); return Q(B((7 * k) + ' days') + ' = how many weeks?', k, 'weeks', ['7 days make a week. Think: 7 × ? = ' + (7 * k) + '.', X(7, k) + ' = ' + (7 * k) + ', so ' + B(k) + ' weeks.'], [{ v: k + 1, c: 'm_x7', why: 'Check: ' + X(7, k + 1) + ' = ' + (7 * k + 7) + '.' }, { v: k - 1, c: 'm_x7', why: 'Check: ' + X(7, k - 1) + ' = ' + (7 * k - 7) + '.' }], [{ text: B('7 × ? = ' + (7 * k)), ans: k }]); }])();
+      () => { const k = R.i(2, 5), s = R.i(1, 11) * 5; return Q('How many seconds are in ' + B(k + ' minutes ' + s + ' seconds') + '?', 60 * k + s, 'seconds', [k + ' minutes = ' + X(k, 60) + ' = ' + (60 * k) + ' seconds.', (60 * k) + ' + ' + s + ' = ' + B(60 * k + s) + ' seconds.'], [{ v: 100 * k + s, c: 't_facts', why: 'A minute is 60 seconds, not 100.' }, { v: 60 * k, c: 't_convert', why: 'Add the ' + s + ' seconds too.' }], [{ text: B(X(k, 60) + ' = ?'), ans: 60 * k }, { text: B((60 * k) + ' + ' + s + ' = ?'), ans: 60 * k + s }]); },
+      () => { const k = R.i(2, 4), e = R.i(1, 6); return Q('How many days are in ' + B(k + ' weeks ' + e + ' ' + plural(e, 'day')) + '?', 7 * k + e, 'days', [k + ' weeks = ' + X(k, 7) + ' = ' + (7 * k) + ' days.', (7 * k) + ' + ' + e + ' = ' + B(7 * k + e) + ' days.'], [{ v: 10 * k + e, c: 't_convert', why: 'A week is 7 days, not 10.' }, { v: 7 * k, c: 't_convert', why: 'Add the ' + e + ' extra ' + plural(e, 'day') + ' too.' }], [{ text: B(X(k, 7) + ' = ?'), ans: 7 * k }, { text: B((7 * k) + ' + ' + e + ' = ?'), ans: 7 * k + e }]); },
+      () => { const k = R.i(2, 9), unit = R.pick([['seconds', 'minutes'], ['minutes', 'hours']]); return Q('How many ' + unit[1] + ' are in ' + B((60 * k) + ' ' + unit[0]) + '?', k, unit[1], ['60 ' + unit[0] + ' make 1 ' + unit[1].replace(/s$/, '') + '. How many 60s are in ' + (60 * k) + '?', 'Drop a zero from both: 6 × ? = ' + (6 * k) + '. 6 × ' + k + ' = ' + (6 * k) + ', so ' + B(k) + ' ' + unit[1] + '.'], [{ v: 6 * k, c: 't_convert', why: 'Divide by 60, not by 10.' }, { v: k + 1, c: 'm_x3x6', why: 'Check: 6 × ' + (k + 1) + ' = ' + (6 * k + 6) + '.' }], [{ text: B('6 × ? = ' + (6 * k)), ans: k }]); },
+      () => { const k = R.i(2, 5); return Q('How many days are in ' + B((24 * k) + ' hours') + '?', k, 'days', ['24 hours make a day. Count by 24s: ' + list(24, k) + '.', 'That is ' + B(k) + ' days.'], [{ v: 2 * k, c: 't_convert', why: 'A day is 24 hours, not 12.' }, { v: k + 1, c: 't_convert', why: 'Count by 24s again: ' + list(24, k) + '.' }], [{ text: B(X(k, 24) + ' = ?'), ans: 24 * k }]); },
+      () => { const k = R.i(3, 9); return Q('How many weeks are in ' + B((7 * k) + ' days') + '?', k, 'weeks', ['7 days make a week. Think: 7 × ? = ' + (7 * k) + '.', X(7, k) + ' = ' + (7 * k) + ', so ' + B(k) + ' weeks.'], [{ v: k + 1, c: 'm_x7', why: 'Check: ' + X(7, k + 1) + ' = ' + (7 * k + 7) + '.' }, { v: k - 1, c: 'm_x7', why: 'Check: ' + X(7, k - 1) + ' = ' + (7 * k - 7) + '.' }], [{ text: B('7 × ? = ' + (7 * k)), ans: k }]); }])();
     return R.pick([
       () => { const k = R.i(1, 3), p = 168 * k; return Q('How many hours are in ' + B(k + ' ' + plural(k, 'week')) + '?', p, 'hours', ['A week is 7 days and each day is 24 hours.', 'One week: ' + X(7, 24) + ' = 140 + 28 = 168 hours.'].concat(k > 1 ? [X(k, 168) + ' = ' + B(n(p)) + ' hours.'] : ['So ' + B(168) + ' hours.']), [{ v: 84 * k, c: 't_facts', why: 'A day is 24 hours, not 12.' }, { v: 7 * k + 24, c: 'm_groups', why: 'Multiply: 7 days of 24 hours is 7 × 24.' }, { v: 420 * k, c: 't_convert', why: 'A day is 24 hours. 60 is minutes in an hour.' }], [{ text: B(X(7, 20) + ' = ?'), ans: 140 }, { text: B(X(7, 4) + ' = ?'), ans: 28 }, { text: B('140 + 28 = ?'), ans: 168 }].concat(k > 1 ? [{ text: B(X(k, 168) + ' = ?'), ans: p }] : [])); },
       () => { const k = R.i(1, 3), p = 1440 * k; return Q('How many minutes are in ' + B(k + ' ' + plural(k, 'day')) + '?', p, 'minutes', ['A day is 24 hours and each hour is 60 minutes.', X(24, 60) + ': ' + X(24, 6) + ' = 144, then put the zero back: 1,440.'].concat(k > 1 ? [X(k, 1440) + ' = ' + B(n(p)) + ' minutes.'] : ['So ' + B('1,440') + ' minutes.']), [{ v: 2400 * k, c: 't_facts', why: 'An hour is 60 minutes, not 100.' }, { v: 720 * k, c: 't_facts', why: 'A day is 24 hours, not 12.' }, { v: 144 * k, c: 'm_xtens', why: 'Put the zero back: 24 × 60 is 24 × 6 tens.' }], [{ text: B(X(24, 6) + ' = ?'), ans: 144 }, { text: B(X(24, 60) + ' = ?'), ans: 1440 }].concat(k > 1 ? [{ text: B(X(k, 1440) + ' = ?'), ans: p }] : [])); },
@@ -939,7 +940,7 @@ C.defs([
     if (m2 < m1) traps.push({ v: tm(h2 - h1, m1 - m2), c: 't_elapsed', why: 'You took the minutes away backwards. Hop to the next o’clock first, then on.' });
     traps.push({ v: dur(Math.abs(T.min(h1, m1) - T.min(h2 - 12, m2))), c: 't_24h', why: 'Keep both times in 24-hour form and count on. Switching one to a 12-hour time mixes things up.' });
     return { type: 'time', dur: true, text: 'A train leaves at ' + B(H24(h1, m1)) + ' and arrives at ' + B(H24(h2, m2)) + '. How long is the trip? Type hours, then minutes.', ans, how,
-      steps: [{ text: 'How many minutes from ' + B(H24(h1, m1)) + ' to ' + B(H24(h1 + 1, 0)) + '?', ans: a, unit: 'minutes' }, { text: 'How many whole hours from ' + B(H24(h1 + 1, 0)) + ' to ' + B(H24(h2, 0)) + '?', ans: mid, unit: plural(mid, 'hour') }, { type: 'time', dur: true, text: 'Add ' + B(mid + ' h + ' + (a + m2) + ' min') + '. How long is that?', ans }],
+      steps: [{ text: 'How many minutes is it from ' + B(H24(h1, m1)) + ' to ' + B(H24(h1 + 1, 0)) + '?', ans: a, unit: 'minutes' }, { text: 'How many whole hours is it from ' + B(H24(h1 + 1, 0)) + ' to ' + B(H24(h2, 0)) + '?', ans: mid, unit: plural(mid, 'hour') }, { type: 'time', dur: true, text: 'Add ' + B(mid + ' h + ' + (a + m2) + ' min') + '. How long is that?', ans }],
       traps };
   } },
 
@@ -963,29 +964,29 @@ C.defs([
       if (kind === 0) { const D = R.i(8, 31), ans = (D - 1) % 7 + 1, chain = []; for (let x = D; x >= 1; x -= 7) chain.push(x); const q = Math.floor((D - ans) / 7);
         return { text: 'The ' + ord(D) + ' is a ' + day + '. What is the date of the ' + B('first ' + day) + ' of that month?', ans,
           how: ['Go back 7 days at a time: ' + chain.join(' → ') + '.', 'You can’t go back 7 more, so the first ' + day + ' is the ' + B(ord(ans)) + '. (Shortcut: take away ' + q + ' sevens, ' + (7 * q) + ', from ' + D + '.)'],
-          steps: [{ text: B(less(D, 7) + ' = ?'), ans: D - 7 }, { text: 'Keep taking away 7 while you can. What date do you stop at?', ans }],
+          steps: [{ text: B(less(D, 7) + ' = ?'), ans: D - 7 }, { text: 'Start at ' + B(D) + '. Keep taking away 7 while you can. What number do you stop at?', ans }],
           traps: [{ v: D - 7, c: 't_weekday', why: 'Keep going back 7 days at a time until you can’t go back any more.' }, { v: ans + 1, c: 't_weekday', why: 'Take away exactly 7 each time.' }, { v: 7 * q, c: 'm_remain', why: 'That is how much you took away. The date is what is left.' }] }; }
       const F = R.i(1, 7), L = R.pick([28, 30, 31]), dates = []; for (let x = F; x <= L; x += 7) dates.push(x); const last = dates[dates.length - 1];
       if (kind === 1) return { text: 'The ' + ord(F) + ' is a ' + day + '. This month has ' + L + ' days. ' + B('How many ' + day + 's') + ' are in the month?', ans: dates.length,
         how: ['List them, adding 7 each time: ' + dates.join(', ') + '.', 'The next one would be ' + (last + 7) + ', past the ' + ord(L) + '. That is ' + B(dates.length) + ' ' + day + 's.'],
-        steps: [{ text: 'What is the date of the last ' + day + ' in the month?', ans: last }, { text: 'Count the list ' + dates.slice(0, -1).join(', ') + ', … ' + last + '. How many dates?', ans: dates.length }],
+        steps: [{ text: 'The ' + ord(F) + ' is a ' + day + '. This month has ' + L + ' days. What is the date of the last ' + day + '?', ans: last }, { text: 'Count these dates: ' + B(dates.join(', ')) + '. How many dates are there?', ans: dates.length }],
         traps: [{ v: dates.length + 1, c: 't_weekday', why: 'Check the last one: is it past the ' + ord(L) + '?' }, { v: dates.length - 1, c: 't_weekday', why: 'Count every date in the list, the first one too.' }] };
       return { text: 'The ' + ord(F) + ' is a ' + day + '. This month has ' + L + ' days. What is the date of the ' + B('last ' + day) + ' of the month?', ans: last,
         how: ['Add 7 each time: ' + dates.join(', ') + '.', 'The next one would be ' + (last + 7) + ', past the ' + ord(L) + '. So the last ' + day + ' is the ' + B(ord(last)) + '.'],
-        steps: [{ text: B(F + ' + 7 + 7 + 7 = ?'), ans: F + 21 }, { text: 'Can you add 7 once more and stay in the month? What is the last date?', ans: last }],
+        steps: [{ text: B(F + ' + 7 + 7 + 7 = ?'), ans: F + 21 }, { text: 'This month has ' + B(L + ' days') + '. Start at ' + B(F + 21) + '. Add 7 only if you stay in the month. What date do you end on?', ans: last }],
         traps: [{ v: last + 7, c: 't_weekday', why: 'This month has only ' + L + ' days.' }, { v: last - 7, c: 't_weekday', why: 'You can add 7 once more and still be in the month.' }] };
     }
     if (R.chance(.55)) {
       let k; do { k = R.i(15, 66); } while (k % 7 === 0); const q = Math.floor(k / 7), r = k % 7, nd = DAYS[(w + r) % 7];
-      return { type: 'rem', text: 'Today is ' + day + '. In ' + B(k + ' days') + ', how many whole weeks and extra days will have passed? Type weeks r days.', ans: { q, r },
+      return { type: 'rem', text: 'Today is ' + day + '. How many whole weeks and extra days are in the next ' + B(k + ' days') + '? Type the weeks, then r, then the extra days.', ans: { q, r },
         how: [k + ' ÷ 7: ' + X(7, q) + ' = ' + (7 * q) + ', and ' + less(k, 7 * q) + ' = ' + r + ' extra ' + plural(r, 'day') + '.', 'After ' + q + ' weeks it is ' + day + ' again; ' + r + ' more ' + plural(r, 'day') + ' makes it ' + nd + '.', 'So ' + k + ' days = ' + B(q + ' r ' + r) + '.'],
-        steps: [{ text: 'What is the biggest number in the 7s that is not more than ' + B(k) + '?', ans: 7 * q }, { text: B(less(k, 7 * q) + ' = ?'), ans: r }, { type: 'rem', text: B(k + ' ÷ 7 = ?') + ' Use r for the extra days.', ans: { q, r } }],
+        steps: [{ text: 'Count by 7s. Stop before you go past ' + B(k) + '. What number do you stop at?', ans: 7 * q }, { text: B(less(k, 7 * q) + ' = ?'), ans: r }, { type: 'rem', text: B(k + ' ÷ 7 = ?') + ' Use r for the extra days.', ans: { q, r } }],
         traps: [{ v: { q: q - 1, r: r + 7 }, c: 'm_remain', why: (r + 7) + ' extra days is more than a week. Make one more week.' }, { v: { q, r: 0 }, c: 'm_remain', why: 'Don’t forget the extra days: type r and how many.' }, { v: { q: q + 1, r }, c: 'm_x7', why: X(7, q + 1) + ' is ' + (7 * q + 7) + ', more than ' + k + '.' }] };
     }
     const L = R.pick([30, 31]), D = R.i(L - 6, L), ans = D + 7 - L;
-    return { text: 'This month has ' + L + ' days. The ' + ord(D) + ' is a ' + day + '. What date next month is the ' + B('next ' + day) + '?', ans,
+    return { text: 'This month has ' + L + ' days. The ' + ord(D) + ' is a ' + day + '. What is the date of the ' + B('first ' + day) + ' of next month?', ans,
       how: [D + ' + 7 = ' + (D + 7) + ', but this month stops at the ' + ord(L) + '.', less(D + 7, L) + ' = ' + ans + ', so it is ' + ans + ' ' + plural(ans, 'day') + ' into next month.', 'The next ' + day + ' is the ' + B(ord(ans)) + '.'],
-      steps: [{ text: 'How many days are left in this month after the ' + ord(D) + '?', ans: L - D }, { text: '7 days in all. ' + B(less(7, L - D) + ' = ?') + ' days into next month.', ans }],
+      steps: [{ text: 'This month has ' + B(L + ' days') + '. How many days are left after the ' + B(ord(D)) + '?', ans: L - D }, { text: 'The next ' + day + ' is ' + B('7 days') + ' away. ' + B(L - D) + ' of those days ' + plural(L - D, 'is', 'are') + ' in this month. How many are in next month?', ans }],
       traps: [{ v: D + 7, c: 't_weekday', why: 'This month has only ' + L + ' days. Count on into next month.' }, { v: ans + 1, c: 't_weekday', why: 'After the ' + ord(L) + ' comes the 1st of next month.' }, { v: ans - 1, c: 't_weekday', why: 'Count the days carefully: after the ' + ord(L) + ' comes the 1st.' }] };
   } },
 /* ======================= Money ======================= */
@@ -1024,7 +1025,7 @@ C.defs([
     const lst = randomCoins(R, d), v = coinsOf(lst), cnt = {}; lst.forEach(id => cnt[id] = (cnt[id] || 0) + 1);
     const steps = []; let tot = 0;
     COIN_ORDER.filter(id => cnt[id]).forEach(id => { const c = COIN[id], k = cnt[id], before = tot; tot += k * c.v;
-      steps.push(money(before ? 'You have ' + fmtM(before) + '. Count on ' + k + ' ' + plural(k, c.name, c.many) + '. How much now?' : 'Count the ' + plural(k, c.name, c.many) + ' first. How much is that?', tot, { vis: coinsRow(Array(k).fill(id)) })); });
+      steps.push(money(before ? 'You have ' + fmtM(before) + '. Count on ' + k + ' ' + plural(k, c.name, c.many) + '. How much do you have now?' : 'Count the ' + plural(k, c.name, c.many) + ' first. How much is that?', tot, { vis: coinsRow(Array(k).fill(id)) })); });
     const traps = [];
     const sw = swapND(lst); if (sw !== v) traps.push({ v: sw, c: 'c_coins', why: 'It looks like the nickels and dimes got mixed up. A dime is 10¢, a nickel is 5¢.' });
     if (lst.length !== v) traps.push({ v: lst.length, c: 'c_count', why: 'That is how many coins there are. Count what each coin is worth.' });
@@ -1041,25 +1042,25 @@ C.defs([
       const ids = ['d', 'n', 'q'].filter(id => cnt[id]); if (!ids.length) return null; const id = R.pick(ids), c = COIN[id];
       const traps = [{ v: cnt[id] + 1, c: 'c_fewest', why: id === 'q' ? (cnt.q + 1) + ' quarters is ' + (25 * cnt.q + 25) + '¢, more than ' + t + '¢.' : 'Use the biggest coins first; that leaves less for the ' + c.many + '.' }];
       if (Math.floor(t / c.v) !== cnt[id]) traps.push({ v: Math.floor(t / c.v), c: 'c_fewest', why: 'Start with the biggest coin, the quarter, before the ' + c.many + '.' });
-      return { text: 'You make ' + B(fmtM(t)) + ' with the fewest coins you can. You may use quarters, dimes, nickels and pennies. How many ' + B(c.many) + ' do you use?', ans: cnt[id],
+      return { text: 'Make ' + B(fmtM(t)) + ' with quarters, dimes, nickels and pennies. Use as few coins as you can. How many ' + B(c.many) + ' do you use?', ans: cnt[id],
         how: ['Biggest coin first, as many as fit: ' + coinNames(g) + '.', 'Count on to check: ' + countOn(g) + '. That uses ' + B(cnt[id]) + ' ' + plural(cnt[id], c.name, c.many) + '.'],
-        steps: [{ text: 'How many quarters fit in ' + B(fmtM(t)) + '?', ans: cnt.q || 0 }, money('How much is left after the quarters?', t - 25 * (cnt.q || 0))], traps };
+        steps: [{ text: 'How many quarters fit in ' + B(fmtM(t)) + '?', ans: cnt.q || 0 }, money('Take ' + B((cnt.q || 0) + ' ' + plural(cnt.q || 0, 'quarter')) + ' away from ' + B(fmtM(t)) + '. How much is left?', t - 25 * (cnt.q || 0))], traps };
     }
     const allowed = d === 0 ? ['d', 'n', 'p'] : d === 1 ? ['q', 'd', 'n', 'p'] : ['b1', 'q', 'd', 'n', 'p'];
     let t; do { t = d === 0 ? R.i(11, 29) : d === 1 ? R.i(30, 99) : R.i(101, 199); } while (greedy(t, allowed).length < 3);
     const g = greedy(t, allowed), cnt = {}; g.forEach(id => cnt[id] = (cnt[id] || 0) + 1);
     const kinds = COIN_ORDER.filter(id => cnt[id]), word = d === 2 ? 'bills and coins' : 'coins';
     let left = t; const parts = kinds.map(id => { const k = cnt[id], v = k * COIN[id].v; left -= v; return k + ' ' + plural(k, COIN[id].name, COIN[id].many) + ' (' + fmtM(v) + ')' + (left ? ', ' + fmtM(left) + ' left' : ''); });
-    const use = d === 0 ? 'Use dimes, nickels and pennies. ' : d === 1 ? 'Use quarters, dimes, nickels and pennies. ' : 'Use dollar bills, quarters, dimes, nickels and pennies. ';
+    const use = d === 0 ? 'dimes, nickels and pennies' : d === 1 ? 'quarters, dimes, nickels and pennies' : 'dollar bills, quarters, dimes, nickels and pennies';
     const first = kinds[0], k0 = cnt[first], left0 = t - k0 * COIN[first].v, restN = g.length - k0;
     const steps = [{ text: 'How many ' + COIN[first].many + ' fit in ' + B(fmtM(t)) + '?', ans: k0 }];
-    if (left0) steps.push(money('How much is left after ' + k0 + ' ' + plural(k0, COIN[first].name, COIN[first].many) + '?', left0), { text: 'What is the fewest number of coins for ' + B(fmtM(left0)) + '?', ans: restN }, { text: B(k0 + ' + ' + restN + ' = ?'), ans: g.length });
+    if (left0) steps.push(money('Take ' + B(k0 + ' ' + plural(k0, COIN[first].name, COIN[first].many)) + ' away from ' + B(fmtM(t)) + '. How much is left?', left0), { text: 'Make ' + B(fmtM(left0)) + ' with as few coins as you can. How many coins is that?', ans: restN }, { text: B(k0 + ' + ' + restN + ' = ?'), ans: g.length });
     const traps = [];
     if (cnt.b1) traps.push({ v: g.length + 3, c: 'c_fewest', why: 'One dollar bill is fewer than 4 quarters.' });
     if (cnt.q) traps.push({ v: g.length + 2, c: 'c_fewest', why: 'That amount works, but a quarter can take the place of dimes and a nickel.' });
     if (cnt.d) traps.push({ v: g.length + 1, c: 'c_fewest', why: 'That amount works, but one dime is fewer than 2 nickels.' });
     if (cnt.n) traps.push({ v: g.length + 4, c: 'c_fewest', why: 'That amount works, but one nickel is fewer than 5 pennies.' });
-    return { text: use + 'What is the fewest number of ' + word + ' that make ' + B(fmtM(t)) + '?', ans: g.length,
+    return { text: 'Make ' + B(fmtM(t)) + ' with ' + use + '. Use as few ' + word + ' as you can. How many ' + word + ' do you use?', ans: g.length,
       how: ['Biggest first, as many as fit: ' + parts.join('; ') + '.', 'Count them: ' + kinds.map(id => cnt[id]).join(' + ') + ' = ' + B(g.length) + ' ' + word + '.'],
       steps: steps.length > 1 ? steps : [], traps: traps.slice(0, 3) };
   } },
@@ -1069,8 +1070,8 @@ C.defs([
   gen(d, R) {
     const toC = c => { const dl = Math.floor(c / 100), ct = c % 100, traps = [{ v: ct, c: 'c_dollars', why: 'Count the dollars too: each dollar is 100¢.' }, { v: dl + ct, c: 'c_dollars', why: 'Each dollar is 100¢, not 1¢.' }];
       if (ct < 10) traps.unshift({ v: dl * 100 + ct * 10, c: 'c_dollars', why: 'Watch the 0 after the dot: it means no dimes, so ' + fmtD(c) + ' has just ' + ct + ' ' + plural(ct, 'cent') + '.' });
-      return money(B(fmtD(c)) + ' is how many cents?', c, { fmt: 'c', how: ['Each dollar is 100¢: ' + dl + ' ' + plural(dl, 'dollar') + ' = ' + (dl * 100) + '¢.' + (ct < 10 ? ' The 0 after the dot means no dimes.' : ''), (dl * 100) + '¢ + ' + ct + '¢ = ' + B(c + '¢') + '.'],
-        steps: [money(B(dl + ' ' + plural(dl, 'dollar')) + ' is how many cents?', dl * 100, { fmt: 'c' }), money(B((dl * 100) + '¢ + ' + ct + '¢ = ?'), c, { fmt: 'c' })], traps }); };
+      return money('How many cents is ' + B(fmtD(c)) + '?', c, { fmt: 'c', how: ['Each dollar is 100¢: ' + dl + ' ' + plural(dl, 'dollar') + ' = ' + (dl * 100) + '¢.' + (ct < 10 ? ' The 0 after the dot means no dimes.' : ''), (dl * 100) + '¢ + ' + ct + '¢ = ' + B(c + '¢') + '.'],
+        steps: [money('How many cents is ' + B(dl + ' ' + plural(dl, 'dollar')) + '?', dl * 100, { fmt: 'c' }), money(B((dl * 100) + '¢ + ' + ct + '¢ = ?'), c, { fmt: 'c' })], traps }); };
     if (d === 0) {
       const c = R.i(1, 4) * 100 + R.i(1, 99), dl = Math.floor(c / 100), ct = c % 100;
       if (R.chance(.5)) return toC(c);
@@ -1078,24 +1079,24 @@ C.defs([
       if (ct < 10) traps.push({ v: dl * 100 + ct * 10, c: 'c_dollars', why: ct + '¢ is less than a dime, so write 0' + ct + ' after the dot.' });
       return money('Write ' + B(c + '¢') + ' in dollars, with a dot.', c, { fmt: 'd',
         how: ['100¢ is one dollar. ' + c + '¢ = ' + (dl * 100) + '¢ + ' + ct + '¢ = ' + dl + ' ' + plural(dl, 'dollar') + ' and ' + ct + ' ' + plural(ct, 'cent') + '.', 'Dollars, then the dot, then two digits of cents: ' + B(fmtD(c)) + '.'],
-        steps: [{ text: 'How many whole dollars are in ' + B(c + '¢') + '?', ans: dl }, { text: 'How many cents are left over?', ans: ct }], traps });
+        steps: [{ text: 'How many whole dollars are in ' + B(c + '¢') + '?', ans: dl }, { text: 'Take ' + B(dl + ' ' + plural(dl, 'dollar')) + ' out of ' + B(c + '¢') + '. How many cents are left over?', ans: ct }], traps });
     }
     if (d === 1) {
       const bills = R.i(1, 3), coins = randomCoins(R, 1), lst = Array(bills).fill('b1').concat(coins), v = coinsOf(lst), cv = coinsOf(coins);
       return money('How much money is this?', v, { vis: coinsRow(lst), say: 'How much money is this? ' + coinNames(lst),
         how: ['Count the dollars first: ' + bills + ' ' + plural(bills, 'dollar') + ' = ' + fmtD(bills * 100) + '.', 'Then the coins: ' + countOn(coins) + '.', 'Together: ' + B(fmtD(v)) + '.'],
-        steps: [money('How much are the dollar bills?', bills * 100), money('How much are the coins?', cv, { fmt: 'c' })],
+        steps: [money('How much money is ' + B(bills + ' ' + plural(bills, 'dollar bill')) + '?', bills * 100), money('How much money is ' + B(coinNames(coins).replace(', ', ' and ')) + '?', cv, { fmt: 'c' })],
         traps: [{ v: cv + bills, c: 'c_dollars', why: 'Each dollar bill is 100¢, so it counts as $1.00.' }, { v: v + 100, c: 'c_count', why: 'Count the dollar bills again.' }, { v: swapND(lst), c: 'c_coins', why: 'A dime is 10¢ and a nickel is 5¢.' }] });
     }
     return R.pick([
       () => toC(R.i(2, 9) * 100 + R.i(1, 9)),
       () => { const dl = R.i(2, 9), dm = R.i(1, 9), pn = R.i(1, 9), c = dl * 100 + dm * 10 + pn;
-        return money(B(dl + ' dollars, ' + dm + ' ' + plural(dm, 'dime') + ' and ' + pn + ' ' + plural(pn, 'penny', 'pennies')) + ': how much is that?', c, { fmt: 'd',
+        return money('How much money is ' + B(dl + ' dollars, ' + dm + ' ' + plural(dm, 'dime') + ' and ' + pn + ' ' + plural(pn, 'penny', 'pennies')) + '?', c, { fmt: 'd',
           how: [dl + ' dollars = ' + fmtD(dl * 100) + '. ' + dm + ' ' + plural(dm, 'dime') + ' = ' + (dm * 10) + '¢. ' + pn + ' ' + plural(pn, 'penny', 'pennies') + ' = ' + pn + '¢.', 'Dimes go in the tens place of the cents: ' + B(fmtD(c)) + '.'],
           steps: [money('How many cents are ' + B(dm + ' ' + plural(dm, 'dime') + ' and ' + pn + ' ' + plural(pn, 'penny', 'pennies')) + '?', dm * 10 + pn, { fmt: 'c' })],
           traps: [{ v: dl * 100 + pn * 10 + dm, c: 'c_dollars', why: 'Dimes are tens of cents and pennies are ones: the dimes digit comes first.' }, { v: dl * 100 + dm + pn, c: 'c_coins', why: 'A dime is 10¢, not 1¢.' }] }); },
       () => { const dl = R.i(1, 6), q = R.i(1, 3), c = dl * 100 + 25 * q;
-        return money(B(dl + ' ' + plural(dl, 'dollar') + ' and ' + q + ' ' + plural(q, 'quarter')) + ': how much is that?', c, { fmt: 'd',
+        return money('How much money is ' + B(dl + ' ' + plural(dl, 'dollar') + ' and ' + q + ' ' + plural(q, 'quarter')) + '?', c, { fmt: 'd',
           how: [q + ' ' + plural(q, 'quarter') + ': ' + list(25, q) + '¢.', fmtD(dl * 100) + ' + ' + (25 * q) + '¢ = ' + B(fmtD(c)) + '.'],
           traps: [{ v: dl * 100 + q, c: 'c_coins', why: 'A quarter is 25¢.' }, { v: (dl + q) * 100, c: 'c_coins', why: 'A quarter is 25¢, not a dollar.' }] }); }])();
   } },
@@ -1106,7 +1107,7 @@ C.defs([
     const it = R.shuffle(SHOP);
     if (d === 2 && R.chance(.35)) {
       const a = R.i(1, 3) * 100 + 25, c = R.i(0, 2) * 100 + 75, b = R.i(1, 2) * 100 + R.i(1, 9) * 10, ans = a + b + c;
-      return money('How much for all three?', ans, { vis: tagsHTML([[...it[0], a], [...it[1], b], [...it[2], c]]),
+      return money('How much do all three cost together?', ans, { vis: tagsHTML([[...it[0], a], [...it[1], b], [...it[2], c]]),
         how: ['Find friends first: 25¢ + 75¢ make a dollar. ' + fmtD(a) + ' + ' + fmtM(c) + ' = ' + fmtD(a + c) + '.', fmtD(a + c) + ' + ' + fmtD(b) + ' = ' + B(fmtD(ans)) + '.'],
         steps: [money(B(fmtD(a) + ' + ' + fmtM(c) + ' = ?'), a + c), money(B(fmtD(a + c) + ' + ' + fmtD(b) + ' = ?'), ans)],
         traps: [{ v: ans - 100, c: 'a_regroup', why: '25¢ + 75¢ is a whole dollar. Carry it into the dollars.' }, { v: ans + 100, c: 'c_dollars', why: 'Check the dollars.' }] });
@@ -1119,9 +1120,9 @@ C.defs([
     const G = both ? Math.ceil(b / 100) * 100 : b, k2 = G - b, kk = k + k2;
     const how = both ? [fmtM(a) + ' is almost ' + fmtD(F) + ' (' + k + '¢ less). ' + fmtD(b) + ' is almost ' + fmtD(G) + ' (' + k2 + '¢ less).', fmtD(F) + ' + ' + fmtD(G) + ' = ' + fmtD(F + G) + '.', 'Take back ' + k + '¢ + ' + k2 + '¢ = ' + kk + '¢: ' + B(fmtD(ans)) + '.']
       : [fmtM(a) + ' is ' + k + '¢ less than ' + fmtD(F) + '. Add ' + fmtD(F) + ' instead.', fmtD(F) + ' + ' + fmtM(b) + ' = ' + fmtD(F + b) + '.', 'Take back the ' + k + '¢: ' + fmtD(F + b) + ' ' + MINUS + ' ' + k + '¢ = ' + B(fmtD(ans)) + '.'];
-    const steps = both ? [money(B(fmtD(F) + ' + ' + fmtD(G) + ' = ?'), F + G), money('How many cents did you add too many? ' + B(k + '¢ + ' + k2 + '¢ = ?'), kk, { fmt: 'c' }), money(B(fmtD(F + G) + ' ' + MINUS + ' ' + kk + '¢ = ?'), ans)]
-      : [money('Round ' + B(fmtM(a)) + ' up to the next dollar. What is it?', F), money(B(fmtD(F) + ' + ' + fmtM(b) + ' = ?'), F + b), money(B(fmtD(F + b) + ' ' + MINUS + ' ' + k + '¢ = ?'), ans)];
-    return money('How much for the ' + it[0][1] + ' and the ' + it[1][1] + '?', ans, { vis: tagsHTML([[...it[0], a], [...it[1], b]]), how, steps,
+    const steps = both ? [money(B(fmtD(F) + ' + ' + fmtD(G) + ' = ?'), F + G), money('You rounded up by ' + B(k + '¢') + ' and by ' + B(k2 + '¢') + '. How many extra cents is that?', kk, { fmt: 'c' }), money(B(fmtD(F + G) + ' ' + MINUS + ' ' + kk + '¢ = ?'), ans)]
+      : [money('Round ' + B(fmtM(a)) + ' up to the next dollar. What do you get?', F), money(B(fmtD(F) + ' + ' + fmtM(b) + ' = ?'), F + b), money(B(fmtD(F + b) + ' ' + MINUS + ' ' + k + '¢ = ?'), ans)];
+    return money('How much do the ' + it[0][1] + ' and the ' + it[1][1] + ' cost together?', ans, { vis: tagsHTML([[...it[0], a], [...it[1], b]]), how, steps,
       traps: [{ v: ans + kk, c: 'a_compensate', why: 'You added the round ' + (both ? 'prices' : 'price') + '. Now take back the ' + kk + '¢ extra.' }, { v: ans + 2 * kk, c: 'a_compensate', why: 'You rounded up, so take the ' + kk + '¢ away, not add it.' },
               { v: ans + 100, c: 'c_dollars', why: 'Check the dollars.' }, { v: ans - 10, c: 'a_regroup', why: 'Check the cents: when they make 10 or more, carry.' }] });
   } },
@@ -1163,7 +1164,7 @@ C.defs([
                    { v: b, c: 'c_change5', why: 'You counted the dollars but forgot the ' + fmtM(a) + ' up to ' + fmtD(nd) + '.' },
                    { v: ans + 10, c: a % 10 ? 'a_from100' : 'c_change5', why: a % 10 ? 'Check the cents hop: the tens add up to 9, not 10, because the ones make another ten.' : 'Check the cents hop up to ' + fmtD(nd) + '.' }];
     return money(text, ans, { fmt: 'd', say, vis: tagsHTML([[...it, price]]),
-      hint: 'Count up from ' + fmtD(price) + ' to the next whole dollar, ' + fmtD(nd) + ', first.',
+      hint: 'First count up from ' + fmtD(price) + ' to ' + fmtD(nd) + ', the next whole dollar.',
       how: [fmtD(price) + ' → ' + fmtD(nd) + ' is ' + fmtM(a) + '.', fmtD(nd) + ' → ' + fmtD(paid) + ' is ' + fmtD(b) + '.', fmtM(a) + ' + ' + fmtD(b) + ' = ' + B(fmtD(ans))],
       howVis: hopsSVG(price, [a, b], { fmt: fmtD, lab: fmtM }),
       steps: [money('Count up from ' + B(fmtD(price)) + ' to ' + B(fmtD(nd)) + '. How much is that?', a, { fmt: 'c' }), money('Count up from ' + B(fmtD(nd)) + ' to ' + B(fmtD(paid)) + '. How much is that?', b), money(B(fmtM(a) + ' + ' + fmtD(b) + ' = ?'), ans)],
@@ -1178,19 +1179,19 @@ C.defs([
       const k = R.i(2, 5), p = R.i(1, 9) * 5, ans = k * p;
       return money('One ' + nm + ' costs ' + B(p + '¢') + '. How much do ' + B(k + ' ' + nms) + ' cost?', ans, {
         how: [k + ' at ' + p + '¢ each is ' + X(k, p) + '.', 'Count by ' + p + 's: ' + list(p, k) + '. That is ' + B(fmtM(ans)) + '.'],
-        steps: k > 2 ? [money('How much do ' + B('2 ' + nms) + ' cost?', 2 * p), money('Count on by ' + p + 's to ' + k + ' ' + nms + '. How much?', ans)] : [],
+        steps: k > 2 ? [money('One ' + nm + ' costs ' + B(p + '¢') + '. How much do ' + B('2 ' + nms) + ' cost?', 2 * p), money(B('2 ' + nms) + ' cost ' + B(fmtM(2 * p)) + '. Count on by ' + p + 's until you get to ' + B(k + ' ' + nms) + '. How much is that?', ans)] : [],
         traps: [{ v: k + p, c: 'm_groups', why: 'You added. ' + k + ' ' + nms + ' at ' + p + '¢ each is ' + k + ' groups of ' + p + '.' }, { v: ans - p, c: 'c_budget', why: 'One ' + nm + ' short. Count by ' + p + 's once for each ' + nm + '.' }, { v: ans + p, c: 'c_budget', why: 'One ' + nm + ' too many. There are ' + k + '.' }] });
     }
     const howMany = (p, have, askLeft) => {
       const k = Math.floor(have / p), left = have - k * p, haveTxt = fmtD(have) + ' = ' + n(have) + '¢.';
       const lines = [haveTxt, k <= 6 ? 'Count up by ' + p + ': ' + list(p, k) + '.' : X(p, k) + ' = ' + (k * p) + '.', 'One more would be ' + ((k + 1) * p) + '¢, more than you have.'];
-      if (askLeft) return money('One ' + nm + ' costs ' + B(p + '¢') + '. You have ' + B(fmtD(have)) + ' and buy as many as you can. How much money is left?', left, { fmt: 'c',
+      if (askLeft) return money('One ' + nm + ' costs ' + B(p + '¢') + '. You have ' + B(fmtD(have)) + '. You buy as many ' + nms + ' as you can. How much money is left?', left, { fmt: 'c',
         how: lines.concat([less(have, k * p) + ' = ' + B(left + '¢') + ' left.']),
-        steps: [{ text: 'How many ' + nms + ' can you buy with ' + B(fmtD(have)) + '?', ans: k }, money('How much do ' + B(k + ' ' + nms) + ' cost?', k * p), money(B(n(have) + '¢ ' + MINUS + ' ' + (k * p) + '¢ = ?'), left, { fmt: 'c' })],
+        steps: [{ text: 'One ' + nm + ' costs ' + B(p + '¢') + '. How many ' + nms + ' can you buy with ' + B(fmtD(have)) + '?', ans: k }, money('One ' + nm + ' costs ' + B(p + '¢') + '. You buy ' + B(k + ' ' + plural(k, nm)) + '. How much do you spend?', k * p), money(B(n(have) + '¢ ' + MINUS + ' ' + (k * p) + '¢ = ?'), left, { fmt: 'c' })],
         traps: [{ v: k, c: 'c_budget', why: 'That is how many you can buy. The question asks how much money is left.' }, { v: left + p, c: 'm_remain', why: 'With that much left you could buy one more. Buy as many as you can first.' }, { v: p - left, c: 'm_remain', why: 'That is how much more you would need for another one. Find what is left.' }] });
       return { text: 'One ' + nm + ' costs ' + B(p + '¢') + '. You have ' + B(fmtD(have)) + '. How many ' + nms + ' can you buy?', ans: k,
         how: lines.concat([(left ? 'With ' + left + '¢ left over, you can buy ' : 'With nothing left over, you can buy ') + B(k) + '.']),
-        steps: [{ text: B(X(p, k) + ' = ?') + ' (in cents)', ans: k * p }, { text: 'Is ' + B(((k + 1) * p) + '¢') + ' more than ' + have + '¢? Then how many can you buy?', ans: k }],
+        steps: [{ text: 'One ' + nm + ' costs ' + B(p + '¢') + '. You buy ' + B(k + ' ' + plural(k, nm)) + '. How many cents do you spend?', ans: k * p }, { text: 'You have ' + B(n(have) + '¢') + '. ' + B(k + ' ' + plural(k, nm)) + ' ' + plural(k, 'costs', 'cost') + ' ' + B(n(k * p) + '¢') + '. ' + B((k + 1) + ' ' + nms) + ' cost ' + B(n((k + 1) * p) + '¢') + '. How many ' + nms + ' can you buy?', ans: k }],
         traps: [{ v: k + 1, c: 'm_remain', why: 'You can’t buy part of one: ' + ((k + 1) * p) + '¢ is more than you have.' }, { v: k - 1, c: 'c_budget', why: 'Check: one more still fits in ' + fmtD(have) + '.' }].concat(left ? [{ v: left, c: 'm_remain', why: 'That is the money left over. The question asks how many you can buy.' }] : []) };
     };
     if (d === 1) {
@@ -1201,7 +1202,7 @@ C.defs([
       return money('The ' + nm + ' costs ' + B(fmtD(cost)) + '. You have ' + B(have + '¢') + '. How much more money do you need?', ans, { fmt: 'c',
         how: [have + '¢ → $1.00 is ' + a + '¢.', '$1.00 → ' + fmtD(cost) + ' is ' + b + '¢.', a + '¢ + ' + b + '¢ = ' + B(ans + '¢')],
         howVis: hopsSVG(have, [a, b], { fmt: fmtM, lab: fmtM }),
-        steps: [money('Count up from ' + B(have + '¢') + ' to ' + B('$1.00') + '. How much?', a, { fmt: 'c' }), money('Count up from ' + B('$1.00') + ' to ' + B(fmtD(cost)) + '. How much?', b, { fmt: 'c' }), money(B(a + '¢ + ' + b + '¢ = ?'), ans, { fmt: 'c' })],
+        steps: [money('Count up from ' + B(have + '¢') + ' to ' + B('$1.00') + '. How much is that?', a, { fmt: 'c' }), money('Count up from ' + B('$1.00') + ' to ' + B(fmtD(cost)) + '. How much is that?', b, { fmt: 'c' }), money(B(a + '¢ + ' + b + '¢ = ?'), ans, { fmt: 'c' })],
         traps: [{ v: ans + 10, c: 'a_from100', why: 'Check the hop to $1.00: the tens add to 9, not 10, when there are ones.' }, { v: b, c: 'c_budget', why: 'Count up from ' + have + '¢ to $1.00 too.' }, { v: ans + 100, c: 'c_dollars', why: 'You need less than a dollar more. Check the hops.' }] });
     }
     const kind = R.i(0, 2);
@@ -1224,9 +1225,9 @@ C.defs([
     const each = (tot, k) => (tot >= 100 ? fmtD(tot) + ' = ' + n(tot) + '¢. ' : '') + n(tot) + '¢ ÷ ' + k + ' = ' + (tot / k) + '¢ each';
     if (d === 0) {
       const k = R.i(2, 6), per = R.i(2, 18) * 5, tot = k * per;
-      return money(B(k + ' ' + nms) + ' cost ' + B(fmtM(tot)) + ' together. How much does one cost?', per, { fmt: 'c',
+      return money(B(k + ' ' + nms) + ' cost ' + B(fmtM(tot)) + ' together. How much does one ' + it[1] + ' cost?', per, { fmt: 'c',
         how: ['Price for one = ' + fmtM(tot) + ' ÷ ' + k + '.'].concat(tot >= 100 ? [fmtD(tot) + ' = ' + tot + '¢.'] : [], ['Think: ' + k + ' × ? = ' + tot + '. ' + X(k, per) + ' = ' + tot + ', so one costs ' + B(per + '¢') + '.']),
-        steps: (tot >= 100 ? [{ text: B(fmtM(tot)) + ' is how many cents?', ans: tot }] : []).concat([money(B(k + ' × ? = ' + tot), per, { fmt: 'c' })]),
+        steps: (tot >= 100 ? [{ text: 'How many cents is ' + B(fmtM(tot)) + '?', ans: tot }] : []).concat([money(B(k + ' × ? = ' + tot), per, { fmt: 'c' })]),
         traps: [{ v: tot - k, c: 'm_share', why: 'Divide by ' + k + ', don’t take ' + k + ' away.' }, { v: per + 5, c: 'm_divfam', why: 'Check: ' + X(k, per + 5) + ' = ' + (k * (per + 5)) + ', not ' + tot + '.' }, { v: per - 5, c: 'm_divfam', why: 'Check: ' + X(k, per - 5) + ' = ' + (k * (per - 5)) + ', not ' + tot + '.' }] });
     }
     const big = d === 2, ks = R.shuffle(big ? [4, 5, 6, 8, 10, 12] : [2, 3, 4, 5, 6]), k1 = ks[0], k2 = ks[1];
@@ -1234,14 +1235,14 @@ C.defs([
     const t1 = k1 * p1, t2 = k2 * p2, lo = Math.min(p1, p2), hi = Math.max(p1, p2), loT = p1 < p2 ? t1 : t2;
     const vis = tagsHTML([[it[0], 'Pack A: ' + k1 + ' ' + nms, t1], [it[0], 'Pack B: ' + k2 + ' ' + nms, t2]]);
     const how = ['Pack A: ' + each(t1, k1) + '.', 'Pack B: ' + each(t2, k2) + '.'];
-    const steps = [money('What is the price for one ' + it[1] + ' in Pack A?', p1, { fmt: 'c' }), money('What is the price for one ' + it[1] + ' in Pack B?', p2, { fmt: 'c' })];
+    const steps = [money('Pack A has ' + B(k1 + ' ' + nms) + ' for ' + B(fmtM(t1)) + '. What is the price for one ' + it[1] + '?', p1, { fmt: 'c' }), money('Pack B has ' + B(k2 + ' ' + nms) + ' for ' + B(fmtM(t2)) + '. What is the price for one ' + it[1] + '?', p2, { fmt: 'c' })];
     if (big && R.chance(.5)) {
-      return money('One pack is the better buy. How much less does one ' + it[1] + ' cost in that pack?', hi - lo, { fmt: 'c', vis,
+      return money('The better buy is the pack where one ' + it[1] + ' costs less. How much less does one ' + it[1] + ' cost in that pack?', hi - lo, { fmt: 'c', vis,
         how: how.concat([less(hi, lo) + ' = ' + B((hi - lo) + '¢') + ' saved on each one.']),
         steps: steps.concat([money(B(hi + '¢ ' + MINUS + ' ' + lo + '¢ = ?'), hi - lo, { fmt: 'c' })]),
         traps: [{ v: Math.abs(t1 - t2), c: 'c_unit', why: 'That compares whole packs. Compare the price for one.' }, { v: lo, c: 'c_unit', why: 'That is the price for one in the better pack. Now find the difference.' }, { v: hi, c: 'c_unit', why: 'That is a price for one. The question asks how much you save on each.' }] });
     }
-    return money('One pack is the better buy. How much does one ' + it[1] + ' cost in that pack?', lo, { fmt: 'c', vis,
+    return money('The better buy is the pack where one ' + it[1] + ' costs less. How much does one ' + it[1] + ' cost in that pack?', lo, { fmt: 'c', vis,
       how: how.concat(['The better buy costs less for one: ' + B(lo + '¢') + '.']), steps,
       traps: [{ v: hi, c: 'c_unit', why: 'That pack costs more for each one. The better buy is the cheaper price for one.' }, { v: loT, c: 'c_unit', why: 'That is the price of the whole pack. Divide to find the price for one.' }, { v: lo + 5, c: 'm_divfam', why: 'Check the division: times your answer by the number in the pack.' }] });
   } },

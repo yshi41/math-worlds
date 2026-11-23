@@ -121,7 +121,7 @@ defs([
       const b = R.i(2, 9), k = R.i(3, 12), tot = b * k;
       return { text: frac(1, b) + ' of a number is ' + B(k) + '. What is the number?', ans: tot,
         how: ['The number is cut into ' + b + ' equal parts, and one part is ' + k + '.', 'All ' + b + ' parts: ' + b + ' × ' + k + ' = ' + B(tot) + '.'],
-        steps: [st('How many equal parts make the whole number?', b), st(B(b + ' × ' + k) + ' = ?', tot)],
+        steps: [st('How many ' + frac(1, b) + ' parts make one whole?', b), st(B(b + ' × ' + k) + ' = ?', tot)],
         traps: [tr(k + b, 'f_unit', 'You need ' + b + ' parts of ' + k + ', so multiply.'), tr(k % b === 0 ? k / b : null, 'f_unit', 'One part is ' + k + '. The whole is bigger than one part.'), slip(b, k)] };
     }
     let b, k, tens = false;
@@ -132,7 +132,7 @@ defs([
     const how = tens ? [nm(tot) + ' is ' + (b * k) + ' tens. Share the tens into ' + b + ' equal parts.', (b * k) + ' ÷ ' + b + ' = ' + k + ', so each part is ' + k + ' tens = ' + B(ans) + '.']
       : [frac(1, b) + ' of ' + tot + ' means share ' + tot + ' into ' + b + ' equal parts: ' + tot + ' ÷ ' + b + '.', 'Think times: ' + b + ' × ' + k + ' = ' + tot + ', so each part is ' + B(ans) + '.'];
     const steps = tens ? [st('How many tens are in ' + B(nm(tot)) + '?', b * k), st(B((b * k) + ' ÷ ' + b) + ' = ?', k), st(B(k + ' tens') + ' = ?', ans)]
-      : [st('What do you divide ' + tot + ' by to find ' + frac(1, b) + ' of it?', b), st(B(b + ' × ? = ' + tot), k)];
+      : [st('To find ' + frac(1, b) + ' of ' + tot + ', share ' + tot + ' into how many equal parts?', b), st(B(b + ' × ? = ' + tot), k)];
     return { text: 'What is ' + frac(1, b) + ' of ' + B(nm(tot)) + '?', ans, howVis: !tens && b * k <= 30 ? groupsSVG(b, k) : '',
       how, steps,
       traps: [tr(tot - b, 'f_unit', 'One part of ' + b + ' equal parts means divide by ' + b + ', not take ' + b + ' away.'), tr(tens ? k : null, 'n_place', 'Each part is ' + k + ' tens. Write that as a number.'),
@@ -171,7 +171,7 @@ defs([
       const pair = sw ? frac(1, b) + ' or ' + frac(1, a) : frac(1, a) + ' or ' + frac(1, b);
       return { text: 'Which is ' + B(big ? 'bigger' : 'smaller') + ', ' + pair + '? Type its bottom number.', ans, vis: fracBarSVG(1, a) + fracBarSVG(1, b),
         how: ['The bottom number says how many equal pieces the whole is cut into.', 'Cut into ' + b + ' pieces, each piece is smaller than when it is cut into ' + a + '. So ' + frac(1, ans) + ' is ' + (big ? 'bigger' : 'smaller') + ': ' + B(ans) + '.'],
-        steps: [st('A whole cut into ' + B(a) + ' or into ' + B(b) + ' pieces: which number gives the bigger pieces?', a), st('So which is ' + (big ? 'bigger' : 'smaller') + '? Type its bottom number.', ans)],
+        steps: [st('Cut a whole into ' + B(a) + ' pieces or ' + B(b) + ' pieces. Which number makes the bigger pieces?', a), st('So which is ' + (big ? 'bigger' : 'smaller') + ', ' + pair + '? Type its bottom number.', ans)],
         traps: [tr(big ? b : a, 'f_compunit', 'More pieces means smaller pieces. A bigger bottom number makes a smaller fraction.')] };
     }
     if (d === 1) {
@@ -179,7 +179,7 @@ defs([
       const lo = Math.min(...list), hi = Math.max(...list), ans = big ? lo : hi;
       return { text: 'Which is the ' + B(big ? 'biggest' : 'smallest') + ': ' + list.map(x => frac(1, x)).join(', ') + '? Type its bottom number.', ans,
         how: ['All the tops are 1, so look at the bottoms. Fewer pieces means bigger pieces.', 'The ' + (big ? 'smallest' : 'biggest') + ' bottom is ' + ans + ', so ' + frac(1, ans) + ' is the ' + (big ? 'biggest' : 'smallest') + ': ' + B(ans) + '.'],
-        steps: [st('What is the ' + (big ? 'smallest' : 'biggest') + ' bottom number in the list?', ans)],
+        steps: [st('Look at ' + list.map(x => frac(1, x)).join(', ') + '. What is the ' + (big ? 'smallest' : 'biggest') + ' bottom number?', ans)],
         traps: [tr(big ? hi : lo, 'f_compunit', 'More pieces means smaller pieces. A bigger bottom number makes a smaller fraction.')] };
     }
     if (R.chance(0.5)) {
@@ -190,9 +190,9 @@ defs([
         traps: [tr(b - a, 'f_compunit', 'Compare by how many times more pieces, not by taking away.'), tr(b, 'f_compunit', 'That is how many ' + frac(1, b) + ' pieces fill the whole. You need just one ' + frac(1, a) + '.')] };
     }
     const k = R.i(4, 20), more = R.chance(0.5), ans = more ? k - 1 : k + 1;
-    return { text: fq('1', '?') + ' is ' + B(more ? 'bigger' : 'smaller') + ' than ' + frac(1, k) + '. What is the ' + B(more ? 'biggest' : 'smallest') + ' whole number that can go in the box?', ans,
+    return { text: fq('1', '?') + ' is ' + B(more ? 'bigger' : 'smaller') + ' than ' + frac(1, k) + '. What is the ' + B(more ? 'biggest' : 'smallest') + ' whole number the bottom can be?', ans,
       how: [more ? 'For a bigger piece, cut the whole into fewer pieces: the bottom must be less than ' + k + '.' : 'For a smaller piece, cut the whole into more pieces: the bottom must be more than ' + k + '.', 'The ' + (more ? 'biggest whole number less' : 'smallest whole number more') + ' than ' + k + ' is ' + B(ans) + '.'],
-      steps: [st('To make ' + fq('1', '?') + ' ' + (more ? 'bigger' : 'smaller') + ', should the bottom be less than ' + k + ' or more? Type 1 for less, 2 for more.', more ? 1 : 2), st('So what is the ' + (more ? 'biggest' : 'smallest') + ' whole number that works?', ans)],
+      steps: [st(fq('1', '?') + ' must be ' + (more ? 'bigger' : 'smaller') + ' than ' + frac(1, k) + '. Should the bottom be less than ' + k + ' or more than ' + k + '? Type 1 for less, 2 for more.', more ? 1 : 2), st(fq('1', '?') + ' is ' + (more ? 'bigger' : 'smaller') + ' than ' + frac(1, k) + '. What is the ' + (more ? 'biggest' : 'smallest') + ' whole number the bottom can be?', ans)],
       traps: [tr(more ? k + 1 : k - 1, 'f_compunit', 'More pieces means smaller pieces. Which way should the bottom go?'), tr(k, 'f_compunit', frac(1, k) + ' is equal to itself, not ' + (more ? 'bigger' : 'smaller') + '.')] };
   } },
 
@@ -205,7 +205,7 @@ defs([
       const t1 = a * k1, b1 = b * k1, b2 = b * k2, ans = a * k2;
       return { text: frac(t1, b1) + ' = ' + fq('?', b2), ans,
         how: [b1 + ' does not go into ' + b2 + ', so simplify first: divide the top and bottom of ' + frac(t1, b1) + ' by ' + k1 + ' to get ' + frac(a, b) + '.', k2 === 1 ? 'The bottom is already ' + b2 + ', so the top is ' + B(ans) + '.' : 'Now ' + b + ' × ' + k2 + ' = ' + b2 + ', so the top is ' + a + ' × ' + k2 + ' = ' + B(ans) + '.'],
-        steps: [st(frac(t1, b1) + ' in lowest terms has bottom ' + b + '. What is its top?', a)].concat(k2 === 1 ? [] : [st(B(b + ' × ? = ' + b2), k2), st(B(a + ' × ' + k2) + ' = ?', ans)]),
+        steps: [st(frac(t1, b1) + ' = ' + fq('?', b), a)].concat(k2 === 1 ? [] : [st(B(b + ' × ? = ' + b2), k2), st(B(a + ' × ' + k2) + ' = ?', ans)]),
         traps: [tr(t1 + b2 - b1, 'f_equiv', 'Equal fractions come from multiplying or dividing the top and bottom, not adding the same amount.'), tr(t1 * b2 % b1 ? null : t1 * b2 / b1 + 1, 'f_equiv', 'Check: divide the bottom by the top in both fractions; they should match.')] };
     }
     const b = d === 0 ? R.i(2, 5) : R.i(3, 9), a = d === 0 && R.chance(0.5) ? 1 : R.i(1, b - 1), k = d === 0 ? R.i(2, 5) : R.i(2, 8);
@@ -232,18 +232,18 @@ defs([
         how: ['One ' + t[0] + ' is ' + b + ' ' + t[2] + '.', k + ' ' + t[1] + ': ' + k + ' × ' + b + ' = ' + B(top) + ' ' + t[2] + '.'],
         steps: [st(B(k + ' × ' + b) + ' = ?', top)],
         traps: [tr(k + b, 'f_whole', 'Each ' + t[0] + ' has ' + b + ' ' + t[2] + '. Count ' + b + ' for every ' + t[0] + '.'), slip(k, b)] };
-      return { text: 'Each ' + t[0] + ' is cut into ' + B(b) + ' equal ' + t[2] + '. ' + B(top + ' ' + t[2]) + ' make how many whole ' + t[1] + '?', ans: k,
+      return { text: 'Each ' + t[0] + ' is cut into ' + B(b) + ' equal ' + t[2] + '. How many whole ' + t[1] + ' do ' + B(top + ' ' + t[2]) + ' make?', ans: k,
         how: [b + ' ' + t[2] + ' make one whole ' + t[0] + '.', 'How many groups of ' + b + ' are in ' + top + '? ' + top + ' ÷ ' + b + ' = ' + B(k) + '.'],
         steps: [st(B(top + ' ÷ ' + b) + ' = ?', k)],
         traps: [tr(top - b, 'f_whole', 'Divide by ' + b + ' to count the wholes, do not take ' + b + ' away.'), slip(b, k, 1, 'Check: ' + b + ' × your answer should be ' + top + '.')] };
     }
     if (rev) return { text: B(k) + ' = ' + fq('?', b), ans: top,
       how: ['One whole is ' + frac(b, b) + '.', k + ' wholes are ' + k + ' × ' + b + ' = ' + B(top) + ' pieces, so ' + k + ' = ' + frac(top, b) + '.'],
-      steps: [st('How many pieces of size ' + frac(1, b) + ' make one whole?', b), st(B(k + ' × ' + b) + ' = ?', top)],
+      steps: [st('How many ' + frac(1, b) + ' pieces make one whole?', b), st(B(k + ' × ' + b) + ' = ?', top)],
       traps: [tr(k + b, 'f_whole', 'Each whole has ' + b + ' pieces. Multiply, do not add.'), tr(k, 'f_whole', 'The top counts pieces of size ' + frac(1, b) + ', and each whole has ' + b + ' of them.'), slip(k, b)] };
     return { text: frac(top, b) + ' = how many wholes?', ans: k, vis: top <= 24 ? fracBarSVG(top, b) : '',
       how: [b + ' pieces of size ' + frac(1, b) + ' make 1 whole.', top + ' pieces make ' + top + ' ÷ ' + b + ' = ' + B(k) + ' ' + plural(k, 'whole') + '.'],
-      steps: [st('How many pieces make one whole?', b), st(B(top + ' ÷ ' + b) + ' = ?', k)],
+      steps: [st('How many ' + frac(1, b) + ' pieces make one whole?', b), st(B(top + ' ÷ ' + b) + ' = ?', k)],
       traps: [tr(top, 'f_whole', 'The top counts pieces. ' + b + ' pieces make one whole.'), tr(top - b, 'f_whole', 'Divide by ' + b + ', do not take ' + b + ' away.'), k > 1 ? slip(b, k, 1, 'Check: ' + b + ' × your answer should be ' + top + '.') : null] };
   } },
 
@@ -265,7 +265,7 @@ defs([
       const big = R.chance(0.6), ans = big ? Math.min(b1, b2) : Math.max(b1, b2);
       return { text: 'Which is ' + B(big ? 'bigger' : 'smaller') + ', ' + frac(a, b1) + ' or ' + frac(a, b2) + '? Type its bottom number.', ans,
         how: ['The tops are the same: ' + a + ' pieces each. Now look at the size of the pieces.', 'Cutting into fewer pieces makes bigger pieces, so ' + frac(a, Math.min(b1, b2)) + ' is bigger. The ' + (big ? 'bigger' : 'smaller') + ' one has bottom ' + B(ans) + '.'],
-        steps: [st('Which bottom makes bigger pieces, ' + b1 + ' or ' + b2 + '?', Math.min(b1, b2)), st('So which bottom does the ' + (big ? 'bigger' : 'smaller') + ' fraction have?', ans)],
+        steps: [st('Which bottom makes bigger pieces, ' + b1 + ' or ' + b2 + '?', Math.min(b1, b2)), st('So which is ' + (big ? 'bigger' : 'smaller') + ', ' + frac(a, b1) + ' or ' + frac(a, b2) + '? Type its bottom number.', ans)],
         traps: [tr(b1 + b2 - ans, 'f_compunit', 'A bigger bottom number means more cuts and smaller pieces.')] };
     }
     if (kind === 'half') {
@@ -274,7 +274,7 @@ defs([
       const big = R.chance(0.6), ans = big ? b2 : b1, sw = R.chance(0.5), f1 = frac(a1, b1), f2 = frac(a2, b2);
       return { text: 'Which is ' + B(big ? 'bigger' : 'smaller') + ', ' + (sw ? f2 + ' or ' + f1 : f1 + ' or ' + f2) + '? Type its bottom number.', ans,
         how: ['Compare each one to ' + frac(1, 2) + ': double the top and look at the bottom.', f1 + ': ' + a1 + ' × 2 = ' + (2 * a1) + ', less than ' + b1 + ', so it is less than half. ' + f2 + ': ' + a2 + ' × 2 = ' + (2 * a2) + ', more than ' + b2 + ', so it is more than half.', 'The ' + (big ? 'bigger' : 'smaller') + ' one has bottom ' + B(ans) + '.'],
-        steps: [st('Double the top of ' + f1 + ': ' + B(a1 + ' × 2') + ' = ?', 2 * a1), st('Double the top of ' + f2 + ': ' + B(a2 + ' × 2') + ' = ?', 2 * a2), st('Which one is more than half? Type its bottom number.', b2)],
+        steps: [st('Double the top of ' + f1 + ': ' + B(a1 + ' × 2') + ' = ?', 2 * a1), st('Double the top of ' + f2 + ': ' + B(a2 + ' × 2') + ' = ?', 2 * a2), st('Which is more than half, ' + f1 + ' or ' + f2 + '? Type its bottom number.', b2)],
         traps: [tr(big ? b1 : b2, 'f_compare', 'The bottoms are different, so a bigger top does not tell you. Compare each one to half.'), tr(big ? a2 : a1, 'f_compare', 'Type the bottom number of the fraction.')] };
     }
     if (kind === 'miss') {
@@ -282,13 +282,13 @@ defs([
       const big = R.chance(0.6), ans = big ? Math.max(b1, b2) : Math.min(b1, b2), f1 = frac(b1 - 1, b1), f2 = frac(b2 - 1, b2);
       return { text: 'Which is ' + B(big ? 'bigger' : 'smaller') + ', ' + f1 + ' or ' + f2 + '? Type its bottom number.', ans,
         how: ['Each one is one piece short of a whole: ' + f1 + ' is missing ' + frac(1, b1) + ', ' + f2 + ' is missing ' + frac(1, b2) + '.', 'The smaller missing piece leaves more. ' + frac(1, Math.max(b1, b2)) + ' is the smaller piece, so ' + frac(Math.max(b1, b2) - 1, Math.max(b1, b2)) + ' is bigger. Answer: ' + B(ans) + '.'],
-        steps: [st('How much is ' + f1 + ' short of a whole? ' + fq(1, '?'), b1), st('Which missing piece is smaller, ' + frac(1, b1) + ' or ' + frac(1, b2) + '? Type its bottom.', Math.max(b1, b2)), st('So the ' + (big ? 'bigger' : 'smaller') + ' fraction has which bottom?', ans)],
+        steps: [st('How much more does ' + f1 + ' need to make 1 whole? ' + fq(1, '?'), b1), st('Which is smaller, ' + frac(1, b1) + ' or ' + frac(1, b2) + '? Type its bottom number.', Math.max(b1, b2)), st('So which is ' + (big ? 'bigger' : 'smaller') + ', ' + f1 + ' or ' + f2 + '? Type its bottom number.', ans)],
         traps: [tr(b1 + b2 - ans, 'f_compunit', 'Look at the missing piece. A bigger bottom means a smaller missing piece, so more is left.')] };
     }
     const b = R.i(5, 25), ans = Math.floor(b / 2) + 1;
     return { text: 'What is the ' + B('smallest') + ' top number that makes ' + fq('?', b) + ' bigger than ' + frac(1, 2) + '?', ans,
       how: ['Half of ' + b + ' pieces is ' + num(b / 2) + ' pieces' + (b % 2 ? '.' : ', and ' + frac(b / 2, b) + ' is exactly half, not bigger.'), 'The smallest whole number more than ' + num(b / 2) + ' is ' + B(ans) + '.'],
-      steps: [st('What is half of ' + B(b) + '?', b / 2), st('What is the smallest whole number bigger than that?', ans)],
+      steps: [st('What is half of ' + B(b) + '?', b / 2), st('What is the smallest whole number bigger than ' + num(b / 2) + '?', ans)],
       traps: [tr(b % 2 ? null : b / 2, 'f_compare', frac(b / 2, b) + ' is exactly one half. You need more than half.'), tr(ans - 1, 'f_half', 'Double your top: it must be more than ' + b + '.'), tr(b - 1, 'f_compare', 'That works, but you want the smallest one.')] };
   } },
 
@@ -308,7 +308,7 @@ defs([
       const W = w1 + w2, s = a1 + a2, ans = F((W + 1) * b + s - b, b);
       return { text: mixed(w1, a1, b) + ' + ' + mixed(w2, a2, b) + ' = ?', ans,
         how: ['Add the wholes: ' + w1 + ' + ' + w2 + ' = ' + W + '. Add the pieces: ' + frac(a1, b) + ' + ' + frac(a2, b) + ' = ' + frac(s, b) + '.', frac(s, b) + ' is more than a whole: ' + frac(s, b) + ' = 1 and ' + frac(s - b, b) + '.', W + ' + 1 and ' + frac(s - b, b) + ' = ' + B(mixed(W + 1, s - b, b)) + '.'],
-        steps: [st('Wholes: ' + B(w1 + ' + ' + w2) + ' = ?', W), st('Tops: ' + B(a1 + ' + ' + a2) + ' = ?', s), st(frac(s, b) + ' = 1 and ' + fq('?', b), s - b), sf('So the total is ?', ans.n, b)],
+        steps: [st('Wholes: ' + B(w1 + ' + ' + w2) + ' = ?', W), st('Tops: ' + B(a1 + ' + ' + a2) + ' = ?', s), st(frac(s, b) + ' = 1 and ' + fq('?', b), s - b), sf('So ' + mixed(w1, a1, b) + ' + ' + mixed(w2, a2, b) + ' = ?', ans.n, b)],
           traps: [tr(F(W * b + s - b, b), 'f_mixed', frac(s, b) + ' is more than one whole. Add that whole to the ' + W + '.'), tr(F(W * 2 * b + s, 2 * b), 'f_addlike', 'Keep the bottom: the pieces are still ' + frac(1, b) + ' size.')] };
     }
     const b = d === 0 ? R.i(3, 10) : R.i(4, 12), sub = d === 1 && R.chance(0.5);
@@ -335,9 +335,9 @@ defs([
         steps: [st(B(w + ' × ' + b) + ' = ?', w * b), st(B((w * b) + ' + ' + a) + ' = ?', T)],
         traps: [tr(w * b, 'f_mixed', 'That counts the wholes. Add the ' + a + ' extra ' + plural(a, 'piece') + '.'), tr(w + a, 'f_mixed', 'Each whole is ' + b + ' pieces. Multiply the whole number by the bottom.'), tr(w * a + b, 'f_mixed', 'Multiply the whole number by the bottom, then add the top.'), slip(w, b, 1, 'Check ' + w + ' × ' + b + '.')] };
     }
-    if (kind === 'whole') return { text: frac(T, b) + ' is how many ' + B('whole') + ' ones, with some pieces left over?', ans: w,
+    if (kind === 'whole') return { text: 'How many ' + B('wholes') + ' are in ' + frac(T, b) + '?', ans: w,
       how: ['How many groups of ' + b + ' fit in ' + T + '? ' + b + ' × ' + w + ' = ' + (w * b) + ', and ' + b + ' × ' + (w + 1) + ' = ' + ((w + 1) * b) + ' is too many.', 'So ' + frac(T, b) + ' = ' + mixed(w, a, b) + ': ' + B(w) + ' wholes.'],
-      steps: [st('Biggest ' + b + 's fact that fits: ' + B(b + ' × ? ≤ ' + T), w)],
+      steps: [st('How many ' + b + 's fit in ' + T + '?', w)],
       traps: [tr(w + 1, 'm_remain', b + ' × ' + (w + 1) + ' = ' + ((w + 1) * b) + ', which is more than ' + T + '.'), tr(T - b, 'f_mixed', 'Count how many groups of ' + b + ' fit in ' + T + '. Divide, do not take away.'), tr(a, 'f_mixed', 'That is how many pieces are left over. How many wholes?')] };
     return { text: frac(T, b) + ' = ' + w + fq('?', b), ans: a,
       how: [w + ' wholes are ' + w + ' × ' + b + ' = ' + (w * b) + ' pieces.', T + ' ' + MINUS + ' ' + (w * b) + ' = ' + B(a) + ' ' + plural(a, 'piece') + ' left, so ' + frac(T, b) + ' = ' + mixed(w, a, b) + '.'],
@@ -390,7 +390,7 @@ defs([
     if (kind === 'd2h') { const h = R.i(11, 99); if (h % 10 === 0) return null;
       return { text: B(num(dv(h, 2))) + ' = ' + fq('?', 100), ans: h,
         how: ['Two places after the point are hundredths.', num(dv(h, 2)) + ' is ' + B(h) + ' hundredths, so ' + num(dv(h, 2)) + ' = ' + frac(h, 100) + '.'],
-        steps: [st('How many tenths in ' + B(num(dv(h, 2))) + '?', Math.floor(h / 10)), st('Each tenth is 10 hundredths. ' + B(Math.floor(h / 10) + ' tenths and ' + (h % 10) + ' hundredths') + ' = ? hundredths', h)],
+        steps: [st('How many tenths are in ' + B(num(dv(h, 2))) + '?', Math.floor(h / 10)), st('Each tenth is 10 hundredths. ' + B(Math.floor(h / 10) + ' tenths and ' + (h % 10) + ' hundredths') + ' = ? hundredths', h)],
         traps: [tr(Math.floor(h / 10), 'f_dec10', 'That is the tenths. Count all the hundredths.'), tr(h % 10, 'n_place', 'That is just the last digit. Count all the hundredths.')] }; }
     if (kind === 't2h') { const a = R.i(1, 9);
       return { text: B('0.' + a) + ' = ' + fq('?', 100), ans: 10 * a, vis: fracBarSVG(a, 10),
@@ -405,7 +405,7 @@ defs([
     if (kind === 'whole') { const w = R.i(1, 12), h = R.i(1, 9), ans = w + dv(h, 2);
       return { text: 'Write ' + B(w) + ' and ' + frac(h, 100) + ' as a decimal.', ans,
         how: ['The whole number goes before the point. Hundredths need two places after it.', h + ' hundredths is 0 tenths and ' + h + ' hundredths: ' + B(num(ans)) + '.'],
-        steps: [st('How many tenths are in ' + frac(h, 100) + '?', 0), st('So ' + w + ' and ' + frac(h, 100) + ' = ?', ans)],
+        steps: [st('In ' + frac(h, 100) + ' as a decimal, which digit goes in the tenths place?', 0), st('So ' + w + ' and ' + frac(h, 100) + ' = ?', ans)],
         traps: [tr(w + dv(h, 1), 'f_dec10', 'That is ' + w + ' and ' + h + ' tenths. Hundredths need two places: put a 0 in the tenths.'), tr(w * 100 + h, 'f_dec10', 'Put the point after the whole number.')] }; }
     const w = R.i(1, 9), a = R.i(1, 9), T = 10 * w + a;
     return { text: B(num(w + dv(a, 1))) + ' = ' + fq('?', 10), ans: T,
@@ -515,12 +515,12 @@ defs([
       /* ? × 100 = v  means  ? = v ÷ 100 */
       return { text: B('?' + opS + ' = ' + num(v)), ans: hop(v, e, !times),
         how: ['Undo it: the missing number is ' + num(v) + (times ? ' ÷ ' : ' × ') + nm(P10[e]) + '.', nm(P10[e]) + ' has ' + e + ' zeros, so the point hops ' + e + ' places ' + (times ? 'left' : 'right') + ': ' + B(num(hop(v, e, !times))) + '.'],
-        steps: [st('Should the missing number be bigger or smaller than ' + num(v) + '? Type 1 for bigger, 2 for smaller.', times ? 2 : 1), st('How many places does the point hop?', e), st('So ? = ', hop(v, e, !times))],
+        steps: [st(B('?' + opS + ' = ' + num(v)) + '. Is the missing number bigger or smaller than ' + num(v) + '? Type 1 for bigger, 2 for smaller.', times ? 2 : 1), st('How many places does the point hop when you ' + (times ? 'divide' : 'multiply') + ' by ' + nm(P10[e]) + '?', e), st(B('?' + opS + ' = ' + num(v)), hop(v, e, !times))],
         traps: [tr(hop(v, e, times), 'n_times10', 'Undo it: ' + (times ? 'times' : 'divided') + ' by ' + nm(P10[e]) + ' is undone by ' + (times ? 'dividing' : 'multiplying') + '.'), tr(hop(v, e - 1, !times), 'f_decx10', hopWhy), tr(hop(v, e + 1, !times), 'f_decx10', hopWhy)] };
     }
     return { text: B(num(v) + opS) + ' = ?', ans,
       how: [opS.trim() + ' makes every digit ' + nm(P10[e]) + ' times ' + bigger + ', so each digit moves ' + e + ' ' + plural(e, 'place') + (times ? ' left' : ' right') + '. That is the same as the point hopping ' + e + ' ' + plural(e, 'place') + ' ' + dir + '.', num(v) + ' → ' + B(num(ans)) + '.' + fill],
-      steps: [st('How many zeros does ' + B(nm(P10[e])) + ' have?', e), st('Does the point hop right or left? Type 1 for right, 2 for left.', times ? 1 : 2), st(B(num(v) + opS) + ' = ?', ans)],
+      steps: [st('How many zeros does ' + B(nm(P10[e])) + ' have?', e), st('In ' + B(num(v) + opS) + ', does the point hop right or left? Type 1 for right, 2 for left.', times ? 1 : 2), st(B(num(v) + opS) + ' = ?', ans)],
       traps: [tr(hop(v, e - 1, times), 'f_decx10', hopWhy), tr(hop(v, e + 1, times), 'f_decx10', hopWhy),
         tr(hop(v, e, !times), 'n_times10', times ? 'Times ' + nm(P10[e]) + ' makes the number bigger.' : 'Dividing by ' + nm(P10[e]) + ' makes the number smaller.'), tr(times && p > 0 ? v : null, 'n_times10', 'Writing a 0 on the end of a decimal does not change it. Hop the point instead.')] };
   } },
@@ -538,7 +538,7 @@ defs([
     const zeroEnd = K % 10 === 0;
     return { text: B(num(x) + ' × ' + num(y)) + ' = ?', ans,
       how: ['Multiply without the points: ' + k1 + ' × ' + k2 + ' = ' + K + '.', 'Count the decimal places: ' + num(x) + ' has ' + p1 + (p2 ? ' and ' + num(y) + ' has ' + p2 : '') + ', so the answer has ' + P + '.', 'Count ' + P + ' ' + plural(P, 'place') + ' in from the right' + (String(K).length <= P ? ' (fill in zeros so the point has a place to go)' : '') + ': ' + (zeroEnd ? written + ' = ' + B(num(ans)) : B(num(ans))) + '.'],
-      steps: [st('Without the points: ' + B(k1 + ' × ' + k2) + ' = ?', K), st('How many decimal places are in the two numbers together?', P), st('So ' + B(num(x) + ' × ' + num(y)) + ' = ?', ans)],
+      steps: [st('Without the points: ' + B(k1 + ' × ' + k2) + ' = ?', K), st('How many decimal places are in ' + B(num(x)) + ' and ' + B(num(y)) + ' together?', P), st('So ' + B(num(x) + ' × ' + num(y)) + ' = ?', ans)],
       traps: [tr(dv(K, P - 1), 'f_decmul', 'Count the decimal places in both numbers and add them: ' + P + ' ' + plural(P, 'place') + '.'), tr(dv(K, P + 1), 'f_decmul', 'Count the decimal places in both numbers and add them: ' + P + ' ' + plural(P, 'place') + '.'),
         tr(K, 'f_decmul', 'Put the point back: the answer has ' + P + ' decimal places.'), k1 < 13 && k2 < 13 ? tr(dv(slip(k1, k2).v, P), factC(k1, k2), 'Check the times fact ' + k1 + ' × ' + k2 + '.') : null] };
   } },
@@ -558,7 +558,7 @@ defs([
       const b = R.i(2, 6), w = R.i(2, 6);
       return { text: frac(1, b) + ' ÷ ' + B(w) + ' = ?', ans: F(1, b * w),
         how: ['Share ' + frac(1, b) + ' into ' + w + ' equal parts. Each ' + frac(1, b) + ' piece is cut into ' + w + '.', 'The whole now has ' + b + ' × ' + w + ' = ' + (b * w) + ' pieces, so each part is ' + B(frac(1, b * w)) + '.'],
-        steps: [st('Cut every ' + frac(1, b) + ' into ' + w + '. How many pieces in the whole? ' + B(b + ' × ' + w), b * w), sf('So ' + frac(1, b) + ' ÷ ' + w + ' = ?', 1, b * w)],
+        steps: [st('Cut each ' + frac(1, b) + ' piece into ' + w + ' smaller pieces. How many smaller pieces are in the whole? ' + B(b + ' × ' + w) + ' = ?', b * w), sf('So ' + frac(1, b) + ' ÷ ' + w + ' = ?', 1, b * w)],
         traps: [tr(F(w, b), 'f_divunit', 'Sharing ' + frac(1, b) + ' into ' + w + ' parts makes each part smaller, not bigger.'), tr(F(1, b + w), 'f_divunit', 'Each piece is cut into ' + w + ', so the bottom is ' + b + ' × ' + w + '.')] };
     }
     if (d === 1) {
@@ -575,12 +575,12 @@ defs([
         steps: [st(frac(a, b) + ' = ' + fq('?', B2), ans)],
         traps: [tr(F(a, b * B2).n / (b * B2), 'f_divunit', 'Dividing by a small piece gives a bigger answer. Count how many pieces fit.'), tr(a * B2, 'f_equiv', 'Change ' + frac(a, b) + ' to ' + B2 + 'ths first: times the top by ' + m + ', not ' + B2 + '.')] };
     }
-    const b = R.i(2, 8), w = R.i(2, 9), a = R.chance(0.5) ? R.i(1, b - 1) : 0, t = R.pick([['ribbon', 'm', 'pieces'], ['bag of rice', 'kg', 'scoops'], ['jug of juice', 'L', 'cups']]);
+    const b = R.i(2, 8), w = R.i(2, 9), a = R.chance(0.5) ? R.i(1, b - 1) : 0, t = R.pick([['A ribbon is ', ' m', ' long. You cut it into pieces. Each piece is ', ' long. How many pieces do you get?'], ['A bag holds ', ' kg', ' of rice. Each scoop holds ', '. How many scoops of rice are in the bag?'], ['A jug holds ', ' L', ' of juice. Each cup holds ', '. How many cups can the jug fill?']]);
     if (a && gcd(a, b) > 1) return null;
     const ans = w * b + a, amt = a ? mixed(w, a, b) : num(w);
-    return { text: 'A ' + t[0] + ' holds ' + B(amt + ' ' + t[1]) + '. Each of the ' + t[2] + ' is ' + B(frac(1, b) + ' ' + t[1]) + '. How many ' + t[2] + '?', ans,
+    return { text: t[0] + B(amt + t[1]) + t[2] + B(frac(1, b) + t[1]) + t[3], ans,
       how: ['How many ' + frac(1, b) + ' fit in ' + amt + '? That is ' + amt + ' ÷ ' + frac(1, b) + '.', 'Each whole holds ' + b + ': ' + w + ' × ' + b + ' = ' + (w * b) + (a ? ', plus the ' + frac(a, b) + ' holds ' + a + ' more: ' + (w * b) + ' + ' + a + ' = ' + B(ans) : ' = ' + B(ans)) + '.'],
-      steps: [st(B(w + ' × ' + b) + ' = ?', w * b)].concat(a ? [st('How many ' + frac(1, b) + ' in ' + frac(a, b) + '?', a), st(B((w * b) + ' + ' + a) + ' = ?', ans)] : []),
+      steps: [st(B(w + ' × ' + b) + ' = ?', w * b)].concat(a ? [st('How many ' + frac(1, b) + ' pieces fit in ' + frac(a, b) + '?', a), st(B((w * b) + ' + ' + a) + ' = ?', ans)] : []),
       traps: [tr(a ? w * b : null, 'f_divunit', 'Count the pieces in the ' + frac(a, b) + ' too.'), tr(w + b, 'f_divunit', 'Each whole holds ' + b + ' pieces. Multiply.'), tr(a ? (w + 1) * b : null, 'f_mixed', frac(a, b) + ' is less than a whole: it holds ' + a + ' ' + plural(a, 'piece') + ', not ' + b + '.')] };
   } },
 
@@ -701,11 +701,11 @@ defs([
     const a = R.i(1, d === 0 ? 5 : 9), b = R.i(2, d === 0 ? 6 : 9); if (a === b || gcd(a, b) > 1) return null;
     const k = R.i(2, d === 0 ? 5 : 9), A = a * k, Bt = b * k;
     if (d === 2 && R.chance(0.5)) {
-      const t = R.pick([['boys', 'girls', 'kids'], ['red beads', 'blue beads', 'beads'], ['cats', 'dogs', 'pets'], ['juice', 'water', 'cups of drink']]), T = (a + b) * k, askB = R.chance(0.5), ans = askB ? Bt : A;
-      return { text: 'The ratio of ' + t[0] + ' to ' + t[1] + ' is ' + B(a + ' : ' + b) + '. There are ' + B(T + ' ' + t[2]) + ' in all. How many ' + (askB ? t[1] : t[0]) + '?', ans,
-        how: ['Each group of ' + a + ' + ' + b + ' = ' + (a + b) + ' has ' + a + ' ' + t[0] + ' and ' + b + ' ' + t[1] + '.', T + ' ÷ ' + (a + b) + ' = ' + k + ' groups, so ' + (askB ? t[1] : t[0]) + ': ' + (askB ? b : a) + ' × ' + k + ' = ' + B(ans) + '.'],
-        steps: [st('How many in one group? ' + B(a + ' + ' + b) + ' = ?', a + b), st('How many groups? ' + B(T + ' ÷ ' + (a + b)) + ' = ?', k), st(B((askB ? b : a) + ' × ' + k) + ' = ?', ans)],
-        traps: [tr(askB ? A : Bt, 'f_ratio', 'That is the number of ' + (askB ? t[0] : t[1]) + '.'), tr(T % (askB ? b : a) === 0 ? T / (askB ? b : a) : null, 'f_ratio', 'The total is made of groups of ' + (a + b) + ', not ' + (askB ? b : a) + '.'), tr(T - (askB ? a : b), 'f_ratio', 'Find how many groups of ' + (a + b) + ' make ' + T + ' first.')] };
+      const t = R.pick([['boys', 'girls', 'kids', 'boys', 'girls', 'boy'], ['red beads', 'blue beads', 'beads', 'red beads', 'blue beads', 'red bead'], ['cats', 'dogs', 'pets', 'cats', 'dogs', 'cat'], ['juice', 'water', 'cups of drink', 'cups of juice', 'cups of water', 'cup of juice']]), T = (a + b) * k, askB = R.chance(0.5), ans = askB ? Bt : A;
+      return { text: 'The ratio of ' + t[0] + ' to ' + t[1] + ' is ' + B(a + ' : ' + b) + '. There are ' + B(T + ' ' + t[2]) + ' in all. How many ' + (askB ? t[4] : t[3]) + ' are there?', ans,
+        how: ['Each group of ' + a + ' + ' + b + ' = ' + (a + b) + ' has ' + a + ' ' + (a === 1 ? t[5] : t[3]) + ' and ' + b + ' ' + t[4] + '.', T + ' ÷ ' + (a + b) + ' = ' + k + ' groups, so ' + (askB ? t[4] : t[3]) + ': ' + (askB ? b : a) + ' × ' + k + ' = ' + B(ans) + '.'],
+        steps: [st('One group has ' + B(a + ' + ' + b) + ' ' + t[2] + '. How many ' + t[2] + ' is that?', a + b), st('How many groups of ' + (a + b) + ' make ' + T + '?', k), st(B((askB ? b : a) + ' × ' + k) + ' = ?', ans)],
+        traps: [tr(askB ? A : Bt, 'f_ratio', 'That is the number of ' + (askB ? t[3] : t[4]) + '.'), tr(T % (askB ? b : a) === 0 ? T / (askB ? b : a) : null, 'f_ratio', 'The total is made of groups of ' + (a + b) + ', not ' + (askB ? b : a) + '.'), tr(T - (askB ? a : b), 'f_ratio', 'Find how many groups of ' + (a + b) + ' make ' + T + ' first.')] };
     }
     if (d === 2) {
       const m = R.i(2, 5); if (m === k) return null;
@@ -724,7 +724,7 @@ defs([
       how: [a + ' × ' + k + ' = ' + A + ', so both parts are times ' + k + '.', b + ' × ' + k + ' = ' + B(Bt) + '.'],
       steps: [st(B(a + ' × ? = ' + A), k), st(B(b + ' × ' + k) + ' = ?', Bt)],
       traps: [tr(b + A - a, 'f_ratio', 'Equal ratios multiply both parts by the same number, not add.'), tr(k, 'f_ratio', k + ' is what you multiply by. Use it on the other part.'), slip(b, k)] };
-    if (story) return { text: 'A recipe uses ' + B(a + ' cups of flour') + ' for every ' + B(b + ' eggs') + '. How many cups of flour for ' + B(Bt + ' eggs') + '?', ans: A,
+    if (story) return { text: 'A recipe uses ' + B(a + ' cups of flour') + ' for every ' + B(b + ' eggs') + '. How many cups of flour do you need for ' + B(Bt + ' eggs') + '?', ans: A,
       how: [b + ' eggs → ' + Bt + ' eggs is × ' + k + '.', 'Flour × ' + k + ' too: ' + a + ' × ' + k + ' = ' + B(A) + ' cups.'],
       steps: [st(B(b + ' × ? = ' + Bt), k), st(B(a + ' × ' + k) + ' = ?', A)],
       traps: [tr(a + Bt - b, 'f_ratio', 'Equal ratios multiply both parts by the same number, not add.'), tr(k, 'f_ratio', k + ' is what you multiply by. Use it on the flour.')] };
@@ -737,22 +737,22 @@ defs([
 { id: 'f_rate', s: 'frac', g: 6, title: 'Unit rates: the amount for one', pre: [],
   tip: 'Find the amount for one first, then use it. 6 pages in 2 minutes is 3 pages a minute, so 7 minutes gives 7 × 3 = 21 pages.',
   gen(d, R) {
-    const ctx = R.pick([['km', 'hours', 'hour', 'A train goes'], ['pages', 'minutes', 'minute', 'Mia reads'], ['liters', 'minutes', 'minute', 'A tap fills'], ['cookies', 'trays', 'tray', 'A baker makes'], ['words', 'minutes', 'minute', 'Leo types'], ['laps', 'hours', 'hour', 'A runner does']]);
+    const ctx = R.pick([['km', 'hours', 'hour', 'A train goes', 'in', 'does the train go', 'does the train take to go'], ['pages', 'minutes', 'minute', 'Mia reads', 'in', 'does Mia read', 'does Mia take to read'], ['liters', 'minutes', 'minute', 'A tap pours', 'in', 'does the tap pour', 'does the tap take to pour'], ['cookies', 'trays', 'tray', 'A baker bakes', 'on', 'does the baker bake', 'does the baker need for'], ['words', 'minutes', 'minute', 'Leo types', 'in', 'does Leo type', 'does Leo take to type'], ['laps', 'hours', 'hour', 'A runner runs', 'in', 'does the runner run', 'does the runner take to run']]);
     const r = d === 0 ? R.i(2, 12) : R.i(3, 15) * (ctx[0] === 'km' || ctx[0] === 'words' ? 5 : 1), n = R.i(2, d === 0 ? 6 : 9), T = r * n;
-    if (d === 0) return { text: ctx[3] + ' ' + B(T + ' ' + ctx[0]) + ' in ' + B(n + ' ' + ctx[1]) + '. How many ' + ctx[0] + ' in ' + B('1 ' + ctx[2]) + '?', ans: r,
+    if (d === 0) return { text: ctx[3] + ' ' + B(T + ' ' + ctx[0]) + ' ' + ctx[4] + ' ' + B(n + ' ' + ctx[1]) + '. How many ' + ctx[0] + ' ' + ctx[5] + ' ' + ctx[4] + ' ' + B('1 ' + ctx[2]) + '?', ans: r,
       how: ['For one ' + ctx[2] + ', share ' + T + ' into ' + n + ' equal parts.', T + ' ÷ ' + n + ' = ' + B(r) + ' ' + ctx[0] + ' per ' + ctx[2] + '. Check: ' + n + ' × ' + r + ' = ' + T + '.'],
       steps: [st(B(T + ' ÷ ' + n) + ' = ?', r)],
       traps: [tr(T * n, 'f_rate', 'One ' + ctx[2] + ' gives less than ' + n + ' ' + ctx[1] + '. Divide.'), tr(T - n, 'f_rate', 'Share ' + T + ' into ' + n + ' equal parts: divide.'), r <= 12 ? slip(n, r, 1, 'Check: ' + n + ' × your answer should be ' + T + '.') : null] };
     if (d === 1 || R.chance(0.4)) {
       const m = R.i(2, 12); if (m === n) return null; const ans = r * m;
-      return { text: ctx[3] + ' ' + B(T + ' ' + ctx[0]) + ' in ' + B(n + ' ' + ctx[1]) + '. At that rate, how many ' + ctx[0] + ' in ' + B(m + ' ' + ctx[1]) + '?', ans,
+      return { text: ctx[3] + ' ' + B(T + ' ' + ctx[0]) + ' ' + ctx[4] + ' ' + B(n + ' ' + ctx[1]) + '. At that rate, how many ' + ctx[0] + ' ' + ctx[5] + ' ' + ctx[4] + ' ' + B(m + ' ' + ctx[1]) + '?', ans,
         how: ['Find the amount for one: ' + T + ' ÷ ' + n + ' = ' + r + ' ' + ctx[0] + ' per ' + ctx[2] + '.', 'Then ' + m + ' ' + ctx[1] + ': ' + m + ' × ' + r + ' = ' + B(ans) + '.'],
         steps: [st('For one ' + ctx[2] + ': ' + B(T + ' ÷ ' + n) + ' = ?', r), st(B(m + ' × ' + r) + ' = ?', ans)],
         traps: [tr(r, 'f_rate', 'That is for one ' + ctx[2] + '. Now use it for ' + m + '.'), tr(T + m - n, 'f_ratio', 'Rates multiply. Find the amount for one ' + ctx[2] + ' first.'), tr(T * m, 'f_rate', 'Divide by ' + n + ' first to get the amount for one.')] };
     }
     if (R.chance(0.5)) {
       const m = R.i(2, 12), X = r * m;
-      return { text: ctx[3] + ' ' + B(T + ' ' + ctx[0]) + ' in ' + B(n + ' ' + ctx[1]) + '. At that rate, how many ' + ctx[1] + ' for ' + B(X + ' ' + ctx[0]) + '?', ans: m,
+      return { text: ctx[3] + ' ' + B(T + ' ' + ctx[0]) + ' ' + ctx[4] + ' ' + B(n + ' ' + ctx[1]) + '. At that rate, how many ' + ctx[1] + ' ' + ctx[6] + ' ' + B(X + ' ' + ctx[0]) + '?', ans: m,
         how: ['Find the amount for one: ' + T + ' ÷ ' + n + ' = ' + r + ' ' + ctx[0] + ' per ' + ctx[2] + '.', 'How many ' + r + 's make ' + X + '? ' + X + ' ÷ ' + r + ' = ' + B(m) + ' ' + ctx[1] + '.'],
         steps: [st('For one ' + ctx[2] + ': ' + B(T + ' ÷ ' + n) + ' = ?', r), st(B(X + ' ÷ ' + r) + ' = ?', m)],
         traps: [tr(X * r, 'f_rate', 'You want how many ' + ctx[1] + ': divide ' + X + ' by the rate.'), tr(X % n === 0 ? X / n : null, 'f_rate', 'Divide by the amount for one ' + ctx[2] + ', ' + r + '.'), tr(r, 'f_rate', 'That is the rate. Now use it to find the ' + ctx[1] + '.')] };
@@ -774,7 +774,7 @@ defs([
     const ans = dv(Q, f), x = dv(Q * b, e + f), y = dv(b, e), x2 = dv(Q * b, f), byTen = P10[e];
     return { text: B(num(x) + ' ÷ ' + num(y)) + ' = ?', ans,
       how: ['Make the number you divide by a whole number: move both points ' + e + ' ' + plural(e, 'place') + ' right (× ' + nm(byTen) + ').', num(x) + ' ÷ ' + num(y) + ' becomes ' + num(x2) + ' ÷ ' + b + '.', num(x2) + ' ÷ ' + b + ' = ' + B(num(ans)) + '.'],
-      steps: [st('Move both points ' + e + ' ' + plural(e, 'place') + '. ' + B(num(x)) + ' becomes ?', x2), st(B(num(x2) + ' ÷ ' + b) + ' = ?', ans)],
+      steps: [st('Move both points ' + e + ' ' + plural(e, 'place') + ' right. ' + B(num(x)) + ' becomes ?', x2), st(B(num(x2) + ' ÷ ' + b) + ' = ?', ans)],
       traps: [tr(dv(Q, f + e), 'f_divdec', 'Move the point in both numbers, not just the one you divide by.'), tr(ans * 10, 'n_times10', 'Check how many places you moved: both points move ' + e + '.'), tr(dv(Q, f + 1), 'n_times10', 'Check the point: ' + num(x2) + ' ÷ ' + b + '.'),
         Q <= 12 && f === 0 ? tr(Q + 1, factC(b, Q), 'Check the fact: ' + b + ' × ' + Q + ' = ' + (b * Q) + '.') : null] };
   } },
@@ -801,10 +801,10 @@ defs([
     const bill = 100 * (even ? 2 * R.i(6, 45) : R.i(12, 90)), ten = bill / 10, tot = k.startsWith('t');
     let tip, how, steps, what;
     if (k === '10') { tip = ten; what = '10% tip'; how = ['10% is ' + frac(1, 10) + ': hop the point one place left.', '10% of ' + C.fmtD(bill) + ' = ' + B(C.fmtD(tip)) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten)]; }
-    else if (k === '20' || k === 't20') { tip = 2 * ten; what = '20% tip'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + '.', '20% is double: ' + C.fmtD(ten) + ' × 2 = ' + (tot ? C.fmtD(tip) : B(C.fmtD(tip))) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('Double it: ?', tip)]; }
-    else if (k === '5') { tip = ten / 2; what = '5% sales tax'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + '.', '5% is half of that: ' + B(C.fmtD(tip)) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('Half of it: ?', tip)]; }
-    else if (k === 'tax8') { tip = ten - bill / 50; what = '8% sales tax'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + ', and 1% is ' + C.fmtD(bill / 100) + ', so 2% is ' + C.fmtD(bill / 50) + '.', '8% = 10% ' + MINUS + ' 2% = ' + C.fmtD(ten) + ' ' + MINUS + ' ' + C.fmtD(bill / 50) + ' = ' + C.fmtD(tip) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('2% of ' + C.fmtD(bill) + ' = ?', bill / 50), M('8% = 10% ' + MINUS + ' 2% = ?', tip)]; }
-    else { tip = ten + ten / 2; what = '15% tip'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + '.', '5% is half of that: ' + C.fmtD(ten / 2) + '.', '15% = ' + C.fmtD(ten) + ' + ' + C.fmtD(ten / 2) + ' = ' + (tot ? C.fmtD(tip) : B(C.fmtD(tip))) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('5% of ' + C.fmtD(bill) + ' = ?', ten / 2), M('15% = ?', tip)]; }
+    else if (k === '20' || k === 't20') { tip = 2 * ten; what = '20% tip'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + '.', '20% is double: ' + C.fmtD(ten) + ' × 2 = ' + (tot ? C.fmtD(tip) : B(C.fmtD(tip))) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('20% is double 10%. ' + B(C.fmtD(ten) + ' × 2') + ' = ?', tip)]; }
+    else if (k === '5') { tip = ten / 2; what = '5% sales tax'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + '.', '5% is half of that: ' + B(C.fmtD(tip)) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('5% is half of 10%. Half of ' + C.fmtD(ten) + ' = ?', tip)]; }
+    else if (k === 'tax8') { tip = ten - bill / 50; what = '8% sales tax'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + ', and 1% is ' + C.fmtD(bill / 100) + ', so 2% is ' + C.fmtD(bill / 50) + '.', '8% = 10% ' + MINUS + ' 2% = ' + C.fmtD(ten) + ' ' + MINUS + ' ' + C.fmtD(bill / 50) + ' = ' + C.fmtD(tip) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('2% of ' + C.fmtD(bill) + ' = ?', bill / 50), M('8% = 10% ' + MINUS + ' 2%. ' + B(C.fmtD(ten) + ' ' + MINUS + ' ' + C.fmtD(bill / 50)) + ' = ?', tip)]; }
+    else { tip = ten + ten / 2; what = '15% tip'; how = ['10% of ' + C.fmtD(bill) + ' is ' + C.fmtD(ten) + '.', '5% is half of that: ' + C.fmtD(ten / 2) + '.', '15% = ' + C.fmtD(ten) + ' + ' + C.fmtD(ten / 2) + ' = ' + (tot ? C.fmtD(tip) : B(C.fmtD(tip))) + '.']; steps = [M('10% of ' + C.fmtD(bill) + ' = ?', ten), M('5% of ' + C.fmtD(bill) + ' = ?', ten / 2), M('15% = 10% + 5%. ' + B(C.fmtD(ten) + ' + ' + C.fmtD(ten / 2)) + ' = ?', tip)]; }
     const ans = tot ? bill + tip : tip, isTax = /tax/.test(what);
     if (tot) { how.push('Add it to the bill: ' + C.fmtD(bill) + ' + ' + C.fmtD(tip) + ' = ' + B(C.fmtD(ans)) + '.'); steps.push(M(C.fmtD(bill) + ' + ' + C.fmtD(tip) + ' = ?', ans)); }
     return { text: (isTax ? 'A toy costs ' : 'A meal costs ') + B(C.fmtD(bill)) + '. ' + (tot ? 'With ' + (/^(8|11|18)/.test(what) ? 'an ' : 'a ') + B(what) + ', what is the ' + B('total') + '?' : 'What is the ' + B(what) + '?'), ans, type: 'money', fmt: 'd',
@@ -828,16 +828,16 @@ defs([
       if (mid % 1 || ans % 1) return null;
       return { text: 'A price of ' + B('$' + O) + ' goes ' + B('up ' + p1 + '%') + '. Then the new price goes ' + B('down ' + p2 + '%') + '. What is the final price in dollars?', ans,
         how: ['Up ' + p1 + '%: ' + p1 + '% of ' + O + ' = ' + (O * p1 / 100) + ', so ' + O + ' + ' + (O * p1 / 100) + ' = ' + mid + '.', 'Down ' + p2 + '% of the new price: ' + p2 + '% of ' + mid + ' = ' + num(mid * p2 / 100) + ', so ' + mid + ' ' + MINUS + ' ' + num(mid * p2 / 100) + ' = ' + B(num(ans)) + '.'],
-        steps: [st('After going up ' + p1 + '%: ?', mid), st(B(p2 + '% of ' + mid) + ' = ?', mid * p2 / 100), st('Final price: ?', ans)],
+        steps: [st('A price of $' + O + ' goes up ' + p1 + '%. What is the new price in dollars?', mid), st(B(p2 + '% of ' + mid) + ' = ?', mid * p2 / 100), st('A price of $' + mid + ' goes down ' + p2 + '%. What is the new price in dollars?', ans)],
         traps: [tr(O * (100 + p1 - p2) / 100, 'f_pctchange', 'The ' + p2 + '% comes off the new price, ' + mid + ', not the start.'), tr(mid, 'f_pctchange', 'Now take ' + p2 + '% off ' + mid + '.')] };
     }
     const p = R.pick(d === 1 ? [10, 20, 25, 50, 100, 5] : P), O = 20 * R.i(1, 20), up = d === 1 ? R.chance(0.6) : R.chance(0.4);
     if (!up && p >= 100) return null;
     const c = O * p / 100, N = up ? O + c : O - c, ans = p, [fn, fd] = reduce(c, O);
     const byNew = c * 100 / N;
-    return { text: 'A number goes from ' + B(O) + ' to ' + B(N) + '. By what percent did it go ' + (up ? 'up' : 'down') + '?', ans, unit: '%',
+    return { text: 'A number goes from ' + B(O) + ' to ' + B(N) + '. By what percent does it go ' + (up ? 'up' : 'down') + '?', ans, unit: '%',
       how: ['Change: ' + (up ? N + ' ' + MINUS + ' ' + O : O + ' ' + MINUS + ' ' + N) + ' = ' + c + '.', 'Divide by the start: ' + frac(c, O) + ' = ' + simplest(fn, fd) + '.', 'As a percent: ' + B(p + '%') + ' ' + (up ? 'up' : 'down') + '.'],
-      steps: [st('How much did it change?', c), st('Change ÷ start: ' + frac(c, O) + ' in lowest terms is ?', F(fn, fd), { type: 'frac' }), st('As a percent: ?', p, { unit: '%' })],
+      steps: [st('A number goes from ' + O + ' to ' + N + '. How much does it change?', c), st('Change ÷ start: ' + frac(c, O) + ' in lowest terms is ?', F(fn, fd), { type: 'frac' }), st(simplest(fn, fd) + ' = ?%', p, { unit: '%' })],
       traps: [tr(c, 'f_pctchange', 'That is the change. Divide it by the starting number to get a percent.'), tr(byNew % 1 === 0 && byNew !== p ? byNew : (Math.abs(byNew * 10 - Math.round(byNew * 10)) < 1e-9 ? byNew : null), 'f_pctchange', 'Divide by where you started, ' + O + ', not where you ended.'), tr(N * 100 / O, 'f_pctchange', 'That is the new number as a percent of the start. Find the change first.')] };
   } },
 
@@ -850,15 +850,15 @@ defs([
       if (R.chance(0.5)) {
         const p1 = R.pick([20, 50, 25, 10]), p2 = R.pick([10, 20, 50]), price = 40 * R.i(2, 10), mid = price * (100 - p1) / 100, ans = mid * (100 - p2) / 100;
         if (mid % 1 || ans % 1) return null;
-        return { text: 'A ' + item + ' costs ' + B('$' + price) + '. It is ' + B(p1 + '% off') + ', and then you get ' + B(p2 + '% off') + ' the sale price. What do you pay?', ans: ans * 100, type: 'money', fmt: 'd',
+        return { text: 'A ' + item + ' costs ' + B('$' + price) + '. It is ' + B(p1 + '% off') + '. Then you get ' + B(p2 + '% off') + ' the sale price. What do you pay?', ans: ans * 100, type: 'money', fmt: 'd',
           how: [p1 + '% off: pay ' + (100 - p1) + '% of $' + price + ' = $' + num(mid) + '.', p2 + '% off that: pay ' + (100 - p2) + '% of $' + num(mid) + ' = ' + B('$' + num(ans)) + '.', 'Not the same as ' + (p1 + p2) + '% off: the second discount is taken from a smaller price.'],
-          steps: [M('After ' + p1 + '% off: ?', mid * 100), M('After another ' + p2 + '% off: ?', ans * 100)],
+          steps: [M('The price is $' + price + '. What is the price after ' + p1 + '% off?', mid * 100), M('The sale price is $' + num(mid) + '. What is the price after another ' + p2 + '% off?', ans * 100)],
           traps: [tr(price * (100 - p1 - p2), 'f_discount', 'Two discounts do not add up. The ' + p2 + '% comes off the sale price.'), tr(mid * 100, 'f_discount', 'Now take ' + p2 + '% off the sale price too.')] };
       }
       const p = R.pick([20, 25, 40, 10, 30, 50]), orig = (p === 30 ? 10 : 20) * R.i(2, 15), S = orig * (100 - p) / 100;
       return { text: 'After ' + B(p + '% off') + ', a ' + item + ' costs ' + B('$' + S) + '. What was the price before the sale?', ans: orig * 100, type: 'money', fmt: 'd',
         how: [p + '% off means $' + S + ' is ' + (100 - p) + '% of the old price.', (100 - p) + '% is $' + S + ', so 1% is $' + S + ' ÷ ' + (100 - p) + ' and 100% is $' + S + ' ÷ ' + (100 - p) + ' × 100 = ' + B('$' + orig) + '.'],
-        steps: [st('$' + S + ' is what percent of the old price?', 100 - p, { unit: '%' }), M('Old price: ?', orig * 100)],
+        steps: [st(p + '% off means you pay what percent of the old price?', 100 - p, { unit: '%' }), M((100 - p) + '% of the old price is $' + S + '. What is the old price?', orig * 100)],
         traps: [tr(Math.round(S * (100 + p)), 'f_discount', 'Adding ' + p + '% of the sale price does not undo it: the ' + p + '% was of the old price.'), tr(S * 100, 'f_discount', 'That is the sale price. The old price was more.')] };
     }
     const p = d === 0 ? R.pick([10, 20, 50, 25]) : R.pick([30, 40, 15, 35, 60, 70]), price = (p % 10 ? 20 : p === 25 ? 4 : 10) * R.i(d === 0 ? 2 : 3, d === 0 ? 15 : 20), pay = 100 - p, ans = price * pay / 100, ten = price / 10;
@@ -878,12 +878,12 @@ defs([
     const p = d === 0 ? R.pick([10, 50, 25]) : d === 1 ? R.pick([20, 30, 40, 60, 75, 5]) : R.pick([30, 40, 12.5, 150, 15, 60]);
     const unit = { 10: 10, 50: 50, 25: 25, 20: 10, 30: 10, 40: 10, 60: 10, 75: 25, 5: 5, 12.5: 12.5, 150: 50, 15: 5 }[p], k = p / unit, U = R.i(2, d === 0 ? 12 : 15) * (d === 2 && R.chance(0.3) ? 2 : 1), whole = U * 100 / unit, part = U * k;
     if (whole % 1) return null;
-    const story = d === 2 && p < 100 && R.chance(0.6), ctx = R.pick([['kids', 'the class'], ['pages', 'the book'], ['seats', 'the bus'], ['songs', 'the playlist']]);
-    const text = story ? B(part + ' ' + ctx[0]) + ' is ' + B(pct(p)) + ' of ' + ctx[1] + '. How many ' + ctx[0] + ' are in ' + ctx[1] + '?' : B(pct(p)) + ' of what number is ' + B(part) + '?';
+    const story = d === 2 && p < 100 && R.chance(0.6), ctx = R.pick([['kids', 'the class', 'in the class'], ['pages', 'the book', 'in the book'], ['seats', 'the seats on the bus', 'on the bus'], ['songs', 'the playlist', 'on the playlist']]);
+    const text = story ? B(pct(p)) + ' of ' + ctx[1] + ' is ' + B(part + ' ' + ctx[0]) + '. How many ' + ctx[0] + ' are ' + ctx[2] + '?' : B(pct(p)) + ' of what number is ' + B(part) + '?';
     const how = k === 1 ? [pct(p) + ' is ' + part + '. ' + pct(p) + ' fits into 100% ' + (100 / unit) + ' times.', 'So 100% is ' + (100 / unit) + ' × ' + part + ' = ' + B(nm(whole)) + '.']
       : [pct(p) + ' is ' + part + ', and ' + pct(p) + ' is ' + k + ' × ' + pct(unit) + '. So ' + pct(unit) + ' is ' + part + ' ÷ ' + k + ' = ' + U + '.', pct(unit) + ' fits into 100% ' + (100 / unit) + ' times: ' + (100 / unit) + ' × ' + U + ' = ' + B(nm(whole)) + '.'];
     return { text, ans: whole, how,
-      steps: (k === 1 ? [] : [st(pct(unit) + ' is ?', U)]).concat([st('How many ' + pct(unit) + ' pieces make 100%?', 100 / unit), st('So 100% is ?', whole)]),
+      steps: (k === 1 ? [] : [st(pct(p) + ' is ' + part + '. So ' + pct(unit) + ' is ?', U)]).concat([st('How many ' + pct(unit) + ' pieces make 100%?', 100 / unit), st(pct(unit) + ' is ' + U + '. So 100% is ?', whole)]),
       traps: [tr(part * p % 100 === 0 ? part * p / 100 : null, 'f_findwhole', 'That is ' + pct(p) + ' of ' + part + '. Here ' + part + ' is the part, and you want the whole.'), tr(p !== 10 ? part * 10 : null, 'f_findwhole', 'That would be right if ' + part + ' were 10%. It is ' + pct(p) + '.'), tr(k > 1 ? U : null, 'f_findwhole', 'That is ' + pct(unit) + '. Scale up to 100%.'), tr(part + 100 - p, 'f_findwhole', 'Scale up by multiplying, not adding.')] };
   } },
 
@@ -916,7 +916,7 @@ defs([
       const a = R.i(1, 8), [n, dd] = reduce(a, 9), s = '0.' + String(a).repeat(3) + '…';
       return { text: 'Write ' + B(s) + ' as a fraction in lowest terms.', ans: F(n, dd), low: true,
         how: ['Let x = ' + s + ', so 10x = ' + a + '.' + String(a).repeat(3) + '…', 'Take away: 10x ' + MINUS + ' x = ' + a + ', so 9x = ' + a + '.', 'x = ' + (dd !== 9 ? frac(a, 9) + ' = ' : '') + B(frac(n, dd)) + '.'],
-        steps: [st('If x = ' + s + ', then 9x = ?', a), sf('So x = ?', n, dd, { low: true })],
+        steps: [st('If x = ' + s + ', then 9x = ?', a), sf('9x = ' + a + '. So x = ?', n, dd, { low: true })],
         traps: [tr(F(a, 10), 'f_dec10', a + '/10 is 0.' + a + ' exactly. A repeating digit goes over 9.'), tr(dd !== 9 ? FL(a, 9) : null, 'f_simplify', 'Right size. Now write it in lowest terms.')] };
     }
     if (kind === 'two') {
@@ -924,7 +924,7 @@ defs([
       const t = String(ab).padStart(2, '0'), [n, dd] = reduce(ab, 99), s = '0.' + t.repeat(3) + '…';
       return { text: 'Write ' + B(s) + ' as a fraction in lowest terms.', ans: F(n, dd), low: true,
         how: ['Let x = ' + s + '. Two digits repeat, so 100x = ' + ab + '.' + t.repeat(2) + '…', 'Take away: 100x ' + MINUS + ' x = ' + ab + ', so 99x = ' + ab + '.', 'x = ' + (dd !== 99 ? frac(ab, 99) + ' = ' : '') + B(frac(n, dd)) + '.'],
-        steps: [st('If x = ' + s + ', then 99x = ?', ab), sf('So x = ?', n, dd, { low: true })],
+        steps: [st('If x = ' + s + ', then 99x = ?', ab), sf('99x = ' + ab + '. So x = ?', n, dd, { low: true })],
         traps: [tr(F(ab, 100), 'f_dec10', ab + '/100 is 0.' + t + ' exactly. Two repeating digits go over 99.'), tr(dd !== 99 ? FL(ab, 99) : null, 'f_simplify', 'Right size. Now write it in lowest terms.'), tr(F(ab, 9), 'f_repeat', 'Two digits repeat, so use 100x and 99, not 9.')] };
     }
     if (kind === 'whole') {
@@ -946,7 +946,7 @@ defs([
     const top = 10 * a + b - a, [n, dd] = reduce(top, 90), s = '0.' + a + String(b).repeat(3) + '…';
     return { text: 'Write ' + B(s) + ' as a fraction in lowest terms.', ans: F(n, dd), low: true,
       how: ['Let x = ' + s + ', so 10x = ' + a + '.' + String(b).repeat(3) + '… and 100x = ' + (10 * a + b) + '.' + String(b).repeat(3) + '…', 'Take away: 100x ' + MINUS + ' 10x = ' + (10 * a + b) + ' ' + MINUS + ' ' + a + ', so 90x = ' + top + '.', 'x = ' + frac(top, 90) + ' = ' + B(frac(n, dd)) + '.'],
-      steps: [st('If x = ' + s + ', then 90x = ' + (10 * a + b) + ' ' + MINUS + ' ' + a + ' = ?', top), sf('So x = ?', n, dd, { low: true })],
+      steps: [st('If x = ' + s + ', then 90x = ' + (10 * a + b) + ' ' + MINUS + ' ' + a + ' = ?', top), sf('90x = ' + top + '. So x = ?', n, dd, { low: true })],
       traps: [tr(F(10 * a + b, 90), 'f_repeat', 'The tail cancels only when you take 10x from 100x: ' + (10 * a + b) + ' ' + MINUS + ' ' + a + '.'), tr(F(10 * a + b, 99), 'f_repeat', 'Only one digit repeats here, after a digit that does not.'), tr(F(10 * a + b, 100), 'f_dec10', 'That ends. The ' + b + ' keeps going forever.')] };
   } },
 
@@ -968,18 +968,18 @@ defs([
     if (kind === 'close') {
       const p = pairs[pairs.length - 1];
       if (p[0] === 1) return null;
-      return { text: 'Of all the factor pairs of ' + B(N) + ', which pair is closest together? Type the ' + B('smaller') + ' number.', ans: p[0],
+      return { text: 'Which factor pair of ' + B(N) + ' has the two numbers closest together? Type the ' + B('smaller') + ' number.', ans: p[0],
         how: ['Check 1, 2, 3, … and write the pairs: ' + list + '.', 'The pairs get closer as you go. The last pair, ' + p[0] + ' × ' + p[1] + ', is closest: ' + B(p[0]) + '.'],
-        steps: [st('How many factor pairs does ' + B(N) + ' have?', pairs.length), st('The last pair has which smaller number?', p[0])],
+        steps: [st('How many factor pairs does ' + B(N) + ' have?', pairs.length), st('List the factor pairs of ' + N + ' in order. What is the smaller number in the last pair?', p[0])],
         traps: [tr(p[1], 'fa_factors', 'Type the smaller number of the pair.'), tr(pairs.length > 1 ? pairs[pairs.length - 2][0] : null, 'fa_factors', 'Keep checking: there is a pair that is even closer.'), tr(1, 'fa_factors', '1 × ' + N + ' is the pair that is farthest apart.')] };
     }
     if (kind === 'pairs') return { text: 'How many ' + B('factor pairs') + ' does ' + B(N) + ' have?', ans: pairs.length,
       how: ['Check 1, 2, 3, … and write each pair: ' + list + '.', 'The next number would pass ' + pairs[pairs.length - 1][0] + ', so stop. That is ' + B(pairs.length) + ' pairs.'],
-      steps: [st('Does 2 go into ' + B(N) + '? Type 1 for yes, 0 for no.', N % 2 ? 0 : 1), st('How many pairs did you find?', pairs.length)],
+      steps: [st('Does 2 go into ' + B(N) + '? Type 1 for yes, 0 for no.', N % 2 ? 0 : 1), st('So how many factor pairs does ' + B(N) + ' have?', pairs.length)],
       traps: [tr(cnt, 'fa_factors', 'That counts the factors. Each pair has two of them.'), tr(pairs.length - 1, 'fa_factors', 'Do not forget 1 × ' + N + '.'), tr(pairs.length + 1, 'fa_factors', 'Stop when the pairs meet, or you count them twice.')] };
     return { text: 'How many ' + B('factors') + ' does ' + B(N) + ' have?', ans: cnt,
       how: ['Check 1, 2, 3, … and write the pairs: ' + list + '.', 'They meet at ' + pairs[pairs.length - 1][0] + ', so stop. Count every number: ' + B(cnt) + ' factors' + (sq ? ' (' + Math.sqrt(N) + ' × ' + Math.sqrt(N) + ' counts once).' : '.')],
-      steps: [st('How many factor pairs does ' + B(N) + ' have?', pairs.length), st(sq ? 'Each pair gives 2 factors, but ' + Math.sqrt(N) + ' × ' + Math.sqrt(N) + ' gives only 1. How many factors?' : 'Each pair gives 2 factors. How many factors?', cnt)],
+      steps: [st('How many factor pairs does ' + B(N) + ' have?', pairs.length), st(N + ' has ' + pairs.length + ' factor pairs. ' + (sq ? 'Each pair gives 2 factors, but ' + Math.sqrt(N) + ' × ' + Math.sqrt(N) + ' gives only 1.' : 'Each pair gives 2 factors.') + ' How many factors does ' + N + ' have?', cnt)],
       traps: [tr(sq ? cnt + 1 : null, 'fa_factors', Math.sqrt(N) + ' × ' + Math.sqrt(N) + ' is one factor, not two.'), tr(pairs.length, 'fa_factors', 'That counts the pairs. Each pair has two factors.'), tr(cnt - 2, 'fa_factors', 'You missed a pair. Check every number until the pairs meet.')] };
   } },
 
@@ -996,14 +996,14 @@ defs([
       const X = R.i(15, 80); const ans = (Math.floor(X / a) + 1) * a;
       return { text: 'What is the first multiple of ' + B(a) + ' that is bigger than ' + B(X) + '?', ans,
         how: ['Find the closest times fact: ' + a + ' × ' + Math.floor(X / a) + ' = ' + (a * Math.floor(X / a)) + '.', 'The next multiple is ' + (a * Math.floor(X / a)) + ' + ' + a + ' = ' + B(ans) + '.'],
-        steps: [st('Biggest multiple of ' + a + ' that is not more than ' + X + ': ?', a * Math.floor(X / a)), st('Add ' + a + ': ?', ans)],
+        steps: [st('What is the biggest multiple of ' + a + ' that is ' + X + ' or less?', a * Math.floor(X / a)), st(B(a * Math.floor(X / a) + ' + ' + a) + ' = ?', ans)],
         traps: [tr(X + a, 'fa_multiples', 'Count in ' + a + 's from 0, not from ' + X + '.'), tr(a * Math.floor(X / a) === X ? null : a * Math.floor(X / a), 'fa_multiples', 'That one is smaller than ' + X + '.'), tr(X + 1, 'fa_multiples', X + 1 + ' is not a multiple of ' + a + '.')] };
     }
     if (d === 2 && R.chance(0.5)) {
       const a = R.i(3, 12), N = R.pick([50, 60, 80, 100, 120, 150, 200]), q = Math.floor(N / a);
       return { text: 'How many multiples of ' + B(a) + ' are there from ' + B(1) + ' to ' + B(N) + '?', ans: q,
         how: ['The multiples are ' + a + ' × 1, ' + a + ' × 2, … up to the biggest one that is not more than ' + N + '.', N + ' ÷ ' + a + ' = ' + q + (N % a ? ' r ' + (N % a) : '') + ', so the last one is ' + a + ' × ' + q + ' = ' + (a * q) + '. That is ' + B(q) + ' multiples.'],
-        steps: [st(B(N + ' ÷ ' + a) + ' = ? (ignore any leftover)', q)],
+        steps: [st('How many ' + a + 's fit in ' + N + '?', q)],
         traps: [tr(N % a ? q + 1 : null, 'm_remain', a + ' × ' + (q + 1) + ' = ' + (a * (q + 1)) + ', which is more than ' + N + '.'), tr(N - a, 'fa_multiples', 'Count how many ' + a + 's fit in ' + N + ': divide.'), tr(q - 1, 'fa_multiples', a + ' itself is the first multiple. Count it too.')] };
     }
     const a = R.i(2, d === 1 ? 10 : 15), b = R.i(2, d === 1 ? 10 : 15); if (a >= b || b % a === 0 && R.chance(0.7)) return null;
@@ -1022,7 +1022,7 @@ defs([
       const tricky = [51, 57, 87, 91, 93, 111, 119, 133].filter(v => v >= A && v < A + 20);
       return { text: 'How many ' + B('prime numbers') + ' are there from ' + B(A) + ' to ' + B(A + 19) + '?', ans: list.length,
         how: ['Skip the even numbers and the ones ending in 5. Test the rest with 3 and 7.' + (tricky.length ? ' Watch out: ' + tricky.map(v => v + ' = ' + C.factorsOf(v)[1] + ' × ' + (v / C.factorsOf(v)[1])).join(', ') + '.' : ''), 'The primes are ' + list.join(', ') + ': ' + B(list.length) + '.'],
-        steps: [st('Is ' + B(list[0]) + ' prime? Type 1 for yes, 0 for no.', 1), st('How many primes from ' + A + ' to ' + (A + 19) + '?', list.length)],
+        steps: [st('Is ' + B(list[0]) + ' prime? Type 1 for yes, 0 for no.', 1), st('How many primes are there from ' + A + ' to ' + (A + 19) + '?', list.length)],
         traps: [tr(tricky.length ? list.length + tricky.length : list.length + 1, 'fa_prime', tricky.length ? tricky.join(' and ') + ' look prime but are not. Test with 3 and 7.' : 'Check each one with 3 and 7.'), tr(list.length - 1, 'fa_prime', 'Test every odd number that does not end in 5.')] };
     }
     let N = d === 0 ? R.i(4, 40) : d === 1 ? R.i(41, 100) : R.i(101, 250);
@@ -1038,7 +1038,7 @@ defs([
     const nextP = ps.find(p => p * p > N);
     const how = prime ? [checks.join(' ') || 'Check 2 and 3.', nextP + ' × ' + nextP + ' = ' + (nextP * nextP) + ' is more than ' + N + ', so stop. ' + N + ' is prime: its smallest factor (not 1) is ' + B(N) + '.'] : [checks.slice(0, -1).join(' ') || 'Start with 2.', checks[checks.length - 1] + ' The smallest factor is ' + B(sp) + '.'];
     return { text: 'What is the smallest factor of ' + B(N) + ' that is not 1? (If ' + N + ' is prime, type ' + N + '.)', ans: sp, how: how.filter(Boolean),
-      steps: prime ? [st('Which prime do you test up to? (its square must not be more than ' + N + ')', ps.filter(p => p * p <= N).pop()), st('None of them go in. So the answer is ?', N)] : [st('Does ' + B(sp) + ' go into ' + N + '? ' + B(N + ' ÷ ' + sp) + ' = ?', N / sp), st('So the smallest factor (not 1) is ?', sp)],
+      steps: prime ? [st(nextP + ' × ' + nextP + ' = ' + (nextP * nextP) + '. That is more than ' + N + ', so you can stop before ' + nextP + '. What is the biggest prime you need to test?', ps.filter(p => p * p <= N).pop()), st('No prime up to ' + ps.filter(p => p * p <= N).pop() + ' goes into ' + N + ', so ' + N + ' is prime. What is the smallest factor of ' + N + ' that is not 1?', N)] : [st('Does ' + B(sp) + ' go into ' + N + '? ' + B(N + ' ÷ ' + sp) + ' = ?', N / sp), st('So what is the smallest factor of ' + N + ' that is not 1?', sp)],
       traps: [tr(prime ? null : N, 'fa_prime', N + ' is not prime. Test 2, 3, 5, 7, … to find a factor.'), tr(1, 'fa_prime', 'Every number has 1 as a factor. Find the next smallest.'), tr(prime ? null : N / sp, 'fa_prime', 'That is a factor, but there is a smaller one: its partner.'), tr(!prime && sp > 3 && N % 3 !== 0 ? 3 : null, 'fa_div39', 'Add the digits: ' + N + ' is not a multiple of 3.')] };
   } },
 
@@ -1051,7 +1051,7 @@ defs([
     if (kind === 'count') { const c = (L % 2 === 0) + (L % 5 === 0) + (L === 0);
       return { text: 'How many of the numbers ' + B('2, 5 and 10') + ' divide ' + B(nm(N)) + ' evenly?', ans: c,
         how: [why, '2: ' + (L % 2 ? 'no' : 'yes') + ' (' + (L % 2 ? 'odd' : 'even') + '). 5: ' + (L % 5 ? 'no' : 'yes') + '. 10: ' + (L ? 'no' : 'yes') + '. That is ' + B(c) + '.'],
-        steps: [st('Is the last digit even? Type 1 for yes, 0 for no.', L % 2 ? 0 : 1), st('Is it 0 or 5? Type 1 for yes, 0 for no.', L % 5 ? 0 : 1), st('Is it 0? Type 1 for yes, 0 for no.', L ? 0 : 1)],
+        steps: [st('Is the last digit of ' + nm(N) + ' even? Type 1 for yes, 0 for no.', L % 2 ? 0 : 1), st('Is the last digit of ' + nm(N) + ' a 0 or a 5? Type 1 for yes, 0 for no.', L % 5 ? 0 : 1), st('Is the last digit of ' + nm(N) + ' a 0? Type 1 for yes, 0 for no.', L ? 0 : 1)],
         traps: [tr(c + 1, 'fa_div2510', 'Check each one with the last digit, ' + L + '.'), tr(c - 1, 'fa_div2510', 'Check each one with the last digit, ' + L + '.')] }; }
     if (kind.startsWith('r')) { const m = +kind.slice(1), r = N % m;
       return { text: 'What is the remainder when ' + B(nm(N)) + ' is divided by ' + B(m) + '?', ans: r,
@@ -1062,7 +1062,7 @@ defs([
     if (up === 0) return null;
     return { text: 'What is the ' + B('smallest') + ' number to add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
       how: [why, m === 2 ? 'Add 1 to make it even: ' + B(1) + '.' : m === 5 ? 'Multiples of 5 end in 0 or 5. From ' + L + ', the next is ' + (L < 5 ? 5 : 10) + ': add ' + B(up) + '.' : 'Multiples of 10 end in 0. From ' + L + ' to 10: add ' + B(up) + '.', nm(N) + ' + ' + up + ' = ' + nm(N + up) + '.'],
-      steps: [st('What is the last digit of ' + B(nm(N)) + '?', L), st('What is the next last digit that works?', (L + up) % 10), st('How much do you add?', up)],
+      steps: [st('What is the last digit of ' + B(nm(N)) + '?', L), st((m === 2 ? 'Multiples of 2 end in 0, 2, 4, 6 or 8.' : m === 5 ? 'Multiples of 5 end in 0 or 5.' : 'Multiples of 10 end in 0.') + ' What is the last digit of the next multiple of ' + m + ' after ' + nm(N) + '?', (L + up) % 10), st('How much do you add to ' + nm(N) + ' to get to ' + nm(N + up) + '?', up)],
       traps: [tr(m === 5 && L < 5 ? 10 - L : null, 'fa_div2510', 'Multiples of 5 can end in 5 too, which is closer.'), tr(L % m, 'fa_div2510', 'That is the remainder. How much more to reach the next multiple?'), tr(m === 5 ? 5 : null, 'fa_div2510', 'Add to the last digit to make it 0 or 5.')] };
   } },
 
@@ -1075,9 +1075,9 @@ defs([
       const s = C.sum(digits), need = (m - s % m) % m;
       if (m === 9 && (need === 0 || need === 9)) return null;
       const shown = digits.map((x, i) => i === pos ? '_' : x).join('');
-      return { text: 'The number ' + B(shown) + ' is divisible by ' + B(m) + '. What is the ' + (m === 3 ? 'smallest digit' : 'missing digit') + ' that fits in the blank?', ans: need,
+      return { text: 'The number ' + B(shown) + ' is divisible by ' + B(m) + '. ' + (m === 3 ? 'What is the smallest digit that fits in the blank?' : 'What digit is missing?'), ans: need,
         how: ['Add the digits you have: ' + digits.filter((_, i) => i !== pos).join(' + ') + ' = ' + s + '.', 'The digit sum must be a multiple of ' + m + '. The next one up from ' + s + ' is ' + (s + need) + ', so the digit is ' + B(need) + '.'],
-        steps: [st('Add the digits you have: ?', s), st('Next multiple of ' + m + ' (not less than ' + s + ')?', s + need), st('So the digit is ?', need)],
+        steps: [st('Add the digits you have: ' + B(digits.filter((_, i) => i !== pos).join(' + ')) + ' = ?', s), st('What is the first multiple of ' + m + ' that is ' + s + ' or more?', s + need), st('What do you add to ' + s + ' to make ' + (s + need) + '?', need)],
         traps: [tr(m === 3 ? need + 3 : null, 'fa_div39', 'That works too, but a smaller digit does.'), tr(need + m <= 9 && m === 9 ? need + 9 : null, 'fa_div39', 'Check the digit sum.'), tr((s + need) % 10 === need ? null : (s + need), 'fa_div39', 'That is the digit sum you need. What digit gets you there?'), tr(m === 9 ? (3 - s % 3) % 3 || 3 : null, 'fa_div39', 'For 9 the digit sum must be a multiple of 9, not just 3.')] };
     }
     const N = d === 0 ? R.i(101, 999) : R.i(10001, 999999), s = dsum(N), r = N % m;
@@ -1085,13 +1085,13 @@ defs([
       const up = (m - r) % m; if (!up) return null;
       return { text: 'What is the ' + B('smallest') + ' number to add to ' + B(nm(N)) + ' to make it divisible by ' + B(m) + '?', ans: up,
         how: ['Digit sum: ' + String(N).split('').join(' + ') + ' = ' + s + '.', s + ' ÷ ' + m + ' leaves ' + r + ', so ' + nm(N) + ' leaves ' + r + ' too. Add ' + m + ' ' + MINUS + ' ' + r + ' = ' + B(up) + '.'],
-        steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('What is the remainder of ' + s + ' ÷ ' + m + '?', r), st('How much more to the next multiple of ' + m + '?', up)],
+        steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('What is the remainder of ' + s + ' ÷ ' + m + '?', r), st('How much more is it from ' + s + ' to the next multiple of ' + m + '?', up)],
         traps: [tr(r, 'fa_div39', 'That is the remainder. How much more to the next multiple?'), tr(s, 'fa_div39', 'That is the digit sum.')] };
     }
     const s2 = dsum(s);
     return { text: 'What is the remainder when ' + B(nm(N)) + ' is divided by ' + B(m) + '?', ans: r,
       how: ['Add the digits: ' + String(N).split('').join(' + ') + ' = ' + s + (s >= 10 && m === 9 ? ', and again: ' + String(s).split('').join(' + ') + ' = ' + s2 : '') + '.', 'A number leaves the same remainder as its digit sum. ' + (m === 9 && s >= 10 ? s2 : s) + ' ÷ ' + m + ' leaves ' + B(r) + '.'],
-      steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('Remainder of ' + B(s + ' ÷ ' + m) + ' = ?', r)],
+      steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('What is the remainder of ' + B(s + ' ÷ ' + m) + '?', r)],
       traps: [tr(s, 'fa_div39', 'That is the digit sum. Now find its remainder when divided by ' + m + '.'), tr(m === 9 ? r % 3 : r + 3 <= 8 ? null : null, 'fa_div39', 'That is the remainder for 3. Divide by 9.'), tr((N % 10) % m, 'fa_div2510', 'The last-digit test works for 2, 5 and 10. For ' + m + ', add all the digits.')] };
   } },
 
@@ -1114,7 +1114,7 @@ defs([
       return { text: 'What is the ' + B('smallest digit') + ' that makes ' + B(front + '_') + ' divisible by ' + B(m) + '?', ans,
         how: m === 4 ? ['For 4, check the last two digits: ' + (front % 10) + '_ must be a multiple of 4.', 'Multiples of 4 in the ' + (front % 10) + '0s: ' + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].filter(x => ((front % 10) * 10 + x) % 4 === 0).map(x => (front % 10) * 10 + x).join(', ') + '. The smallest digit is ' + B(ans) + '.']
           : ['For 6, it must be even (divides by 2) and its digit sum must divide by 3.', 'Digits so far add to ' + s + '. Try even digits: ' + ans + ' gives ' + (s + ans) + ', a multiple of 3. So ' + B(ans) + '.'],
-        steps: m === 4 ? [st('Which even digit is the smallest that makes ' + (front % 10) + '_ a multiple of 4?', ans)] : [st('Add the digits ' + String(front).split('').join(' + ') + ': ?', s), st('Smallest even digit that makes the sum a multiple of 3?', ans)],
+        steps: m === 4 ? [st('What is the smallest digit that makes ' + (front % 10) + '_ a multiple of 4?', ans)] : [st('Add the digits: ' + B(String(front).split('').join(' + ')) + ' = ?', s), st('The digits add to ' + s + ' so far. What is the smallest even digit that makes the sum a multiple of 3?', ans)],
         traps: [tr(m === 6 ? (3 - s % 3) % 3 : null, 'fa_div2510', 'For 6, the number must also be even.'), tr(m === 6 ? [0, 2, 4, 6, 8].find(x => x !== ans) : null, 'fa_div39', 'Even is not enough: the digit sum must divide by 3.'), tr(m === 4 ? [0, 2, 4, 6, 8].find(x => x !== ans && ((front % 10) * 10 + x) % 4 !== 0) : null, 'fa_div46', 'Even is not enough: the last two digits must divide by 4.')] };
     }
     const N = R.i(1001, 9999), s = dsum(N), t = N % 100, by = [N % 2 === 0, s % 3 === 0, t % 4 === 0, N % 2 === 0 && s % 3 === 0], c = by.filter(Boolean).length;
@@ -1122,7 +1122,7 @@ defs([
     const yn = b => b ? 'yes' : 'no';
     return { text: 'How many of the numbers ' + B('2, 3, 4 and 6') + ' divide ' + B(nm(N)) + ' evenly?', ans: c,
       how: ['2: last digit ' + (N % 10) + ', ' + yn(by[0]) + '. 3: digit sum ' + s + ', ' + yn(by[1]) + '. 4: last two digits ' + String(t).padStart(2, '0') + ', ' + yn(by[2]) + '.', '6 needs both 2 and 3: ' + yn(by[3]) + '. That is ' + B(c) + '.'],
-      steps: [st('Digit sum of ' + B(nm(N)) + ': ?', s), st('Does 4 go into ' + B(t) + '? Type 1 for yes, 0 for no.', by[2] ? 1 : 0), st('How many of 2, 3, 4 and 6 divide it?', c)],
+      steps: [st('Add the digits of ' + B(nm(N)) + ': ?', s), st('Does 4 go into ' + B(t) + '? Type 1 for yes, 0 for no.', by[2] ? 1 : 0), st('How many of 2, 3, 4 and 6 divide ' + nm(N) + ' evenly?', c)],
       traps: [tr(!by[3] && (by[0] || by[1]) ? c + 1 : null, 'fa_div46', '6 needs both: even and a digit sum that divides by 3.'), tr(!by[2] && (N % 10) % 4 === 0 ? c + 1 : null, 'fa_div46', 'For 4, use the last two digits, not just the last one.'), tr(c > 0 ? c - 1 : null, 'fa_div46', 'Check each of the four again.')] };
   } },
 
@@ -1133,7 +1133,7 @@ defs([
     if (m >= n || gcd(m, n) > 1) return null;
     const a = g * m, b = g * n; if (b > (d === 0 ? 36 : d === 1 ? 100 : 400)) return null;
     const story = d === 2 && R.chance(0.35);
-    const text = story ? 'You have ' + B(a + ' pencils') + ' and ' + B(b + ' erasers') + '. You make identical gift bags with nothing left over. What is the ' + B('most') + ' bags you can make?' : 'What is the ' + B('greatest common factor') + ' of ' + B(a) + ' and ' + B(b) + '?';
+    const text = story ? 'You have ' + B(a + ' pencils') + ' and ' + B(b + ' erasers') + '. You put them into gift bags that are all the same. Nothing is left over. What is the ' + B('greatest') + ' number of bags you can make?' : 'What is the ' + B('greatest common factor') + ' of ' + B(a) + ' and ' + B(b) + '?';
     let how;
     if (d < 2) how = ['Factors of ' + a + ': ' + factorsOf(a).join(', ') + '.', 'Factors of ' + b + ': ' + factorsOf(b).join(', ') + '.', 'The biggest one in both lists: ' + B(g) + '.'];
     else how = [a + ' = ' + pfStr(a) + '.', b + ' = ' + pfStr(b) + '.', 'Shared primes, smallest powers: ' + pfStr(g) + ' = ' + B(g) + '.', 'Check: ' + g + ' goes into the difference, ' + b + ' ' + MINUS + ' ' + a + ' = ' + (b - a) + '.'];
@@ -1149,13 +1149,13 @@ defs([
     const a = R.i(2, d === 0 ? 10 : d === 1 ? 20 : 40), b = R.i(3, d === 0 ? 12 : d === 1 ? 24 : 60); if (a >= b || b % a === 0) return null;
     const g = gcd(a, b), L = lcm(a, b); if (d > 0 && g === 1 && (d === 2 || R.chance(0.7))) return null; if (L > (d === 2 ? 400 : 150)) return null;
     const story = d === 2 && R.chance(0.4);
-    const text = story ? 'One bus leaves every ' + B(a + ' minutes') + ', another every ' + B(b + ' minutes') + '. They both leave at 8:00. In how many minutes do they next leave together?' : 'What is the ' + B('least common multiple') + ' of ' + B(a) + ' and ' + B(b) + '?';
+    const text = story ? 'One bus leaves every ' + B(a + ' minutes') + '. Another bus leaves every ' + B(b + ' minutes') + '. Both buses leave at 8:00. After how many minutes do both buses leave together again?' : 'What is the ' + B('least common multiple') + ' of ' + B(a) + ' and ' + B(b) + '?';
     let how, steps;
     if (d === 0) { const sa = [], sb = []; for (let v = a; v <= L; v += a) sa.push(v); for (let v = b; v <= L; v += b) sb.push(v);
       how = ['Multiples of ' + b + ': ' + sb.join(', ') + '.', 'Multiples of ' + a + ': ' + sa.join(', ') + '.', 'The first one in both: ' + B(L) + '.'];
-      steps = [st('Count by ' + b + 's. What is the first one that ' + a + ' goes into?', L)]; }
+      steps = [st('Count by ' + b + 's. What is the first number that ' + a + ' goes into?', L)]; }
     else { how = ['GCF of ' + a + ' and ' + b + ': ' + g + '.', 'LCM = ' + a + ' × ' + b + ' ÷ ' + g + ' = ' + a + ' ÷ ' + g + ' × ' + b + '.', '= ' + (a / g) + ' × ' + b + ' = ' + B(L) + '.'];
-      steps = [st('What is the GCF of ' + B(a) + ' and ' + B(b) + '?', g), st(B(a + ' ÷ ' + g) + ' = ?', a / g), st(B((a / g) + ' × ' + b) + ' = ?', L)]; }
+      steps = [st('What is the greatest common factor of ' + B(a) + ' and ' + B(b) + '?', g), st(B(a + ' ÷ ' + g) + ' = ?', a / g), st(B((a / g) + ' × ' + b) + ' = ?', L)]; }
     return { text, ans: L, how, steps,
       traps: [tr(g > 1 ? a * b : null, 'fa_lcm', a * b + ' is a common multiple, but not the least. Divide by the GCF, ' + g + '.'), tr(g > 1 ? g : null, 'fa_gcf', 'That is the greatest common factor. The LCM is a multiple of both numbers.'), tr(b, 'fa_multiples', a + ' does not go into ' + b + '.')] };
   } },
@@ -1179,14 +1179,14 @@ defs([
         traps: [tr(big * list[0] < N ? big * list[0] : null, 'fa_primefact', 'Keep splitting until every factor is prime.'), tr(list.length > 2 ? big * list[list.length - 2] : null, 'fa_primefact', 'The ? is just one prime. The others are already written.')] };
     }
     if (kind === 'big') return { text: 'What is the ' + B('largest prime factor') + ' of ' + B(N) + '?', ans: big, how,
-      steps: [st('Divide out all the small primes. What is left at the end?', big)],
+      steps: [st('Keep dividing ' + N + ' by primes, smallest first, until you reach 1. What is the last prime you use?', big)],
       traps: [tr(N / big > big && !isPrime(N / big) ? N / big : null, 'fa_prime', N / big + ' is not prime. Keep splitting.'), tr(ps.length > 1 ? ps[ps.length - 2] : null, 'fa_primefact', 'There is a bigger prime factor. Keep dividing to the end.'), tr(N / 2 % 1 === 0 ? N / 2 : null, 'fa_prime', N / 2 + ' is a factor, but not prime.')] };
     if (kind === 'exp') { const p = R.pick(ps.filter(q => f[q] > 1).concat(ps)), e = f[p];
       return { text: B(N) + ' = ' + ps.map(q => q === p ? pw(q, '?') : f[q] > 1 ? pw(q, f[q]) : q).join(' × ') + '. What is the missing power?', ans: e, how,
         steps: [st('How many times can you divide ' + B(N) + ' by ' + B(p) + '?', e)],
         traps: [tr(e + 1, 'fa_primefact', 'Count the divisions by ' + p + ' again.'), tr(e > 1 ? e - 1 : null, 'fa_primefact', 'Keep dividing by ' + p + ' while you can.'), tr(Math.pow(p, e), 'w_exp', 'The power counts how many ' + p + 's, not their product.')] }; }
     return { text: 'Write ' + B(N) + ' as a product of primes. How many prime factors are there, ' + B('counting repeats') + '?', ans: tot, how,
-      steps: ps.slice(0, 3).map(p => st('How many times does ' + p + ' go in?', f[p])).concat([st('Add up the powers of all the primes: ?', tot)]),
+      steps: ps.slice(0, 3).map(p => st('How many times can you divide ' + B(N) + ' by ' + B(p) + '?', f[p])).concat([st(N + ' = ' + ps.map(p => Array(f[p]).fill(p).join(' × ')).join(' × ') + '. How many primes are multiplied here?', tot)]),
       traps: [tr(ps.length, 'fa_primefact', 'Count repeats too: 2 × 2 is two prime factors.'), tr(factorsOf(N).length, 'fa_count', 'That counts all the factors. Count only the primes in the product.'), tr(tot - 1, 'fa_primefact', 'Check that every piece is prime.')] };
   } },
 
@@ -1204,7 +1204,7 @@ defs([
     const p0 = ones[0] * ones[1];
     return { text: 'What is the ' + B('last digit') + ' of ' + B(nums.map(nm).join(' × ')) + '?', ans,
       how: ['Only the ones digits matter: ' + ones.join(', ') + '.', chain.map((c, i) => c + (i < chain.length - 1 ? ', keep ' + (+c.split(' = ')[1] % 10) : '')).join('; ') + '.', 'The product ends in ' + B(ans) + '.'],
-      steps: [st('Ones digits: ' + B(ones[0] + ' × ' + ones[1]) + ' = ?', p0)].concat(ones.length > 2 ? [st('Keep the last digit, ' + (p0 % 10) + ', and times by ' + ones[2] + ': ?', (p0 % 10) * ones[2])] : []).concat([st('So the last digit is ?', ans)]),
+      steps: [st('Ones digits: ' + B(ones[0] + ' × ' + ones[1]) + ' = ?', p0)].concat(ones.length > 2 ? [st('Keep only the last digit of ' + p0 + '. ' + B((p0 % 10) + ' × ' + ones[2]) + ' = ?', (p0 % 10) * ones[2])] : []).concat([st('What is the last digit of ' + (ones.length > 2 ? (p0 % 10) * ones[2] : p0) + '?', ans)]),
       traps: [tr(p0 >= 10 ? Math.floor(p0 / 10) : null, 'n_place', 'Use the ones digit of ' + p0 + ', not the tens.'), tr((ones[0] + ones[1]) % 10, 'fa_units', 'Multiply the ones digits, do not add them.'), tr(slip(ones[0], ones[1]).v % 10, factC(ones[0], ones[1]), 'Check the fact ' + ones[0] + ' × ' + ones[1] + '.')] };
   } },
 
@@ -1216,7 +1216,7 @@ defs([
       const terms = ds.map((x, i) => (i === 0 ? '' : i % 2 ? ' ' + MINUS + ' ' : ' + ') + x).join('');
       return { text: 'What is the remainder when ' + B(nm(N)) + ' is divided by ' + B(11) + '?', ans: r,
         how: ['From the ones digit, alternate + and ' + MINUS + ': ' + terms + ' = ' + num(s) + '.', s < 0 ? num(s) + ' + ' + (Math.ceil(-s / 11) * 11) + ' = ' + r + ', so the remainder is ' + B(r) + '.' : s + ' ÷ 11 leaves ' + B(r) + '.'],
-        steps: [st('Alternating sum from the ones digit: ?', s), st('Remainder when that is divided by 11 (add 11 if it is below 0): ?', r)],
+        steps: [st('Switch between + and ' + MINUS + ', starting at the ones digit: ' + B(terms) + ' = ?', s), st(s < 0 ? 'Keep adding 11 to ' + num(s) + ' until you reach 0 or more. What number do you reach?' : 'What is the remainder when ' + s + ' is divided by 11?', r)],
         traps: [tr(C.sum(ds) % 11, 'fa_div11', 'For 11 the signs alternate, + − + −, starting at the ones digit.'), tr(r ? 11 - r : null, 'fa_div11', 'Start with + at the ones digit, not at the first digit.'), tr(s >= 0 && s !== r ? s : null, 'fa_div11', 'Now find the remainder of ' + s + ' ÷ 11.')] };
     }
     const len = d === 0 ? 3 : 4, digits = Array.from({ length: len }, (_, i) => i === 0 ? R.i(1, 9) : R.i(0, 9)), pos = d === 0 ? 1 : R.i(0, len - 1);
@@ -1227,7 +1227,7 @@ defs([
     const terms = digits.map((x, i) => i === pos ? '?' : x).reverse().map((x, i) => (i === 0 ? '' : i % 2 ? ' ' + MINUS + ' ' : ' + ') + x).join('');
     return { text: 'The number ' + B(shown) + ' is divisible by ' + B(11) + '. What digit is missing?', ans: need,
       how: ['From the ones digit, alternate + and ' + MINUS + ': ' + terms + ' must be 0 or a multiple of 11.', 'The digit that works is ' + B(need) + ': ' + nm(N) + ' = 11 × ' + nm(N / 11) + '.'],
-      steps: [st('Alternating sum without the missing digit (from the ones digit): ?', s0), st('What digit makes the total 0 or a multiple of 11?', need)],
+      steps: [st('The digits you know, with their signs: ' + B(digits.map((x, i) => i === pos ? null : [sgn(i), x]).reverse().filter(Boolean).map((q, i) => (q[0] < 0 ? (i ? ' ' + MINUS + ' ' : MINUS) : (i ? ' + ' : '')) + q[1]).join('')) + ' = ?', s0), st(B(terms) + ' must be 0 or a multiple of 11. What digit is missing?', need)],
       traps: [tr(need !== Math.abs(s0) % 11 && Math.abs(s0) % 11 <= 9 ? Math.abs(s0) % 11 : null, 'fa_div11', 'Watch the sign of the missing digit\'s place.'), tr((9 - C.sum(digits) + need + 99) % 9 <= 9 && (11 - need) <= 9 ? 11 - need : null, 'fa_div11', 'Alternate the signs, starting with + at the ones digit.')] };
   } },
 
@@ -1243,7 +1243,7 @@ defs([
     const cnt = es.reduce((t, e) => t * (e + 1), 1), given = d === 0;
     return { text: (given ? B(N) + ' = ' + pfStr(N) + '. ' : '') + 'How many factors does ' + B(N) + ' have?', ans: cnt,
       how: (given ? [] : [N + ' = ' + pfStr(N) + '.']).concat(['A factor chooses how many of each prime: ' + ps.map((p, i) => p + ': 0 to ' + es[i] + ' (' + (es[i] + 1) + ' choices)').join(', ') + '.', 'Multiply the choices: ' + es.map(e => '(' + e + ' + 1)').join(' × ') + ' = ' + es.map(e => e + 1).join(' × ') + ' = ' + B(cnt) + '.']),
-      steps: (given ? [] : [st('How many 2s are in ' + B(N) + '? (Type 0 if none.)', f[2] || 0)]).concat([st('Choices for each prime, multiplied: ' + B(es.map(e => (e + 1)).join(' × ')) + ' = ?', cnt)]),
+      steps: (given ? [] : [st('How many times can you divide ' + B(N) + ' by 2? (Type 0 if none.)', f[2] || 0)]).concat([st(N + ' = ' + pfStr(N) + '. Add 1 to each power, then multiply: ' + B(es.map(e => (e + 1)).join(' × ')) + ' = ?', cnt)]),
       traps: [tr(es.reduce((t, e) => t * e, 1), 'fa_count', 'Add 1 to each power: a factor can also use none of that prime.'), tr(es.reduce((t, e) => t + e + 1, 0), 'fa_count', 'Multiply the choices, do not add them.'), tr(C.sum(es) + 1, 'fa_count', 'Each prime gives its own choices. Multiply them.')] };
   } },
 
@@ -1254,16 +1254,16 @@ defs([
     if (d === 2 && R.chance(0.6)) {
       const r1 = R.i(2, m - 1), r2 = R.i(2, m - 1), op = R.pick(['×', '+', 'sq']), raw = op === '×' ? r1 * r2 : op === '+' ? r1 + r2 : r1 * r1, ans = raw % m;
       const qText = op === 'sq' ? 'What is the remainder when ' + B('a × a') + ' is divided by ' + m + '?' : 'What is the remainder when ' + B('a ' + op + ' b') + ' is divided by ' + m + '?';
-      return { text: B('a') + ' leaves ' + B(r1) + ' when divided by ' + B(m) + (op === 'sq' ? '. ' : ', and ' + B('b') + ' leaves ' + B(r2) + '. ') + qText, ans,
+      return { text: 'The number ' + B('a') + ' leaves a remainder of ' + B(r1) + ' when divided by ' + B(m) + '. ' + (op === 'sq' ? '' : 'The number ' + B('b') + ' leaves a remainder of ' + B(r2) + '. ') + qText, ans,
         how: ['Only the remainders matter: use ' + (op === 'sq' ? r1 + ' × ' + r1 : r1 + ' ' + op + ' ' + r2) + ' = ' + raw + '.', raw + ' ÷ ' + m + ' leaves ' + B(ans) + '.'],
-        steps: [st(B(op === 'sq' ? r1 + ' × ' + r1 : r1 + ' ' + op + ' ' + r2) + ' = ?', raw), st('Remainder of ' + B(raw + ' ÷ ' + m) + ' = ?', ans)],
+        steps: [st(B(op === 'sq' ? r1 + ' × ' + r1 : r1 + ' ' + op + ' ' + r2) + ' = ?', raw), st('What is the remainder of ' + B(raw + ' ÷ ' + m) + '?', ans)],
         traps: [tr(raw >= m ? raw : null, 'fa_mod', raw + ' is more than ' + m + '. Take out ' + m + 's to get the remainder.'), tr(op === '×' ? (r1 + r2) % m : op === '+' ? (r1 * r2) % m : (2 * r1) % m, 'fa_mod', op === '+' ? 'This one is adding.' : 'Multiply the remainders.')] };
     }
     const a = R.i(12, d === 0 ? 60 : 99), b = R.i(12, d === 0 ? 60 : 99), mul = d >= 1, ra = a % m, rb = b % m, raw = mul ? ra * rb : ra + rb, ans = raw % m, op = mul ? ' × ' : ' + ';
     if (ra < 2 || rb < 2) return null;
     return { text: 'What is the remainder when ' + B(a + op + b) + ' is divided by ' + B(m) + '?', ans,
       how: [a + ' leaves ' + ra + ' and ' + b + ' leaves ' + rb + ' when divided by ' + m + '.', 'Use the remainders: ' + ra + op + rb + ' = ' + raw + (raw >= m ? ', which leaves ' + B(ans) + '.' : ', so the answer is ' + B(ans) + '.')],
-      steps: [st('Remainder of ' + B(a + ' ÷ ' + m) + ' = ?', ra), st('Remainder of ' + B(b + ' ÷ ' + m) + ' = ?', rb), st(B(ra + op + rb) + ' = ' + raw + '. Its remainder ÷ ' + m + ' = ?', ans)],
+      steps: [st('What is the remainder of ' + B(a + ' ÷ ' + m) + '?', ra), st('What is the remainder of ' + B(b + ' ÷ ' + m) + '?', rb), st(B(ra + op + rb) + ' = ' + raw + '. What is the remainder of ' + B(raw + ' ÷ ' + m) + '?', ans)],
       traps: [tr(raw >= m ? raw : null, 'fa_mod', raw + ' is ' + m + ' or more. Take out ' + m + 's to get the remainder.'), tr(mul ? (ra + rb) % m : (ra * rb) % m, 'fa_mod', mul ? 'Multiply the remainders.' : 'Add the remainders.'), tr(m - ans, 'm_remain', 'That is how far to the next multiple. The remainder is what is left over.')] };
   } },
 
@@ -1279,7 +1279,7 @@ defs([
         traps: [tr(P / 2, 'g_perim', 'A square has 4 sides, not 2.'), tr(P - 4, 'g_perim', 'Share the perimeter equally among the 4 sides: divide.')] };
       return { text: 'A rectangle has a perimeter of ' + B(P + ' cm') + '. Its length is ' + B(l + ' cm') + '. How wide is it?', ans: w, unit: 'cm', vis: rectSVG(l, w, { w: l + ' cm', h: '?' }),
         how: ['Half the perimeter is one length plus one width: ' + P + ' ÷ 2 = ' + (l + w) + '.', 'Width = ' + (l + w) + ' ' + MINUS + ' ' + l + ' = ' + B(w) + ' cm.'],
-        steps: [st('One length + one width = half the perimeter: ' + B(P + ' ÷ 2') + ' = ?', l + w), st(B((l + w) + ' ' + MINUS + ' ' + l) + ' = ?', w, { unit: 'cm' })],
+        steps: [st('Half the perimeter is one length and one width. ' + B(P + ' ÷ 2') + ' = ?', l + w), st(B((l + w) + ' ' + MINUS + ' ' + l) + ' = ?', w, { unit: 'cm' })],
         traps: [tr(P - l, 'g_perim', 'The perimeter has two lengths. Take half first.'), tr(P - 2 * l, 'g_perim', 'That is both widths together. You want one.'), tr(P % l === 0 ? P / l : null, 'g_area', 'That is how area works. Perimeter adds the sides.')] };
     }
     if (d === 1 && R.chance(0.5)) {
@@ -1319,7 +1319,7 @@ defs([
     const l = d === 0 ? R.i(2, 6) : R.i(4, 12), w = d === 0 ? R.i(2, 5) : R.i(3, 10), A = l * w;
     return { text: d === 0 ? 'How many squares cover the rectangle?' : 'What is the area of the rectangle?', ans: A, unit: d === 0 ? 'squares' : 'square cm', vis: rectSVG(l, w, d === 0 ? { grid: true } : { w: l + ' cm', h: w + ' cm' }),
       how: ['There are ' + w + ' rows with ' + l + ' squares in each row.', w + ' × ' + l + ' = ' + B(A) + (d === 0 ? ' squares.' : ' square cm.')],
-      steps: [st('How many squares in one row?', l), st('How many rows?', w), st(B(w + ' × ' + l) + ' = ?', A)],
+      steps: [st('The rectangle is ' + l + (d === 0 ? ' squares wide. How many squares are in one row?' : ' cm wide. How many 1 cm squares fit in one row?'), l), st('The rectangle is ' + w + (d === 0 ? ' squares tall. How many rows are there?' : ' cm tall. How many rows of 1 cm squares fit?'), w), st(B(w + ' × ' + l) + ' = ?', A)],
       traps: [tr(2 * (l + w), 'g_perim', 'That is the perimeter, around the edge. Area counts the squares inside.'), tr(l + w, 'g_area', 'Multiply the rows by the squares in each row.'), slip(l, w)] };
   } },
 
@@ -1334,7 +1334,7 @@ defs([
     const kind = d === 0 ? 'down' : d === 1 ? R.pick(['down', 'up', 'mix']) : R.pick(['down', 'up', 'up']);
     if (kind === 'up') return { text: B(N + ' ' + small) + ' = how many ' + B(many) + '?', ans: n,
       how: [fact, 'Small units to big units: divide. ' + N + ' ÷ ' + f + ' = ' + B(n) + ' ' + many + '.'],
-      steps: [st('How many ' + small + ' in 1 ' + one + '?', f), st(B(N + ' ÷ ' + f) + ' = ?', n)],
+      steps: [st('How many ' + small + ' are in 1 ' + one + '?', f), st(B(N + ' ÷ ' + f) + ' = ?', n)],
       traps: [tr(N * f, 'g_custom', 'Going to a bigger unit gives a smaller number: divide.'), tr(f === 12 ? N / 10 : null, 'g_custom', 'There are 12 inches in a foot, not 10.'), tr(N - f, 'g_custom', 'Find how many groups of ' + f + ': divide.')] };
     if (kind === 'mix') { const extra = R.i(1, f - 1), T = N + extra;
       const sing = { inches: 'inch', feet: 'foot', cups: 'cup', pints: 'pint', quarts: 'quart' }, ex = extra + ' ' + (extra === 1 ? sing[small] : small);
@@ -1344,7 +1344,7 @@ defs([
         traps: [tr(N, 'g_custom', 'Add the extra ' + ex + ' too.'), tr(n * 10 + extra, 'g_custom', 'These units are not tens: 1 ' + one + ' is ' + f + ' ' + small + '.'), tr(n + extra, 'g_custom', 'Change the ' + many + ' to ' + small + ' first: multiply by ' + f + '.')] }; }
     return { text: B(n + ' ' + many) + ' = how many ' + B(small) + '?', ans: N,
       how: [fact, 'Big units to small units: multiply. ' + n + ' × ' + f + ' = ' + B(N) + ' ' + small + '.'],
-      steps: [st('How many ' + small + ' in 1 ' + one + '?', f), st(B(n + ' × ' + f) + ' = ?', N)],
+      steps: [st('How many ' + small + ' are in 1 ' + one + '?', f), st(B(n + ' × ' + f) + ' = ?', N)],
       traps: [tr(n * 10, 'g_custom', 'These units are not tens: 1 ' + one + ' is ' + f + ' ' + small + '.'), tr(n + f, 'g_custom', 'Each ' + one + ' is ' + f + ' ' + small + ': multiply.'), f <= 12 ? slip(n, f) : null] };
   } },
 
@@ -1356,12 +1356,12 @@ defs([
     if (kind === 'down') { const n = R.i(2, d === 0 ? 9 : 40), N = n * f;
       return { text: B(n + ' ' + big) + ' = how many ' + B(small) + '?', ans: N,
         how: ['1 ' + big + ' = ' + nm(f) + ' ' + small + '. Big unit to small unit: multiply.', n + ' × ' + nm(f) + ' = ' + B(nm(N)) + ' ' + small + ' (add ' + z + ' ' + plural(z, 'zero') + ').'],
-        steps: [st('How many ' + small + ' in 1 ' + big + '?', f), st(B(n + ' × ' + nm(f)) + ' = ?', N)],
+        steps: [st('How many ' + small + ' are in 1 ' + big + '?', f), st(B(n + ' × ' + nm(f)) + ' = ?', N)],
         traps: [tr(n * f / 10 !== n ? n * f / 10 : null, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + '. Count the zeros.'), tr(n * f * 10, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + '. Count the zeros.'), tr(dv(n, z), 'n_times10', 'A smaller unit means more of them: multiply.')] }; }
     if (kind === 'up') { const n = R.i(2, 30), N = n * f;
       return { text: B(nm(N) + ' ' + small) + ' = how many ' + B(big) + '?', ans: n,
         how: ['1 ' + big + ' = ' + nm(f) + ' ' + small + '. Small unit to big unit: divide.', nm(N) + ' ÷ ' + nm(f) + ' = ' + B(n) + ' ' + big + ' (take off ' + z + ' ' + plural(z, 'zero') + ').'],
-        steps: [st('How many ' + small + ' in 1 ' + big + '?', f), st(B(nm(N) + ' ÷ ' + nm(f)) + ' = ?', n)],
+        steps: [st('How many ' + small + ' are in 1 ' + big + '?', f), st(B(nm(N) + ' ÷ ' + nm(f)) + ' = ?', n)],
         traps: [tr(N * f, 'n_times10', 'A bigger unit means fewer of them: divide.'), tr(n * 10, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + '. Take off ' + z + ' zeros.'), tr(f > 10 ? n / 10 : null, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + '. Take off ' + z + ' zeros.')] }; }
     if (kind === 'mix') { const n = R.i(1, 9), e = R.i(1, f - 1), T = n * f + e;
       return { text: B(n + ' ' + big + ' ' + e + ' ' + small) + ' = how many ' + B(small) + '?', ans: T,
@@ -1373,12 +1373,12 @@ defs([
       if (ans % 1 && z < p) return null;
       return { text: B(num(v) + ' ' + big) + ' = how many ' + B(small) + '?', ans,
         how: ['1 ' + big + ' = ' + nm(f) + ' ' + small + '. Big to small: × ' + nm(f) + ', so the point hops ' + z + ' ' + plural(z, 'place') + ' right.', num(v) + ' → ' + B(num(ans)) + ' ' + small + '.'],
-        steps: [st('How many places does the point hop?', z), st(B(num(v) + ' × ' + nm(f)) + ' = ?', ans)],
+        steps: [st('To multiply by ' + nm(f) + ', how many places does the point hop right?', z), st(B(num(v) + ' × ' + nm(f)) + ' = ?', ans)],
         traps: [tr(ans / 10, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + ': hop ' + z + ' places.'), tr(ans * 10, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + ': hop ' + z + ' places.'), tr(dv(k, p + z), 'n_times10', 'A smaller unit means more of them: the number gets bigger.')] }; }
     const N = k * P10[R.i(0, 1)], ans = N / f;
     return { text: B(nm(N) + ' ' + small) + ' = how many ' + B(big) + '?', ans,
       how: ['1 ' + big + ' = ' + nm(f) + ' ' + small + '. Small to big: ÷ ' + nm(f) + ', so the point hops ' + z + ' ' + plural(z, 'place') + ' left.', nm(N) + ' → ' + B(num(ans)) + ' ' + big + '.'],
-      steps: [st('How many places does the point hop left?', z), st(B(nm(N) + ' ÷ ' + nm(f)) + ' = ?', ans)],
+      steps: [st('To divide by ' + nm(f) + ', how many places does the point hop left?', z), st(B(nm(N) + ' ÷ ' + nm(f)) + ' = ?', ans)],
       traps: [tr(ans * 10, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + ': hop ' + z + ' places.'), tr(ans / 10, 'g_metric', '1 ' + big + ' = ' + nm(f) + ' ' + small + ': hop ' + z + ' places.'), tr(N * f, 'n_times10', 'A bigger unit means fewer of them: divide.')] };
   } },
 
@@ -1395,7 +1395,7 @@ defs([
       const P = 2 * (W + H);
       return { text: 'Find the ' + B('perimeter') + ' of the shape. All lengths are in cm.', ans: P, unit: 'cm', vis,
         how: ['The two missing sides are ' + W + ' ' + MINUS + ' ' + top + ' = ' + cw + ' and ' + H + ' ' + MINUS + ' ' + right + ' = ' + ch + '.', 'Add all six sides: ' + [W, H, top, ch, cw, right].join(' + ') + ' = ' + B(P) + ' cm.', 'Shortcut: the inside corner sides slide out to make a ' + W + ' by ' + H + ' rectangle, so it is 2 × (' + W + ' + ' + H + ').'],
-        steps: [st('Missing top-right side across: ' + B(W + ' ' + MINUS + ' ' + top) + ' = ?', cw), st('Missing side going down: ' + B(H + ' ' + MINUS + ' ' + right) + ' = ?', ch), st('Add all six sides: ?', P, { unit: 'cm' })],
+        steps: [st('Missing side across the top: ' + B(W + ' ' + MINUS + ' ' + top) + ' = ?', cw), st('Missing side going down: ' + B(H + ' ' + MINUS + ' ' + right) + ' = ?', ch), st('Add all six sides: ' + B([W, H, top, ch, cw, right].join(' + ')) + ' = ?', P, { unit: 'cm' })],
         traps: [tr(W + H + top + right, 'g_areaL', 'There are six sides. Find the two that are not labeled.'), tr(A, 'g_areaL', 'That is the area. Perimeter goes around the edge.')] };
     }
     if (d === 2) return { text: 'Find the ' + B('area') + ' of the shape. All lengths are in cm.', ans: A, unit: 'square cm', vis,
@@ -1420,22 +1420,22 @@ defs([
     if (kind === 'clock') { const h = R.i(1, 11), k = Math.min(h, 12 - h), ans = 30 * k;
       return { text: 'At ' + B(h + ':00') + ', what is the smaller angle between the clock hands?', ans, unit: DEG, vis: C.clockSVG(h, 0, { cls: 'sm' }),
         how: ['12 numbers share 360' + DEG + ', so each step between numbers is 360 ÷ 12 = 30' + DEG + '.', 'The hands are ' + k + ' ' + plural(k, 'step') + ' apart: ' + k + ' × 30 = ' + B(ans) + DEG + '.'],
-        steps: [st('Degrees between two numbers on a clock: ' + B('360 ÷ 12') + ' = ?', 30, { unit: DEG }), st('How many steps apart are the hands (the short way)?', k), st(B(k + ' × 30') + ' = ?', ans, { unit: DEG })],
+        steps: [st('The 12 numbers on a clock share a full turn. ' + B('360 ÷ 12') + ' = ?', 30, { unit: DEG }), st('At ' + h + ':00, the hands point to 12 and ' + h + '. How many numbers apart are the hands, going the short way?', k), st(B(k + ' × 30') + ' = ?', ans, { unit: DEG })],
         traps: [tr(k * 5 !== ans ? k * 5 : null, 'g_angles', 'Count degrees, not minutes: each step is 30' + DEG + '.'), tr(360 - ans !== ans ? 360 - ans : null, 'g_angles', 'That is the bigger angle. Go the short way.'), tr(k * 10, 'g_angles', 'Each step between numbers is 360 ÷ 12 = 30' + DEG + '.')] }; }
     if (kind === 'full') { const a = R.i(40, 170), b = R.i(40, 170), ans = 360 - a - b; if (ans < 30) return null;
-      return { text: 'Three angles meet at a point and make a full turn. Two are ' + B(deg(a)) + ' and ' + B(deg(b)) + '. What is the third?', ans, unit: DEG,
+      return { text: 'Three angles meet at a point and make a full turn. Two of the angles are ' + B(deg(a)) + ' and ' + B(deg(b)) + '. What is the third angle?', ans, unit: DEG,
         how: ['A full turn is 360' + DEG + '. The two you know: ' + a + ' + ' + b + ' = ' + (a + b) + DEG + '.', '360 ' + MINUS + ' ' + (a + b) + ' = ' + B(ans) + DEG + '.'],
         steps: [st(B(a + ' + ' + b) + ' = ?', a + b, { unit: DEG }), st(B('360 ' + MINUS + ' ' + (a + b)) + ' = ?', ans, { unit: DEG })],
         traps: [tr(180 - a - b > 0 ? 180 - a - b : null, 'g_angles', 'All the way around a point is 360' + DEG + ', not 180' + DEG + '.'), tr((a + b) % 10 ? ans + 10 : null, 'a_borrow', 'Check your taking away: trade a ten for ones.'), tr(a % 10 + b % 10 >= 10 ? ans + 10 : null, 'a_regroup', 'Check your adding. Did you carry?')] }; }
     if (kind === 'straight3') { const a = R.i(20, 80), b = R.i(20, 80), ans = 180 - a - b;
-      return { text: 'Three angles sit on a straight line. Two are ' + B(deg(a)) + ' and ' + B(deg(b)) + '. What is the third?', ans, unit: DEG,
+      return { text: 'Three angles together make a straight line. Two of the angles are ' + B(deg(a)) + ' and ' + B(deg(b)) + '. What is the third angle?', ans, unit: DEG,
         how: ['A straight line is 180' + DEG + '. The two you know: ' + a + ' + ' + b + ' = ' + (a + b) + DEG + '.', '180 ' + MINUS + ' ' + (a + b) + ' = ' + B(ans) + DEG + '.'],
         steps: [st(B(a + ' + ' + b) + ' = ?', a + b, { unit: DEG }), st(B('180 ' + MINUS + ' ' + (a + b)) + ' = ?', ans, { unit: DEG })],
         traps: [tr(360 - a - b, 'g_angles', 'A straight line is 180' + DEG + ', not 360' + DEG + '.'), tr(90 - a - b > 0 ? 90 - a - b : null, 'g_angles', 'A straight line is 180' + DEG + '.')] }; }
     const tot = kind === 'right' ? 90 : 180, a = d === 0 ? 5 * R.i(2, tot / 5 - 2) : R.i(11, tot - 11), ans = tot - a;
-    return { text: (kind === 'right' ? 'A right angle is split into two parts.' : 'A straight line is split into two angles.') + ' One is ' + B(deg(a)) + '. What is the other?', ans, unit: DEG, vis: splitAngleSVG(tot, ans, '?', deg(a)),
+    return { text: (kind === 'right' ? 'A right angle is split into two angles.' : 'A straight line is split into two angles.') + ' One angle is ' + B(deg(a)) + '. What is the other angle?', ans, unit: DEG, vis: splitAngleSVG(tot, ans, '?', deg(a)),
       how: [(kind === 'right' ? 'A right angle is 90' : 'A straight line is 180') + DEG + '.', tot + ' ' + MINUS + ' ' + a + ' = ' + B(ans) + DEG + '.'],
-      steps: [st('How many degrees in ' + (kind === 'right' ? 'a right angle' : 'a straight line') + '?', tot, { unit: DEG }), st(B(tot + ' ' + MINUS + ' ' + a) + ' = ?', ans, { unit: DEG })],
+      steps: [st('How many degrees are in ' + (kind === 'right' ? 'a right angle' : 'a straight line') + '?', tot, { unit: DEG }), st(B(tot + ' ' + MINUS + ' ' + a) + ' = ?', ans, { unit: DEG })],
       traps: [tr(kind === 'right' ? 180 - a : (a < 90 ? 90 - a : null), 'g_angles', kind === 'right' ? 'A right angle is 90' + DEG + ', not 180' + DEG + '.' : 'A straight line is 180' + DEG + ', not 90' + DEG + '.'), tr(360 - a, 'g_angles', 'That uses a full turn, 360' + DEG + '.'), tr(a % 10 ? ans + 10 : null, 'a_borrow', 'Check your taking away: trade a ten for ones.')] };
   } },
 
@@ -1446,7 +1446,7 @@ defs([
     if (kind === 'right') { const a = R.i(15, 75), ans = 90 - a;
       return { text: 'A right triangle has one angle of ' + B(deg(a)) + '. What is the third angle?', ans, unit: DEG, vis: triSVG('', '', '', { angle: deg(a) }),
         how: ['The right angle is 90' + DEG + ', so the other two add to 180 ' + MINUS + ' 90 = 90' + DEG + '.', '90 ' + MINUS + ' ' + a + ' = ' + B(ans) + DEG + '.'],
-        steps: [st('The other two angles add to ?', 90, { unit: DEG }), st(B('90 ' + MINUS + ' ' + a) + ' = ?', ans, { unit: DEG })],
+        steps: [st('A right triangle has one 90' + DEG + ' angle. The other two angles add to ?', 90, { unit: DEG }), st(B('90 ' + MINUS + ' ' + a) + ' = ?', ans, { unit: DEG })],
         traps: [tr(180 - a, 'g_triangle', 'Do not forget the right angle: 90 + ' + a + ' + ? = 180.'), tr(360 - 90 - a, 'g_triangle', 'Triangle angles add to 180' + DEG + ', not 360' + DEG + '.')] }; }
     if (kind === 'iso') { const top = 2 * R.i(10, 70), ans = (180 - top) / 2;
       return { text: 'An isosceles triangle has two equal angles. The other angle is ' + B(deg(top)) + '. What is each equal angle?', ans, unit: DEG,
@@ -1459,7 +1459,7 @@ defs([
         steps: [st(B(b + ' + ' + b) + ' = ?', 2 * b, { unit: DEG }), st(B('180 ' + MINUS + ' ' + (2 * b)) + ' = ?', ans, { unit: DEG })],
         traps: [tr(180 - b, 'g_triangle', 'There are two angles of ' + b + DEG + '. Take both away.'), tr(90 - b, 'g_triangle', 'Only a right triangle has two angles adding to 90' + DEG + '.')] }; }
     if (kind === 'ext') { const a = R.i(25, 75), b = R.i(25, 75), ans = a + b;
-      return { text: 'A triangle has angles of ' + B(deg(a)) + ' and ' + B(deg(b)) + '. One side of the third corner is extended. What is the ' + B('outside angle') + ' at that corner?', ans, unit: DEG,
+      return { text: 'A triangle has angles of ' + B(deg(a)) + ' and ' + B(deg(b)) + '. One side is extended past the third corner. What is the ' + B('outside angle') + ' at that corner?', ans, unit: DEG,
         how: ['The third angle is 180 ' + MINUS + ' ' + (a + b) + ' = ' + (180 - a - b) + DEG + '. The outside angle sits on a straight line with it.', '180 ' + MINUS + ' ' + (180 - a - b) + ' = ' + B(ans) + DEG + '. Shortcut: an outside angle equals the two far inside angles added: ' + a + ' + ' + b + '.'],
         steps: [st('The third inside angle: ' + B('180 ' + MINUS + ' ' + (a + b)) + ' = ?', 180 - a - b, { unit: DEG }), st('The outside angle: ' + B('180 ' + MINUS + ' ' + (180 - a - b)) + ' = ?', ans, { unit: DEG })],
         traps: [tr(180 - a - b, 'g_triangle', 'That is the inside angle. The outside angle is next to it on a straight line.'), tr(360 - a - b, 'g_angles', 'The outside angle and the inside angle make a straight line, 180' + DEG + '.')] }; }
@@ -1481,7 +1481,7 @@ defs([
           steps: [st(B(p + ' × ' + q) + ' = ?', p * q), st(B((p * q) + ' × ' + k) + ' = ?', V, { unit: U })],
           traps: [tr(p + q + k, 'g_volume', 'Volume multiplies the three edges, it does not add them.'), tr(p * q, 'g_volume', 'That is one layer. Multiply by the third edge too.'), tr(V * 10, 'n_times10', 'Check the zeros.')] }; }
       const l = R.i(3, 12), w = R.i(2, 10), h = R.i(2, 12), V = l * w * h;
-      return { text: 'A box has a volume of ' + B(nm(V) + ' ' + U) + '. Its base is ' + B(l + ' cm') + ' by ' + B(w + ' cm') + '. How tall is it?', ans: h, unit: 'cm',
+      return { text: 'A box has a volume of ' + B(nm(V) + ' ' + U) + '. Its base is ' + B(l + ' cm') + ' by ' + B(w + ' cm') + '. How tall is the box?', ans: h, unit: 'cm',
         how: ['V = base × height. Base area: ' + l + ' × ' + w + ' = ' + (l * w) + '.', nm(V) + ' ÷ ' + (l * w) + ' = ' + B(h) + ' cm.'],
         steps: [st('Base area: ' + B(l + ' × ' + w) + ' = ?', l * w), st(B(nm(V) + ' ÷ ' + (l * w)) + ' = ?', h, { unit: 'cm' })],
         traps: [tr(V - l - w, 'g_volume', 'Volume comes from multiplying, so undo it by dividing by the base area.'), tr(V % l === 0 ? V / l : null, 'g_volume', 'Divide by the whole base area, ' + l + ' × ' + w + '.'), tr(V % w === 0 ? V / w : null, 'g_volume', 'Divide by the whole base area, ' + l + ' × ' + w + '.')] };
@@ -1501,11 +1501,11 @@ defs([
     if (d === 2 && R.chance(0.4)) {
       return { text: 'A triangle has an area of ' + B(num(A) + ' square cm') + ' and a base of ' + B(b + ' cm') + '. What is its height?', ans: h, unit: 'cm',
         how: ['Area = ½ × base × height, so base × height = 2 × ' + num(A) + ' = ' + (b * h) + '.', 'Height = ' + (b * h) + ' ÷ ' + b + ' = ' + B(h) + ' cm.'],
-        steps: [st('Base × height = 2 × area: ' + B('2 × ' + num(A)) + ' = ?', b * h), st(B((b * h) + ' ÷ ' + b) + ' = ?', h, { unit: 'cm' })],
+        steps: [st('Base × height is double the area. ' + B('2 × ' + num(A)) + ' = ?', b * h), st(B((b * h) + ' ÷ ' + b) + ' = ?', h, { unit: 'cm' })],
         traps: [tr(A / b, 'g_tri', 'Remember the half: base × height is double the area.'), tr(A - b, 'g_tri', 'Undo the multiplying: double the area, then divide by the base.')] };
     }
     const right = d === 0, vis = right ? triSVG(h + ' cm', b + ' cm', '') : polySVG([[0, 0], [b, 0], [ax, h]], [{ a: [b / 2, 0], t: b + ' cm', dy: 18 }, { a: [ax, h / 2], t: h + ' cm', dx: 6, anc: 'start' }].concat(d === 2 ? [{ a: [(b + ax) / 2, h / 2], t: sl + ' cm', dx: 12, anc: 'start' }] : []), [[ax, 0, ax, h]]);
-    return { text: 'Find the area of the triangle.' + (d > 0 ? ' The dashed line is the height.' : ''), ans: A, unit: 'square cm', vis,
+    return { text: (d > 0 ? 'The dashed line is the height. ' : '') + 'Find the area of the triangle.', ans: A, unit: 'square cm', vis,
       how: ['Area = ½ × base × height.', '= ½ × ' + b + ' × ' + h + ' = ½ × ' + (b * h) + '.', '= ' + B(num(A)) + ' square cm.'],
       steps: [st('Base × height: ' + B(b + ' × ' + h) + ' = ?', b * h), st('Half of ' + B(b * h) + ' = ?', A, { unit: 'square cm' })],
       traps: [tr(b * h, 'g_tri', 'A triangle is half of the rectangle. Take half.'), tr(d === 2 ? b * sl / 2 : null, 'g_tri', 'Use the height, which meets the base square on, not the slanted side.'), tr(b + h, 'g_tri', 'Multiply the base by the height, then halve.')] };
@@ -1522,7 +1522,7 @@ defs([
         how: ['Area = base × height, so ' + b + ' × height = ' + A + '.', 'Height = ' + A + ' ÷ ' + b + ' = ' + B(h) + ' cm.'],
         steps: [st(B(A + ' ÷ ' + b) + ' = ?', h, { unit: 'cm' })],
         traps: [tr(A % (b / 2) === 0 && b % 2 === 0 ? 2 * A / b : null, 'g_tri', 'A parallelogram is not halved like a triangle: area = base × height.'), tr(A - b, 'g_para', 'Undo the multiplying: divide.')] };
-      return { text: 'Find the area of the parallelogram. The dashed line is the height.', ans: A, unit: 'square cm', vis,
+      return { text: 'The dashed line is the height. Find the area of the parallelogram.', ans: A, unit: 'square cm', vis,
         how: ['Cut off the slanted end and slide it to the other side: it makes a rectangle ' + b + ' by ' + h + '.', 'Area = base × height = ' + b + ' × ' + h + ' = ' + B(A) + ' square cm.'],
         steps: [st(B(b + ' × ' + h) + ' = ?', A, { unit: 'square cm' })],
         traps: [tr(b * s, 'g_para', 'Use the height, which meets the base square on, not the slanted side.'), tr(A / 2, 'g_tri', 'Only triangles get halved. A parallelogram is a full rectangle after you slide the end.'), tr(2 * (b + s), 'g_perim', 'That is the distance around. Area is the space inside.')] };
@@ -1533,9 +1533,9 @@ defs([
       how: ['Average of the parallel sides: (' + a + ' + ' + bb + ') ÷ 2 = ' + num((a + bb) / 2) + '.', 'Area = average × height, so height = ' + num(A) + ' ÷ ' + num((a + bb) / 2) + ' = ' + B(h) + ' cm.'],
       steps: [st('Average of the parallel sides: ' + B('(' + a + ' + ' + bb + ') ÷ 2') + ' = ?', (a + bb) / 2), st(B(num(A) + ' ÷ ' + num((a + bb) / 2)) + ' = ?', h, { unit: 'cm' })],
       traps: [tr(A / (a + bb), 'g_para', 'Use the average of the parallel sides: add them, then halve.'), tr(A % bb === 0 ? A / bb : null, 'g_para', 'Use both parallel sides, not just the long one.')] };
-    return { text: 'Find the area of the trapezoid. The dashed line is the height.', ans: A, unit: 'square cm', vis,
+    return { text: 'The dashed line is the height. Find the area of the trapezoid.', ans: A, unit: 'square cm', vis,
       how: ['Area = (top + bottom) ÷ 2 × height.', '(' + a + ' + ' + bb + ') ÷ 2 = ' + (a + bb) + ' ÷ 2 = ' + num((a + bb) / 2) + '.', num((a + bb) / 2) + ' × ' + h + ' = ' + B(num(A)) + ' square cm.'],
-      steps: [st(B(a + ' + ' + bb) + ' = ?', a + bb), st('Half of that: ?', (a + bb) / 2), st(B(num((a + bb) / 2) + ' × ' + h) + ' = ?', A, { unit: 'square cm' })],
+      steps: [st(B(a + ' + ' + bb) + ' = ?', a + bb), st('Half of ' + (a + bb) + ' = ?', (a + bb) / 2), st(B(num((a + bb) / 2) + ' × ' + h) + ' = ?', A, { unit: 'square cm' })],
       traps: [tr((a + bb) * h, 'g_para', 'Average the two parallel sides first: halve their sum.'), tr(bb * h, 'g_para', 'The top is shorter than the bottom. Use the average of the two.'), tr(a * bb * h, 'g_para', 'Add the parallel sides, do not multiply them.')] };
   } },
 
@@ -1546,27 +1546,27 @@ defs([
       const sup = R.chance(0.5), x = sup ? R.i(20, 160) : R.i(10, 80), tot = sup ? 180 : 90, ans = tot - x;
       return { text: 'What is the ' + B(sup ? 'supplement' : 'complement') + ' of a ' + B(deg(x)) + ' angle?', ans, unit: DEG,
         how: [(sup ? 'Supplementary angles add to 180' : 'Complementary angles add to 90') + DEG + '.', tot + ' ' + MINUS + ' ' + x + ' = ' + B(ans) + DEG + '.'],
-        steps: [st('They add to how many degrees?', tot, { unit: DEG }), st(B(tot + ' ' + MINUS + ' ' + x) + ' = ?', ans, { unit: DEG })],
+        steps: [st((sup ? 'Supplementary' : 'Complementary') + ' angles add to how many degrees?', tot, { unit: DEG }), st(B(tot + ' ' + MINUS + ' ' + x) + ' = ?', ans, { unit: DEG })],
         traps: [tr(sup ? (x < 90 ? 90 - x : null) : 180 - x, 'g_pairs', sup ? 'Supplementary means 180' + DEG + '. Complementary is 90' + DEG + '.' : 'Complementary means 90' + DEG + '. Supplementary is 180' + DEG + '.'), tr(360 - x, 'g_pairs', 'Angle pairs make 90' + DEG + ' or 180' + DEG + ', not 360' + DEG + '.')] };
     }
     if (d === 1) {
       const x = R.i(25, 155); if (x === 90) return null; const opp = R.chance(0.35), ans = opp ? 360 - x : 180 - x;
-      return { text: 'Two straight lines cross and make four angles. One is ' + B(deg(x)) + '. What is ' + (opp ? B('the sum of the other three') : 'the angle ' + B('right next to') + ' it') + '?', ans, unit: DEG,
+      return { text: 'Two straight lines cross and make four angles. One angle is ' + B(deg(x)) + '. What is ' + (opp ? B('the sum of the other three') + ' angles' : 'the angle ' + B('right next to') + ' it') + '?', ans, unit: DEG,
         how: opp ? ['The two angles next to it are 180 ' + MINUS + ' ' + x + ' = ' + (180 - x) + DEG + ' each. The opposite one equals it: ' + x + DEG + '.', (180 - x) + ' + ' + (180 - x) + ' + ' + x + ' = ' + B(ans) + DEG + ' (all four make a full turn, 360' + DEG + ').'] : ['Angles side by side on a straight line add to 180' + DEG + '.', '180 ' + MINUS + ' ' + x + ' = ' + B(ans) + DEG + '.'],
-        steps: opp ? [st('Each angle next to it: ' + B('180 ' + MINUS + ' ' + x) + ' = ?', 180 - x, { unit: DEG }), st('The opposite angle (vertical angles are equal): ?', x, { unit: DEG }), st('Add the three: ?', ans, { unit: DEG })] : [st(B('180 ' + MINUS + ' ' + x) + ' = ?', ans, { unit: DEG })],
+        steps: opp ? [st('An angle next to the ' + x + DEG + ' angle: ' + B('180 ' + MINUS + ' ' + x) + ' = ?', 180 - x, { unit: DEG }), st('Opposite angles are equal. One angle is ' + x + DEG + '. What is the opposite angle?', x, { unit: DEG }), st('Add the three: ' + B((180 - x) + ' + ' + (180 - x) + ' + ' + x) + ' = ?', ans, { unit: DEG })] : [st(B('180 ' + MINUS + ' ' + x) + ' = ?', ans, { unit: DEG })],
         traps: [tr(opp ? 2 * (180 - x) : x, 'g_pairs', opp ? 'Count the opposite angle too: it equals ' + x + DEG + '.' : 'Opposite angles are equal; the one next to it adds with it to 180' + DEG + '.'), tr(opp ? 180 - x : 360 - x, 'g_pairs', opp ? 'There are three other angles.' : 'Angles on a straight line add to 180' + DEG + '.'), tr(!opp && x < 90 ? 90 - x : null, 'g_pairs', 'A straight line is 180' + DEG + ', not 90' + DEG + '.')] };
     }
     if (R.chance(0.5)) {
       const k = R.pick([2, 3, 4, 5, 8, 9, 11]), small = 180 / (k + 1); if (small % 1) return null; const big = R.chance(0.5), ans = big ? k * small : small;
-      return { text: 'Two angles are supplementary. One is ' + B(k + ' times') + ' the other. What is the ' + B(big ? 'bigger' : 'smaller') + ' angle?', ans, unit: DEG,
+      return { text: 'Two angles are supplementary. One angle is ' + B(k + ' times') + ' the other. What is the ' + B(big ? 'bigger' : 'smaller') + ' angle?', ans, unit: DEG,
         how: ['Together they make 1 + ' + k + ' = ' + (k + 1) + ' equal parts of 180' + DEG + '.', 'One part: 180 ÷ ' + (k + 1) + ' = ' + small + DEG + '.' + (big ? ' The bigger is ' + k + ' × ' + small + ' = ' + B(ans) + DEG + '.' : ' The smaller is ' + B(ans) + DEG + '.')],
-        steps: [st('How many equal parts in all?', k + 1), st(B('180 ÷ ' + (k + 1)) + ' = ?', small, { unit: DEG })].concat(big ? [st(B(k + ' × ' + small) + ' = ?', ans, { unit: DEG })] : []),
+        steps: [st('One angle is 1 part. The other angle is ' + k + ' parts. How many equal parts are there in all?', k + 1), st(B('180 ÷ ' + (k + 1)) + ' = ?', small, { unit: DEG })].concat(big ? [st(B(k + ' × ' + small) + ' = ?', ans, { unit: DEG })] : []),
         traps: [tr(big ? small : k * small, 'g_pairs', big ? 'That is the smaller one.' : 'That is the bigger one.'), tr(180 / k % 1 === 0 ? 180 / k : null, 'g_pairs', 'The two angles together make ' + (k + 1) + ' parts, not ' + k + '.'), tr(90 / (k + 1) % 1 === 0 ? (big ? k : 1) * 90 / (k + 1) : null, 'g_pairs', 'Supplementary means they add to 180' + DEG + '.')] };
     }
     const diff = 2 * R.i(3, 30), small = (90 - diff) / 2, big = R.chance(0.5), ans = big ? small + diff : small; if (small <= 0) return null;
-    return { text: 'Two angles are complementary. One is ' + B(diff + DEG + ' more') + ' than the other. What is the ' + B(big ? 'bigger' : 'smaller') + ' angle?', ans, unit: DEG,
+    return { text: 'Two angles are complementary. One angle is ' + B(diff + DEG + ' more') + ' than the other. What is the ' + B(big ? 'bigger' : 'smaller') + ' angle?', ans, unit: DEG,
       how: ['They add to 90' + DEG + '. Take away the extra ' + diff + DEG + ': 90 ' + MINUS + ' ' + diff + ' = ' + (90 - diff) + DEG + ' is two equal angles.', 'Smaller: ' + (90 - diff) + ' ÷ 2 = ' + small + DEG + '.' + (big ? ' Bigger: ' + small + ' + ' + diff + ' = ' + B(ans) + DEG + '.' : ' So ' + B(ans) + DEG + '.')],
-      steps: [st(B('90 ' + MINUS + ' ' + diff) + ' = ?', 90 - diff, { unit: DEG }), st('Half of it: ?', small, { unit: DEG })].concat(big ? [st(B(small + ' + ' + diff) + ' = ?', ans, { unit: DEG })] : []),
+      steps: [st(B('90 ' + MINUS + ' ' + diff) + ' = ?', 90 - diff, { unit: DEG }), st('Half of ' + (90 - diff) + ' = ?', small, { unit: DEG })].concat(big ? [st(B(small + ' + ' + diff) + ' = ?', ans, { unit: DEG })] : []),
       traps: [tr(big ? small : small + diff, 'g_pairs', big ? 'That is the smaller one.' : 'That is the bigger one.'), tr(90 - diff, 'g_pairs', 'That is both small parts together. Halve it.'), tr((180 - diff) / 2 + (big ? diff : 0), 'g_pairs', 'Complementary means they add to 90' + DEG + '.')] };
   } },
 
@@ -1577,12 +1577,12 @@ defs([
     const r = R.i(2, 12), dd = 2 * r;
     if (kind === 'Cd') return { text: 'A circle has a circumference of ' + B(dd + PI + ' cm') + '. What is its ' + B('radius') + '?', ans: r, unit: 'cm',
       how: ['Circumference = ' + PI + ' × diameter, so the diameter is ' + dd + ' cm.', 'The radius is half the diameter: ' + dd + ' ÷ 2 = ' + B(r) + ' cm.'],
-      steps: [st('Circumference = ' + PI + ' × diameter. What is the diameter?', dd, { unit: 'cm' }), st('Half of it: ?', r, { unit: 'cm' })],
+      steps: [st('Circumference = ' + PI + ' × diameter. The circumference is ' + dd + PI + ' cm. What is the diameter?', dd, { unit: 'cm' }), st('The radius is half of ' + dd + ' cm. What is the radius?', r, { unit: 'cm' })],
       traps: [tr(dd, 'g_circle', 'That is the diameter. The radius is half of it.'), tr(dd % 4 === 0 ? dd / 4 : null, 'g_circle', 'Circumference is ' + PI + ' × diameter, which is 2 × ' + PI + ' × radius. Halve only once.')] };
     if (kind === 'Cr') { const ans = dd, byD = false;
       return { text: 'A circle has a ' + B(byD ? 'diameter of ' + dd + ' cm' : 'radius of ' + r + ' cm') + '. Its circumference is ' + B('k' + PI + ' cm') + '. What is k?', ans,
         how: byD ? ['Circumference = ' + PI + ' × diameter.', '= ' + PI + ' × ' + dd + ' = ' + dd + PI + ', so k = ' + B(ans) + '.'] : ['Circumference = 2 × ' + PI + ' × radius (the diameter is 2 × radius).', '= 2 × ' + PI + ' × ' + r + ' = ' + dd + PI + ', so k = ' + B(ans) + '.'],
-        steps: byD ? [st('Circumference = ' + PI + ' × diameter. What is the diameter?', dd)] : [st('Diameter = 2 × radius = ?', dd), st('So k = ?', dd)],
+        steps: byD ? [st('Circumference = ' + PI + ' × diameter. What is the diameter?', dd)] : [st('Diameter = 2 × radius. ' + B('2 × ' + r) + ' = ?', dd), st('The circumference is ' + PI + ' × ' + dd + ' = k' + PI + '. What is k?', dd)],
         traps: [tr(byD ? null : r, 'g_circle', 'Circumference uses the diameter, which is 2 × the radius.'), tr(byD ? 2 * dd : null, 'g_circle', 'With the diameter, it is just ' + PI + ' × diameter. The 2 is for the radius.'), tr(byD ? r * r : r * r, 'g_circle', 'That is the area rule. Circumference is ' + PI + ' × diameter.')] }; }
     if (kind === 'Ar' || kind === 'Ad') { const ans = r * r, byD = kind === 'Ad';
       return { text: 'A circle has a ' + B(byD ? 'diameter of ' + dd + ' cm' : 'radius of ' + r + ' cm') + '. Its area is ' + B('k' + PI + ' square cm') + '. What is k?', ans,
@@ -1597,7 +1597,7 @@ defs([
     const A = r * r, ans = dd;
     return { text: 'A circle has an area of ' + B(A + PI + ' square cm') + '. Its circumference is ' + B('k' + PI + ' cm') + '. What is k?', ans,
       how: ['Area = ' + PI + ' × r × r = ' + A + PI + ', so r × r = ' + A + ' and r = ' + r + '.', 'Circumference = 2 × ' + PI + ' × ' + r + ' = ' + dd + PI + ', so k = ' + B(ans) + '.'],
-      steps: [st('r × r = ' + A + '. What is r?', r), st('k = 2 × r = ?', dd)],
+      steps: [st('r × r = ' + A + '. What is r?', r), st('k = 2 × r. ' + B('2 × ' + r) + ' = ?', dd)],
       traps: [tr(r, 'g_circle', 'That is the radius. Circumference is 2 × ' + PI + ' × r.'), tr(A / 2 % 1 === 0 ? A / 2 : null, 'g_circle', 'Find the radius first: what times itself makes ' + A + '?'), tr(2 * A, 'g_circle', 'Find the radius first: what times itself makes ' + A + '?')] };
   } },
 
@@ -1634,7 +1634,7 @@ defs([
       const nmN = NAME[n] || n + '-sided polygon';
       return { text: 'What do the inside angles of ' + (/^[aeiou]/.test(nmN) ? 'an ' : 'a ') + B(nmN) + (NAME[n] && n < 12 ? ' (' + n + ' sides)' : '') + ' add up to?', ans, unit: DEG,
         how: ['From one corner, draw lines to the other corners: that splits it into ' + n + ' ' + MINUS + ' 2 = ' + (n - 2) + ' triangles.', 'Each triangle has 180' + DEG + ': ' + (n - 2) + ' × 180 = ' + B(nm(ans)) + DEG + '.'],
-        steps: [st('How many triangles? ' + B(n + ' ' + MINUS + ' 2') + ' = ?', n - 2), st(B((n - 2) + ' × 180') + ' = ?', ans, { unit: DEG })],
+        steps: [st('A shape with ' + n + ' sides splits into how many triangles? ' + B(n + ' ' + MINUS + ' 2') + ' = ?', n - 2), st(B((n - 2) + ' × 180') + ' = ?', ans, { unit: DEG })],
         traps: [tr(n * 180, 'g_polygon', 'From one corner you get ' + (n - 2) + ' triangles, not ' + n + '.'), tr((n - 1) * 180, 'g_polygon', 'From one corner you get ' + (n - 2) + ' triangles: n ' + MINUS + ' 2.'), tr(360, 'g_polygon', '360' + DEG + ' is the outside angles. The inside angles add to more.')] }; }
     if (d === 1) { const n = R.pick([5, 6, 8, 9, 10, 12, 15, 18, 20]), e = 360 / n, ans = 180 - e;
       return { text: 'What is each inside angle of a ' + B('regular ' + NAME[n]) + ' (' + n + ' equal sides)?', ans, unit: DEG,
@@ -1650,7 +1650,7 @@ defs([
     const ans = S - C.sum(known); if (ans < 40 || ans > 175) return null;
     return { text: 'A ' + NAME[n] + ' has angles of ' + B(known.map(deg).join(', ')) + ' and one more. What is the missing angle?', ans, unit: DEG,
       how: ['A ' + NAME[n] + ' has ' + n + ' ' + MINUS + ' 2 = ' + (n - 2) + ' triangles: (' + (n - 2) + ') × 180 = ' + S + DEG + '.', 'Angles you know: ' + known.join(' + ') + ' = ' + C.sum(known) + DEG + '.', S + ' ' + MINUS + ' ' + C.sum(known) + ' = ' + B(ans) + DEG + '.'],
-      steps: [st('Total: ' + B((n - 2) + ' × 180') + ' = ?', S, { unit: DEG }), st('Add the angles you know: ?', C.sum(known), { unit: DEG }), st(B(S + ' ' + MINUS + ' ' + C.sum(known)) + ' = ?', ans, { unit: DEG })],
+      steps: [st('A ' + NAME[n] + ' splits into ' + (n - 2) + ' triangles. ' + B((n - 2) + ' × 180') + ' = ?', S, { unit: DEG }), st('Add the angles you know: ' + B(known.join(' + ')) + ' = ?', C.sum(known), { unit: DEG }), st(B(S + ' ' + MINUS + ' ' + C.sum(known)) + ' = ?', ans, { unit: DEG })],
       traps: [tr(S + 180 - C.sum(known), 'g_polygon', 'A ' + NAME[n] + ' splits into ' + (n - 2) + ' triangles, not ' + (n - 1) + '.'), tr(360 - C.sum(known) > 0 ? 360 - C.sum(known) : null, 'g_polygon', 'Only a 4-sided shape adds to 360' + DEG + '.')] };
   } },
 
@@ -1662,15 +1662,15 @@ defs([
     if (kind === 'cyl' || kind === 'cylD') { const byD = kind === 'cylD', ans = base * h;
       return { text: 'A cylinder has a ' + B(byD ? 'diameter of ' + (2 * r) + ' cm' : 'radius of ' + r + ' cm') + ' and a height of ' + B(h + ' cm') + '. Its volume is ' + B('k' + PI + ' cubic cm') + '. What is k?', ans,
         how: (byD ? ['Radius = ' + (2 * r) + ' ÷ 2 = ' + r + '.'] : []).concat(['V = ' + PI + ' × r × r × h.', 'Base circle: ' + PI + ' × ' + r + ' × ' + r + ' = ' + base + PI + '.', 'V = ' + base + PI + ' × ' + h + ' = ' + (base * h) + PI + ', so k = ' + B(ans) + '.']),
-        steps: (byD ? [st('Radius = ?', r)] : []).concat([st('Base: ' + B(r + ' × ' + r) + ' = ?', base), st(B(base + ' × ' + h) + ' = ?', ans)]),
+        steps: (byD ? [st('The diameter is ' + (2 * r) + ' cm. What is the radius?', r)] : []).concat([st('Base: ' + B(r + ' × ' + r) + ' = ?', base), st(B(base + ' × ' + h) + ' = ?', ans)]),
         traps: [tr(2 * r * h, 'g_cyl', 'The base is r × r, not 2 × r.'), tr(byD ? 4 * base * h : null, 'g_circle', 'Use the radius, half the diameter.'), tr(r * h, 'w_exp', 'Square the radius: r × r.'), tr(base * h / 3 % 1 === 0 ? base * h / 3 : null, 'g_cyl', 'That would be a cone. A cylinder is the full ' + PI + 'r²h.')] }; }
     if (kind === 'cone' || kind === 'coneD') { const hh = 3 * R.i(1, 6), byD = kind === 'coneD', ans = base * hh / 3;
       return { text: 'A cone has a ' + B(byD ? 'diameter of ' + (2 * r) + ' cm' : 'radius of ' + r + ' cm') + ' and a height of ' + B(hh + ' cm') + '. Its volume is ' + B('k' + PI + ' cubic cm') + '. What is k?', ans,
         how: (byD ? ['Radius = ' + (2 * r) + ' ÷ 2 = ' + r + '.'] : []).concat(['V = ⅓ × ' + PI + ' × r × r × h.', 'Base circle: ' + r + ' × ' + r + ' = ' + base + ', and ⅓ of the height ' + hh + ' is ' + (hh / 3) + '.', 'k = ' + base + ' × ' + (hh / 3) + ' = ' + B(ans) + '.']),
-        steps: (byD ? [st('Radius = ?', r)] : []).concat([st('Base: ' + B(r + ' × ' + r) + ' = ?', base), st('⅓ of ' + B(hh) + ' = ?', hh / 3), st(B(base + ' × ' + (hh / 3)) + ' = ?', ans)]),
+        steps: (byD ? [st('The diameter is ' + (2 * r) + ' cm. What is the radius?', r)] : []).concat([st('Base: ' + B(r + ' × ' + r) + ' = ?', base), st('⅓ of ' + B(hh) + ' = ?', hh / 3), st(B(base + ' × ' + (hh / 3)) + ' = ?', ans)]),
         traps: [tr(base * hh, 'g_cyl', 'That is the cylinder. A cone is one third of it.'), tr(byD ? 4 * base * hh / 3 : null, 'g_circle', 'Use the radius, half the diameter.'), tr(2 * r * hh / 3, 'g_cyl', 'The base is r × r, not 2 × r.')] }; }
     if (kind === 'conecyl') { const V = 3 * R.i(4, 60);
-      return { text: 'A cylinder holds ' + B(V + PI + ' cubic cm') + '. A cone has the same base and the same height. Its volume is ' + B('k' + PI) + '. What is k?', ans: V / 3,
+      return { text: 'A cylinder holds ' + B(V + PI + ' cubic cm') + '. A cone has the same base and the same height. The volume of the cone is ' + B('k' + PI + ' cubic cm') + '. What is k?', ans: V / 3,
         how: ['A cone holds exactly one third of the cylinder with the same base and height.', V + ' ÷ 3 = ' + B(V / 3) + '.'],
         steps: [st(B(V + ' ÷ 3') + ' = ?', V / 3)],
         traps: [tr(V / 2, 'g_cyl', 'A cone is one third of the cylinder, not half.'), tr(V * 3, 'g_cyl', 'The cone is smaller: one third.')] }; }
@@ -1686,7 +1686,7 @@ defs([
   gen(d, R) {
     if (d === 0) {
       const k = R.pick([2, 3, 4, 5, 1.5, 2.5]), a1 = R.i(2, 10) * (k % 1 ? 2 : 1), a2 = R.i(2, 12) * (k % 1 ? 2 : 1), b1 = a1 * k, ans = a2 * k; if (a1 === a2) return null;
-      return { text: 'Two triangles are similar. A side of ' + B(a1 + ' cm') + ' on the small one matches ' + B(num(b1) + ' cm') + ' on the big one. Another side on the small one is ' + B(a2 + ' cm') + '. How long is the matching side on the big one?', ans, unit: 'cm',
+      return { text: 'Two triangles are similar. A side of ' + B(a1 + ' cm') + ' on the small triangle matches a side of ' + B(num(b1) + ' cm') + ' on the big triangle. Another side on the small triangle is ' + B(a2 + ' cm') + '. How long is the matching side on the big triangle?', ans, unit: 'cm',
         how: ['Scale factor: ' + num(b1) + ' ÷ ' + a1 + ' = ' + num(k) + '. Every length is × ' + num(k) + '.', a2 + ' × ' + num(k) + ' = ' + B(num(ans)) + ' cm.'],
         steps: [st('Scale factor: ' + B(num(b1) + ' ÷ ' + a1) + ' = ?', k), st(B(a2 + ' × ' + num(k)) + ' = ?', ans, { unit: 'cm' })],
         traps: [tr(a2 + b1 - a1, 'f_ratio', 'Similar shapes multiply every length by the same number; they do not add the same amount.'), tr(a2 * k * k, 'g_similar', 'Lengths scale by k. Only areas scale by k².')] };
@@ -1700,15 +1700,15 @@ defs([
     }
     if (R.chance(0.5)) {
       const k = R.i(2, 4), V = R.i(2, 12), ans = V * k * k * k;
-      return { text: 'A small box holds ' + B(V + ' liters') + '. A similar box has every length ' + B(k + ' times') + ' as long. How much does it hold?', ans, unit: 'liters',
+      return { text: 'A small box holds ' + B(V + ' liters') + '. A similar box has every length ' + B(k + ' times') + ' as long. How many liters does the bigger box hold?', ans, unit: 'liters',
         how: ['Volume has three lengths multiplied, so it grows by ' + k + ' × ' + k + ' × ' + k + ' = ' + (k * k * k) + '.', V + ' × ' + (k * k * k) + ' = ' + B(ans) + ' liters.'],
         steps: [st('Volume grows by ' + B(k + ' × ' + k + ' × ' + k) + ' = ?', k * k * k), st(B(V + ' × ' + (k * k * k)) + ' = ?', ans, { unit: 'liters' })],
         traps: [tr(V * k, 'g_similar', 'Volume uses three lengths: × ' + k + ' three times.'), tr(V * k * k, 'g_similar', 'k² is for area. Volume grows by k³.'), tr(V * 3 * k, 'w_exp', 'k³ means ' + k + ' × ' + k + ' × ' + k + ', not 3 × ' + k + '.')] };
     }
     const k = R.i(2, 6), a = R.i(2, 9), A1 = R.i(2, 10), A2 = A1 * k * k, ans = a * k;
-    return { text: 'Two similar shapes have areas of ' + B(A1 + ' square cm') + ' and ' + B(A2 + ' square cm') + '. A side of the small one is ' + B(a + ' cm') + '. How long is the matching side of the big one?', ans, unit: 'cm',
+    return { text: 'Two similar shapes have areas of ' + B(A1 + ' square cm') + ' and ' + B(A2 + ' square cm') + '. A side of the small shape is ' + B(a + ' cm') + '. How long is the matching side of the big shape?', ans, unit: 'cm',
       how: ['The area grew by ' + A2 + ' ÷ ' + A1 + ' = ' + (k * k) + ' = k².', 'So lengths grew by k = ' + k + ' (because ' + k + ' × ' + k + ' = ' + (k * k) + ').', a + ' × ' + k + ' = ' + B(ans) + ' cm.'],
-      steps: [st('Area factor: ' + B(A2 + ' ÷ ' + A1) + ' = ?', k * k), st('Length factor: what times itself is ' + (k * k) + '?', k), st(B(a + ' × ' + k) + ' = ?', ans, { unit: 'cm' })],
+      steps: [st('How many times as big is the bigger area? ' + B(A2 + ' ÷ ' + A1) + ' = ?', k * k), st('What number times itself is ' + (k * k) + '?', k), st(B(a + ' × ' + k) + ' = ?', ans, { unit: 'cm' })],
       traps: [tr(a * k * k, 'g_similar', 'Areas grow by k², but lengths grow by k. Take the square root first.'), tr(a * k * k / 2 % 1 === 0 ? a * k * k / 2 : null, 'w_roots', 'The length factor is the square root of ' + (k * k) + ', not half of it.')] };
   } },
 

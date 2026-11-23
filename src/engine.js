@@ -281,7 +281,7 @@ function pretestRecord(pre, ok, ms, x) {
   settle(st, pre.short);
 }
 function pretestSkip(pre, ms, x) { const nx = pretestNext(pre); if (!nx) return; const st = pre.st[nx.strand]; ms = Math.max(0, Math.min(300000, ms || 0));
-  st.log.push(qref([nx.skill, nx.d, 0, 1, Math.round(ms)], x, true)); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
+  st.log.push(qref([nx.skill, nx.d, 0, 1, Math.round(ms)], x, !(x && x.ans))); st.ms = (st.ms || 0) + ms; pre.bt = (pre.bt || 0) + ms; pre.be = (pre.be || 0) + avgSec(nx.skill) * 1000; if (!pre.started) pre.started = Date.now(); st.hi = Math.min(st.hi, st.at); settle(st, pre.short); }
 /* a block is finished: record its time, adapt to the kid's pace, move on. Returns true when another block is left. */
 function pretestAdvance(pre) {
   pretestFix(pre); const blk = blockOf(pre);

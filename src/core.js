@@ -343,7 +343,8 @@ function defs(arr) {
    traps: likely wrong answers {v, c, why}: v in the same form as ans, c the concept that mistake points to, why a
    one-sentence hint aimed at that mistake.
    first: a two-part problem. { text, ans, type, hint } is part 1, asked on its own screen with the same picture and
-   typed and checked before the main question (part 2). The problem is right only when both parts are right. text
+   typed and checked before the main question (part 2). The problem is right only when both parts are right. Part 1
+   may list other numbers that also count (alt) and its own traps (a word for a likely wrong answer). text
    and ans stay a whole problem by themselves, for the places that ask one question (print sheets, lessons, steps).
    A problem says something once: when the picture shows the sum (a column layout, a division bracket, a price
    tag), the text does not repeat it, and every instruction in the text is one the answer checks. */
@@ -424,10 +425,12 @@ function finish(p, id, d) {
 }
 function gen(id, d, R) {
   R = R || makeR(); const s = S[id]; if (!s) throw new Error('no concept ' + id);
-  for (let k = 0; k < 40; k++) {
+  /* a maker may turn down the numbers it drew (return null) and is asked again. 400 tries: a picky maker once
+     ran out at 40 (f_mixedops, hard level) and the problem could not be made at all */
+  for (let k = 0; k < 400; k++) {
     const p = s.gen(d, R); if (!p) continue; finish(p, id, d);
-    p.steps = (p.steps || []).map(q => { q = finish(q, id, d); q.step = true; return q; });
-    if (p.first) { p.first = finish(p.first, id, d); p.first.part = 1; }
+    p.steps = (p.steps || []).map(q => { q = finish(q, id, d); q.step = true; q.pvis = p.vis || ''; /* a step is asked with its problem's picture still in view */ return q; });
+    if (p.first) { p.first = finish(p.first, id, d); p.first.part = 1; p.first.traps = (p.first.traps || []).filter(t => t && t.v != null && !eqAns(p.first, t.v)); }
     p.traps = (p.traps || []).filter(t => t && t.v != null && !eqAns(p, t.v));
     return p;
   }
@@ -456,7 +459,7 @@ function parse(p, raw) {
 function eqAns(p, v) {
   if (v == null) return false; const a = p.ans;
   switch (p.type) {
-    case 'num': return typeof v === 'number' && isFinite(v) && Math.abs(v - a) <= 1e-9 * Math.max(1, Math.abs(a));
+    case 'num': { const near = x => Math.abs(v - x) <= 1e-9 * Math.max(1, Math.abs(x)); return typeof v === 'number' && isFinite(v) && (near(a) || (Array.isArray(p.alt) && p.alt.some(near))); }
     case 'money': return typeof v === 'number' && v === a;
     case 'frac': {
       if (typeof v === 'number') return !p.low && Math.abs(v - a.n / a.d) < 1e-9;

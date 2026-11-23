@@ -89,7 +89,7 @@ Grade-level fit: words and contexts should suit the grade (a 2nd grader reads "t
 "solve"). Keep reading load low at every grade. Problems are written one grade below the concept's grade (C.readGrade,
 never below 2nd) so a child meeting a concept a grade ahead of her own can read it: sentence and word limits for that
 reading grade, long words only if they are math words the grade teaches or everyday words, American spelling
-(test/concepts.test.js). A problem whose reading grade is above the child's grade is read aloud to her. No US-only trivia; money uses US coins (penny, nickel, dime, quarter).
+(test/concepts.test.js). Problems are not read aloud (removed 11/22/2026); only a help lesson has a narrator. No US-only trivia; money uses US coins (penny, nickel, dime, quarter).
 
 ## Picture and helper toolbox (src/core.js)
 

@@ -157,9 +157,12 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(/one step back/.test(await ev(p, () => document.querySelector('#resNote').textContent)), 'the results say to go one step back');
 
   /* 7. review: a due mastered concept comes back in a review mix */
-  await ev(p, () => { const pl = window.__mw.saves.riley; const id = Object.keys(pl.cs).find(k => pl.cs[k].m); pl.cs[id].due = 0; window.__dueId = id; });
+  /* the tricky spots are put aside for this round: one problem in three would be a tricky-spot problem by chance, and a
+     short mix (4 problems) could then hold a single review problem and fail this check for no reason */
+  await ev(p, () => { const pl = window.__mw.saves.riley; const id = Object.keys(pl.cs).find(k => pl.cs[k].m); pl.cs[id].due = 0; window.__dueId = id; window.__mist7 = pl.mist; pl.mist = {}; });
   const revTotal = await ev(p, () => { window.__mw.startReview(); return window.__mw.RD.mainTotal; }); await wait(150);
   let revs = 0; for (let i = 0; i < 12; i++) { const c = await cur(p); if (!c || c.roundKind !== 'review') break; if (c.phase !== 'ask') { await next(p); continue; } if (c.kind === 'rev') revs++; await answer(p, true); await next(p); if (await resultsShown(p)) break; }
+  await ev(p, () => { window.__mw.saves.riley.mist = window.__mist7; });
   check(revTotal >= 4 && revs >= Math.min(5, revTotal - 2), 'a review mix is made of mastered concepts (' + revs + ' of ' + revTotal + ', sized to the block)');
   check(await ev(p, () => window.__mw.saves.riley.cs[window.__dueId].due <= Date.now()), 'a review mix is extra practice: the concept still gets its memory check');
 
@@ -571,9 +574,10 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   const part = () => ev(p, () => { const R = window.__mw.RD, q = s => document.querySelector(s), fb = q('#feedback'), c = R.cur || {};
     return { part: R.part, phase: R.phase, tries: R.tries, text: q('#qText').textContent, vis: /class="stack"/.test(q('#qVis').innerHTML), fb: fb.hidden ? '' : fb.textContent, back: !q('#backBtn').hidden,
       res: R.results.slice(), first: !!(c.p && c.p.first), typed: c.typed || null, aud: R.aud ? Object.values(R.aud)[0] || [] : null, kind: c.kind, wide: document.documentElement.scrollWidth > innerWidth + 1 }; });
-  const sub = (which, right) => ev(p, (which, right) => { const R = window.__mw.RD, q = which === 1 ? R.cur.p.first : R.cur.p; window.__mw.submit(right ? q.ans : (which === 1 ? (q.ans === 1 ? 10 : 1) : q.ans + 1), null); }, which, right);
+  const sub = (which, right) => ev(p, (which, right) => { const R = window.__mw.RD, q = which === 1 ? R.cur.p.first : R.cur.p; window.__mw.submit(right ? q.ans : (which === 1 ? 77 : q.ans + 1), null); }, which, right);
   let s16 = await part();
-  check(s16.first && s16.part === 1 && /Part 1 of 2/.test(s16.text) && /Which digit is wrong first\?/.test(s16.text) && s16.vis, 'find the mistake opens on part 1, with the worked sum as its picture (' + s16.text + ')');
+  check(s16.first && s16.part === 1 && /Part 1 of 2/.test(s16.text) && /What is the first wrong digit\?/.test(s16.text) && /Type the digit \w+ wrote\./.test(s16.text) && s16.vis, 'find the mistake opens on part 1, with the worked sum as its picture (' + s16.text + ')');
+  check(await ev(p, () => { const q = window.__mw.RD.cur.p.first, v = document.querySelector('#qVis').textContent.replace(/\D/g, ''); return Number.isInteger(q.ans) && q.ans >= 0 && q.ans <= 9 && v.includes(String(q.ans)); }), 'the answer to part 1 is a digit of the worked answer, typed as it is written');
   check(!/worked out|Find the mistake|\d\s*[+−]\s*\d/.test(s16.text), 'the text does not repeat the sum or give an instruction that is not asked');
   await sub(1, false); s16 = await part();
   check(s16.part === 1 && s16.tries === 1 && /Not quite/.test(s16.fb) && s16.phase === 'ask', 'a wrong part 1 is a miss with a hint, and part 1 is asked again (' + s16.fb.slice(0, 60) + ')');
@@ -603,10 +607,58 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(a16.q.length === 2 && a16.q[0][0] === 1 && a16.q[1][0] === 0 && /, then /.test(a16.q[1][1] || ''), 'both parts right counts; a wrong part 1 with a right part 2 does not, and both typed answers are kept (' + JSON.stringify(a16) + ')');
   await until(() => ev(p, () => window.__mw.net.idle())); await ev(p, () => window.__mw.openParent('riley')); await wait(300);
   const pv16 = await ev(p, () => { const d = document.querySelector('#pvBody details.pv-blk'); if (!d) return null; d.open = true; d.dispatchEvent(new Event('toggle')); return d.querySelector('.pv-qbody').textContent; });
-  check(!!pv16 && /Asked in two parts. Part 1: Which digit is wrong first/.test(pv16) && /Answers: /.test(pv16) && /, then /.test(pv16) && !/undefined|NaN/.test(pv16), 'the parent view shows both parts, both answers and what she typed for each');
+  check(!!pv16 && /Asked in two parts. Part 1: What is the first wrong digit/.test(pv16) && /Answers: /.test(pv16) && /, then /.test(pv16) && !/undefined|NaN/.test(pv16), 'the parent view shows both parts, both answers and what she typed for each');
   /* phone width: both parts fit without sideways scroll */
   await p.setViewport({ width: 390, height: 780 }); await ev(p, () => window.__mw.startLearn('m_fixit')); await wait(200);
-  s16 = await part(); check(s16.part === 1 && !s16.wide, 'part 1 fits a phone'); await sub(1, true); await wait(100); s16 = await part(); check(s16.part === 2 && !s16.wide, 'part 2 fits a phone');
+  s16 = await part(); check(s16.part === 1 && !s16.wide, 'part 1 fits a phone');
+  const tw16 = await ev(p, () => { const R = window.__mw.RD, t = (R.cur.p.first.traps || [])[0]; if (!t) return null; window.__mw.submit(t.v, null); return document.querySelector('#feedback').textContent; });
+  check(tw16 === null || /should be|goes wrong first|above it/.test(tw16), 'typing what the digit should be gets a word about typing the digit that was written (' + String(tw16).slice(0, 70) + ')');
+  await sub(1, true); await wait(100); s16 = await part(); check(s16.part === 2 && !s16.wide, 'part 2 fits a phone');
+  await p.close();
+
+  /* 17. "I have no clue": offered after 3 minutes on one problem; two presses open a tutorial on the concept (one worked
+     problem to watch, then a similar one step by step, each step typed); the problem is asked again afterwards with one
+     miss on it. In an assessment the question counts as not known and the next question follows the tutorial. */
+  const m17 = create();
+  p = await newPage(m17); await ev(p, () => { window.__mwFast = true; });
+  await until(() => ev(p, () => !document.querySelector('.profile-card').disabled));
+  await ev(p, () => document.querySelectorAll('.profile-card')[1].click()); await wait(200);
+  await ev(p, () => window.__mw.startLearn('a_coladd')); await wait(200);
+  await ev(p, () => { const r = document.querySelector('#qReadyBtn'); if (!document.querySelector('#qReady').hidden) r.click(); }); await wait(900);
+  check(await ev(p, () => document.querySelector('#clueBtn').hidden), 'no “I have no clue” button at first');
+  await ev(p, () => { window.__mwClueMs = 0; }); await until(() => ev(p, () => !document.querySelector('#clueBtn').hidden), 3000);
+  check(await ev(p, () => !document.querySelector('#clueBtn').hidden && document.querySelector('#clueBtn').textContent === 'I have no clue'), 'the button appears when the time is up');
+  const key17 = await ev(p, () => window.__mw.RD.cur.p.key);
+  await ev(p, () => document.querySelector('#clueBtn').click()); await wait(80);
+  check(await ev(p, () => !document.querySelector('#play').hidden && /Tap again/.test(document.querySelector('#clueBtn').textContent)), 'one press only asks for a second press');
+  await ev(p, () => document.querySelector('#clueBtn').click()); await wait(200);
+  check(await ev(p, () => { const H = window.__mw.HL; return !document.querySelector('#help').hidden && !!H && H.clue === 1 && H.stage === 'video' && H.exd === window.__mw.RD.queue[0].p.d && document.querySelectorAll('#hvBar i').length >= 4; }), 'the second press opens the tutorial with a worked problem at the same level to watch');
+  await until(() => ev(p, () => !document.querySelector('#hvAfter').hidden), 10000);
+  await ev(p, () => document.querySelector('#hvDone').click()); await wait(80);
+  const l17 = await ev(p, () => { const H = window.__mw.HL; return { lesson: !document.querySelector('#hlLesson').hidden, feel: !document.querySelector('#hlFeel').hidden, kinds: (H.tasks || []).map(t => t.kind).join(','), title: document.querySelector('#hlLessonTitle').textContent }; });
+  check(l17.lesson && !l17.feel && /^read,(step,)+whole$/.test(l17.kinds) && /step by step/i.test(l17.title), 'after the video comes a similar problem taken step by step, each step typed (' + JSON.stringify(l17) + ')');
+  for (let i = 0; i < 12; i++) { const s = await ev(p, () => ({ check: !document.querySelector('#hlCheck').hidden && !document.querySelector('#hlLesson').hidden, next: !document.querySelector('#hlNext').hidden && !document.querySelector('#hlLesson').hidden, feel: !document.querySelector('#hlFeel').hidden }));
+    if (s.feel) break;
+    if (s.check) await ev(p, () => { const H = window.__mw.HL; window.__mw.type(window.__mw.MW.rawFor(H.task.p)); document.querySelector('#hlCheck').click(); }); else if (s.next) await ev(p, () => document.querySelector('#hlNext').click()); await wait(70); }
+  await ev(p, () => document.querySelector('#hfBtns [data-f="yes"]').click()); await wait(80);
+  check(await ev(p, () => !document.querySelector('#hlDone').hidden && document.querySelector('#hdBtn').textContent === 'Back to my problem'), 'the tutorial ends with “Back to my problem”');
+  await ev(p, () => { window.__mwClueMs = 1e9; document.querySelector('#hdBtn').click(); }); await wait(700);
+  const b17 = await ev(p, () => { const R = window.__mw.RD, pl = window.__mw.saves.riley; return { play: !document.querySelector('#play').hidden, key: R.cur.p.key, tries: R.tries, phase: R.phase, clue: document.querySelector('#clueBtn').hidden, help: (pl.help || []).slice(-1)[0] }; });
+  check(b17.play && b17.key === key17 && b17.tries === 1 && b17.phase === 'ask' && b17.clue, 'back on the same problem, with one miss on it and the button hidden again (' + JSON.stringify({ tries: b17.tries, same: b17.key === key17 }) + ')');
+  check(!!b17.help && b17.help.from === 'clue' && b17.help.lesson === 'yes', 'the tutorial is kept for the parent report (' + JSON.stringify(b17.help) + ')');
+  await answer(p, true); await wait(100);
+  const r17 = await ev(p, () => { const R = window.__mw.RD, b = window.__mw.blk; return { res: R.results.slice(), q: ((b && b.q) || []).slice(-1)[0] }; });
+  check(r17.res.length === 1 && r17.res[0] === false && r17.q && r17.q[8] === 'no clue' && r17.q[6] === 1, 'a right answer after the tutorial counts as right, but not first try (' + JSON.stringify(r17) + ')');
+  /* in an assessment: the question counts as not known, the tutorial runs, then the next question */
+  await ev(p, () => document.querySelector('#quitBtn').click()); await wait(200);
+  await ev(p, () => { const pl = window.__mw.saves.riley; pl.pre = null; window.__mw.startPre(); window.__mwClueMs = 0; }); await wait(700);
+  const a17 = await ev(p, () => { const R = window.__mw.RD, pre = window.__mw.saves.riley.pre; return { kind: R.cur.kind, n: pre.order.reduce((a, s) => a + pre.st[s].log.length, 0), skill: R.cur.p.skill }; });
+  await until(() => ev(p, () => !document.querySelector('#clueBtn').hidden), 3000);
+  await ev(p, () => document.querySelector('#clueBtn').click()); await wait(60); await ev(p, () => document.querySelector('#clueBtn').click()); await wait(200);
+  const c17 = await ev(p, () => { const pre = window.__mw.saves.riley.pre, logs = pre.order.flatMap(s => pre.st[s].log), H = window.__mw.HL; return { help: !document.querySelector('#help').hidden, id: H && H.id, back: H && H.back, n: logs.length, last: logs[logs.length - 1] }; });
+  check(a17.kind === 'pre' && c17.help && c17.id === a17.skill && c17.back === 'questions' && c17.n === a17.n + 1 && c17.last[2] === 0 && c17.last[3] === 1 && c17.last[6] === 'no clue', 'in an assessment the question is kept as “no clue” (not known) and the tutorial opens (' + JSON.stringify(c17.last) + ')');
+  await ev(p, () => document.querySelector('#hlBack').click()); await wait(250);
+  check(await ev(p, () => { const R = window.__mw.RD; return !document.querySelector('#play').hidden && !!R && R.kind === 'pre' && R.phase === 'ask'; }), 'leaving the tutorial goes on to the next assessment question');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.slice(0, 5).join(' | '));

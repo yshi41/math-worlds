@@ -43,6 +43,23 @@ Typing notes are not counted. There are no semicolons, no asides in brackets up 
 and nothing after the question except a typing note: an instruction such as "Round each number to the nearest ten."
 comes before the question it belongs to. Stories use one fact to a sentence, the same name each time and no pronouns.
 
+### Plain words a child does not have to work out
+
+Every problem, break-down step and hint in grades 2 to 8 was read and reworded on 11/22/2026 so a child never has to
+stop and parse a sentence. The rules that pass set, for anything written from now on:
+
+- One fact to a sentence, told in the order it happens: "Jack had 28 stamps. Jack gave 4 stamps to Ava." not "Jack had
+  28 stamps and gave 4 to Ava."
+- No "that is": "Ava has 29 more beads than Nora." not "That is 29 more than Nora has."
+- The question names exactly what to find, with its unit, in a whole sentence: "How many cups of water are there?" not
+  "How many water?"; "How many minutes are in 4 hours?" not "4 hours = how many minutes?"
+- The noun is said again where "it", "they" or "them" could lose a child: "How long is the feather?"
+- A break-down step stands on its own. It is shown without the main problem's text, so it carries its own numbers
+  ("In order, the numbers are 11, 13, 15, 17, 21, 25, 29. Which number is in the middle?" not "The middle number?").
+  A step also keeps its problem's picture on screen (`pvis`).
+- "Box" only where a box is drawn (□, or the boxes of a pattern). A "?" is "the missing number".
+- Seeds still rebuild the same problems: the pass changed words only, never the numbers or the random draws.
+
 ### Say it once, and ask what you say
 
 A problem states each thing one time, and every instruction in it is one the answer checks (the 11/22/2026 pass over
@@ -50,7 +67,9 @@ grades 2 to 8):
 
 - When the picture is the written sum (columns, a division bracket), the text is only the instruction: "Add in
   columns." above the stack, not "Add in columns: 36 + 47." beside the same sum. The same goes for a price on a tag,
-  hops drawn on a line and rules written on a table's rows. `say` keeps the numbers for reading aloud.
+  hops drawn on a line and rules written on a table's rows. `say` keeps the numbers for the narrator of a help lesson
+  (problems themselves are no longer read aloud: the speaker button, the "Read questions aloud" setting and the
+  automatic reading of above-grade problems were removed 11/22/2026).
 - No instruction that is never checked. "Find the mistake", "Find the rule" and "Estimate first" were said but only
   the final answer was typed. They are now either asked (below) or gone.
 - One question, not two ("Which pack is the better buy? How much do you save…" is now one question).
@@ -65,15 +84,18 @@ A problem can carry a first part (`first: { text, ans, hint }`): part 1 is asked
 picture, typed and checked, and then the main question is part 2. The problem is right only when both parts are
 right. The screen says "Part 1 of 2" and "Part 2 of 2".
 
-- Find the mistake (`a_fixit`, `m_fixit`): part 1 finds it, part 2 fixes it. Part 1 asks which digit of the worked
-  answer is wrong first, checking one digit at a time from the ones (typed 1, 10, 100) for adding, taking away and
-  multiplying, and from the left (typed 1, 2, 3) for long division. For a long multiplication with a wrong line,
-  part 1 asks what the first wrong line should be.
+- Find the mistake (`a_fixit`, `m_fixit`): part 1 finds it, part 2 fixes it. Part 1 is said the way a child does it:
+  "Start with the ones and check each digit. What is the first wrong digit? Type the digit Lily wrote." She types the
+  wrong digit just as it is written in the worked answer (no code for its place). Long division starts on the left;
+  a long multiplication with a wrong line asks for the first wrong number as written. The wrong digit appears only
+  once in the answer, so the typed digit is never ambiguous. Typing what the digit should be gets "That is what the
+  digit should be. Type the wrong digit that Lily wrote." A too-big remainder also counts for the division slip it
+  shows (`alt`).
 - Big numbers in columns (`a_bigcol`): part 1 is the estimate, part 2 the exact answer.
 - In practice a wrong part 1 is a miss like any other: a hint and one more try, then the worked answer. A right part 1
   says so and moves on. An assessment or a memory check takes both answers without a word and judges them together;
   Back in part 2 returns to part 1.
-- The parent view shows both answers and what she typed for each ("10, then 442"; "part 1: 100" for a miss in part 1).
+- The parent view shows both answers and what she typed for each ("5, then 442"; "part 1: 6" for a miss in part 1).
 - `text` and `ans` stay a whole problem by themselves, for the places that ask one question (print sheets, lessons,
   break-down steps).
 
@@ -269,6 +291,23 @@ Every problem carries its worked shortcut (`how`), a break-down into smaller que
 - On the hub, tricky spots keep a Practice button until 3 in a row are right. Missing a tricky spot's practice adds
   the concept one step back.
 - General checks also catch answers 10 times too big or small, reversed digits, sign flips and carrying slips.
+
+### "I have no clue"
+
+After 3 minutes on one problem an "I have no clue" button appears beside Hint (`clueMs` in `src/game.js`; the clock
+starts when the problem is shown, or when she taps that her pencil and paper are ready). It takes two presses, like
+Check. It opens a tutorial on that concept, at the level of the problem she is stuck on:
+
+1. One worked problem to watch: the trick, the problem, each line of the solution coming in one at a time with the
+   voice, the picture, the answer.
+2. A similar problem taken step by step. Each step is typed and checked. The problem stays in view on every step, and
+   the steps already done pile up under it as "Your work so far". Then she puts the steps together.
+3. "How do you feel about it now?", kept for the parent report with the rest of the lesson (`from: 'clue'`).
+
+Then "Back to my problem": the same problem is asked again. It took one miss when she pressed the button, so a right
+answer now counts as right on the second try. In an assessment or a memory check the question counts as not known
+(kept as "no clue" for the parent view, and left out of the mistakes to go over), and the next question follows the
+tutorial. The step-by-step view (problem in view, work so far) is the same in every help lesson.
 
 ## A right answer
 

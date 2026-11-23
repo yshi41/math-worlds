@@ -55,24 +55,24 @@ const DEFS = [
   tip: 'Undo what was done. 7 + ? = 15: undo the + 7 by taking 7 away, so 15 − 7 = 8. ? × 6 = 42: undo × 6 with ÷ 6, so 42 ÷ 6 = 7.',
   gen(d, R) {
     const kind = d === 0 ? R.pick(['add', 'add', 'sub2']) : d === 1 ? R.pick(['sub1', 'sub2', 'mul', 'mul']) : R.pick(['add', 'sub1', 'mul', 'div', 'div']);
-    const ask = s => 'What number goes in the box? ' + B(s);
+    const ask = s => 'What is the missing number? ' + B(s);
     if (kind === 'add') {
       const a = d === 0 ? R.i(2, 9) : R.i(13, 68), x = d === 0 ? R.i(2, 11) : R.i(12, 79), c = a + x, left = R.chance(.5);
       const traps = [tr(c + a, 'x_missing', 'You added ' + a + '. To undo + ' + a + ', take ' + a + ' away.'),
         tr(x + 1, d ? 'a_subsplit' : 'a_thinkadd', 'Count up from ' + a + ' to ' + c + ' again carefully.')];
       if (d && c % 10 < a % 10) traps.push(tr(x + 10, 'a_borrow', 'When you take ' + a + ' from ' + c + ', you need to trade a ten. Check the tens.'));
       return { text: ask(left ? '? + ' + a + ' = ' + c : a + ' + ? = ' + c), ans: x,
-        how: ['The box plus ' + a + ' makes ' + c + '. Undo the + ' + a + ' by taking ' + a + ' away.',
+        how: ['The missing number plus ' + a + ' makes ' + c + '. Undo the + ' + a + ' by taking ' + a + ' away.',
               c + ' ' + MINUS + ' ' + a + ' = ' + B(x) + '. Check: ' + x + ' + ' + a + ' = ' + c + '.'],
         steps: [{ text: B(c + ' ' + MINUS + ' ' + a) + ' = ?', ans: x }, { text: 'Check: ' + B(x + ' + ' + a) + ' = ?', ans: c }], traps };
     }
     if (kind === 'sub1') {
       const c = d === 1 ? R.i(21, 70) : R.i(110, 320), x = d === 1 ? R.i(6, c - 8) : R.i(25, c - 30), b = c - x;
       return { text: ask(c + ' ' + MINUS + ' ? = ' + b), ans: x,
-        how: [c + ' take away the box leaves ' + b + '. So the box is the part between ' + b + ' and ' + c + '.',
+        how: [c + ' take away the missing number leaves ' + b + '. So the missing number is the part between ' + b + ' and ' + c + '.',
               c + ' ' + MINUS + ' ' + b + ' = ' + B(x) + '. Check: ' + c + ' ' + MINUS + ' ' + x + ' = ' + b + '.'],
         steps: [{ text: B(c + ' ' + MINUS + ' ' + b) + ' = ?', ans: x }, { text: 'Check: ' + B(c + ' ' + MINUS + ' ' + x) + ' = ?', ans: b }],
-        traps: [tr(c + b, 'x_missing', 'The box is taken away from ' + c + ', so it must be smaller than ' + c + '.'),
+        traps: [tr(c + b, 'x_missing', 'The missing number is taken away from ' + c + ', so it must be smaller than ' + c + '.'),
           c % 10 < b % 10 ? tr(x + 10, 'a_borrow', 'Check the tens when you take ' + b + ' from ' + c + ': you need to trade a ten.') : null, tr(x - 1, 'a_countup', 'Count up from ' + b + ' to ' + c + ' again.')] };
     }
     if (kind === 'sub2') {
@@ -123,19 +123,19 @@ const DEFS = [
     if (d === 1) {
       if (k === 0) { const a = R.i(2, 12), b = R.i(2, 9), c = R.i(2, 9), s = a + b, ans = s * c, e = '(' + a + ' + ' + b + ') × ' + c;
         return { text: Q(e), ans, how: [e, W('= ' + s + ' × ' + c, 'brackets first'), '= ' + B(ans)],
-          steps: [{ text: 'The bracket first: ' + B(a + ' + ' + b) + ' = ?', ans: s }, { text: B(s + ' × ' + c) + ' = ?', ans }],
+          steps: [{ text: 'Do the bracket first: ' + B(a + ' + ' + b) + ' = ?', ans: s }, { text: B(s + ' × ' + c) + ' = ?', ans }],
           traps: [tr(a + b * c, 'x_order', 'The brackets say: add first, then multiply.'), tr(ans + c, 'm_breakapart', 'Check ' + s + ' × ' + c + ' again.')] }; }
       if (k === 1) { const a = R.i(2, 9), c = R.i(2, 9), b = c + R.i(2, 9), s = b - c, ans = a * s, e = a + ' × (' + b + M + c + ')';
         return { text: Q(e), ans, how: [e, W('= ' + a + ' × ' + s, 'brackets first'), '= ' + B(ans)],
-          steps: [{ text: 'The bracket first: ' + B(b + M + c) + ' = ?', ans: s }, { text: B(a + ' × ' + s) + ' = ?', ans }],
+          steps: [{ text: 'Do the bracket first: ' + B(b + M + c) + ' = ?', ans: s }, { text: B(a + ' × ' + s) + ' = ?', ans }],
           traps: [tr(a * b - c, 'x_order', 'Work out the bracket before you multiply.'), tr(ans + a, fx(a, s), 'Check your times fact for ' + a + ' × ' + s + '.')] }; }
       if (k === 2) { const a = R.i(20, 50), b = R.i(5, 15), c = R.i(2, 9), m = a - b, ans = m + c, e = a + M + b + ' + ' + c;
         return { text: Q(e), ans, how: [e, W('= ' + m + ' + ' + c, 'only + and ' + MINUS + ', so go left to right'), '= ' + B(ans)],
-          steps: [{ text: 'Left first: ' + B(a + M + b) + ' = ?', ans: m }, { text: B(m + ' + ' + c) + ' = ?', ans }],
+          steps: [{ text: 'Start on the left: ' + B(a + M + b) + ' = ?', ans: m }, { text: B(m + ' + ' + c) + ' = ?', ans }],
           traps: [tr(a - (b + c), 'x_order', '+ and ' + MINUS + ' go from left to right, so take away ' + b + ' first.'), a % 10 < b % 10 ? tr(ans + 10, 'a_borrow', 'Check ' + a + M + b + ' again.') : null] }; }
       const b = R.i(2, 6), c = R.i(2, 5), q = R.i(2, 6) * c, a = b * q, ans = q * c, e = a + ' ÷ ' + b + ' × ' + c;
       return { text: Q(e), ans, how: [e, W('= ' + q + ' × ' + c, 'only ÷ and ×, so go left to right'), '= ' + B(ans)],
-        steps: [{ text: 'Left first: ' + B(a + ' ÷ ' + b) + ' = ?', ans: q }, { text: B(q + ' × ' + c) + ' = ?', ans }],
+        steps: [{ text: 'Start on the left: ' + B(a + ' ÷ ' + b) + ' = ?', ans: q }, { text: B(q + ' × ' + c) + ' = ?', ans }],
         traps: [tr(a / (b * c), 'x_order', '× and ÷ go from left to right, so divide first.'), tr(ans + c, 'm_divfam', 'Check ' + a + ' ÷ ' + b + ' again.')] };
     }
     if (k === 0) { const a = R.i(2, 15), b = R.i(2, 5), c = R.i(2, 4), s = b * b, p = s * c, ans = a + p, e = a + ' + ' + pw(b, 2) + ' × ' + c;
@@ -243,7 +243,7 @@ const DEFS = [
     const M = ' ' + MINUS + ' ';
     if (d === 0 && R.chance(.65) || d === 2 && R.chance(.25)) {
       const a = R.i(3, 9), t = d === 2 ? R.i(11, 49) * 10 : R.i(2, 9) * 10, o = R.i(2, 9), n = t + o, p1 = a * t, p2 = a * o, ans = p1 + p2;
-      return { text: 'What is ' + B(a + ' × ' + num(n)) + '? Split ' + num(n) + ' into ' + num(t) + ' + ' + o + '.', ans,
+      return { text: 'Split ' + num(n) + ' into ' + num(t) + ' + ' + o + '. What is ' + B(a + ' × ' + num(n)) + '?', ans,
         how: [a + ' × ' + num(n) + ' = ' + a + ' × ' + num(t) + ' + ' + a + ' × ' + o + '.', a + ' × ' + num(t) + ' = ' + num(p1) + ' and ' + a + ' × ' + o + ' = ' + p2 + '.', num(p1) + ' + ' + p2 + ' = ' + B(num(ans)) + '.'],
         steps: [{ text: B(a + ' × ' + num(t)) + ' = ?', ans: p1 }, { text: B(a + ' × ' + o) + ' = ?', ans: p2 }, { text: B(num(p1) + ' + ' + p2) + ' = ?', ans }],
         traps: [tr(p1 + o, 'x_distribute', 'The ' + a + ' multiplies both parts: the ' + num(t) + ' and the ' + o + '.'), tr(ans + a, fx(a, o), 'Check your fact for ' + a + ' × ' + o + '.'),
@@ -259,7 +259,7 @@ const DEFS = [
     if (d === 1 && R.chance(.5) || d === 2 && R.chance(.35)) {
       const a = R.i(3, 9), H = d === 2 ? R.pick([100, 200, 300, 500, 1000]) : R.pick([100, 100, 200]), k = R.i(1, d === 2 ? 4 : 3), up = R.chance(.3), n = up ? H + k : H - k;
       const pH = a * H, pk = a * k, ans = up ? pH + pk : pH - pk;
-      return { text: 'What is ' + B(a + ' × ' + num(n)) + '? Think of ' + num(n) + ' as ' + num(H) + (up ? ' + ' : M) + k + '.', ans,
+      return { text: 'Think of ' + num(n) + ' as ' + num(H) + (up ? ' + ' : M) + k + '. What is ' + B(a + ' × ' + num(n)) + '?', ans,
         how: [a + ' × ' + num(n) + ' = ' + a + ' × ' + num(H) + (up ? ' + ' : M) + a + ' × ' + k + '.', num(pH) + (up ? ' + ' : M) + pk + ' = ' + B(num(ans)) + '.'],
         steps: [{ text: B(a + ' × ' + num(H)) + ' = ?', ans: pH }, { text: B(a + ' × ' + k) + ' = ?', ans: pk }, { text: B(num(pH) + (up ? ' + ' : M) + pk) + ' = ?', ans }],
         traps: [tr(up ? pH + k : pH - k, 'x_distribute', (up ? 'Add ' : 'Take away ') + a + ' × ' + k + ', not just ' + k + '. The ' + a + ' multiplies both parts.'),
@@ -316,9 +316,9 @@ const DEFS = [
       if (askX) traps.push(tr(sum(xs.map(t => Math.abs(t[0]))), 'x_combine', 'The sign in front of a term belongs to it: ' + MINUS + ' ' + term(Math.abs(xs.find(t => t[0] < 0)[0]), 'x') + ' means take those away.'));
       else traps.push(tr(-E, 'n_intadd', 'Check the signs when you add the numbers ' + cs.map(t => num(t[0])).join(' and ') + '.'), tr(sum(cs.map(t => Math.abs(t[0]))), 'n_intadd', 'A ' + MINUS + ' in front of a number means take it away.'));
     } else traps.push(tr(askX ? xs[0][0] : cs[0][0], 'x_combine', 'Collect every ' + (askX ? 'x-term' : 'plain number') + ', not just the first one.'));
-    return { text: 'Simplify ' + B(ex(terms)) + '. It becomes ' + B(form) + '. What is the missing number?', ans,
+    return { text: 'Simplify: ' + B(ex(terms) + ' = ' + form) + '. What is the missing number?', ans,
       how: [ex(terms)].concat(ex(xs.concat(cs)) === ex(terms) ? [] : [W('= ' + ex(xs.concat(cs)), 'put like terms together, each with its own sign')], [W('= ' + poly([A, E]), 'add the x-terms, then the plain numbers'), 'The missing number is ' + B(num(ans)) + '.']),
-      steps: [{ text: 'Add the x-terms: ' + B(ex(xs)) + ' = ?x', ans: A }, { text: 'Add the numbers: ' + B(ex(cs)) + ' = ?', ans: E }], traps };
+      steps: [{ text: (d === 2 ? 'Combine' : 'Add') + ' the x-terms: ' + B(ex(xs)) + ' = ?x', ans: A }, { text: (d === 2 ? 'Combine' : 'Add') + ' the numbers: ' + B(ex(cs)) + ' = ?', ans: E }], traps };
   } },
 
 { id: 'x_twostep', s: 'alg', g: 7, title: 'Two-step equations', pre: ['n_intadd'], paper: true,
@@ -372,13 +372,13 @@ const DEFS = [
     const steps = [];
     if (c) steps.push({ text: B(e) + ' becomes ' + B(term(a, 'x') + ' ' + show[rel] + ' ?'), ans: r });
     if (a !== 1) steps.push({ text: B(term(a, 'x') + ' ' + show[rel] + ' ' + num(r)) + ' becomes ' + B('x ' + show[rel2] + ' ?') + (a < 0 ? ' (the sign flips)' : ''), ans: { n: qn, d: qd }, type: 'frac' });
-    steps.push({ text: 'The ' + (big ? 'biggest' : 'smallest') + ' ' + word + ' that works?', ans });
+    steps.push({ text: B('x ' + show[rel2] + ' ' + qs) + '. What is the ' + (big ? 'biggest' : 'smallest') + ' ' + word + ' x can be?', ans });
     const traps = [];
     if (rel2.length === 1 && whole) traps.push(tr(q, 'x_ineq', 'The sign is ' + show[rel2] + ', so x cannot equal ' + num(q) + '.'));
     if (!whole) traps.push(tr(big ? lo + 1 : lo, 'x_ineq', 'Check it: put your number back into ' + e + '.'));
     if (a < 0) traps.push(tr(rel === '<' || rel === '>' ? (big ? (whole ? q + 1 : lo + 1) : (whole ? q - 1 : lo)) : (big ? (whole ? q : lo + 1) : (whole ? q : lo)), 'x_ineq', 'Dividing both sides by a negative number flips the inequality sign.'));
     if (c) traps.push(tr(rel2[0] === '<' ? Math.floor((b + c) / a) : Math.ceil((b + c) / a), c > 0 ? 'x_onestep' : 'n_intsub', 'To undo ' + signed(c) + ', do the opposite to both sides.'));
-    return { text: 'What is the ' + (big ? 'biggest' : 'smallest') + ' ' + word + ' x with ' + B(e) + '?', ans, how, steps, traps };
+    return { text: 'What is the ' + (big ? 'biggest' : 'smallest') + ' ' + word + ' x that makes ' + B(e) + ' true?', ans, how, steps, traps };
   } },
 
 { id: 'x_rate', s: 'alg', g: 7, title: 'Distance = speed × time', pre: ['f_rate'], paper: true,
@@ -387,9 +387,9 @@ const DEFS = [
     const u = R.pick([['miles', 'mph', 'miles per hour'], ['km', 'km/h', 'km per hour']]), who = R.pick(NAMES), how2 = R.pick(['drives', 'travels']);
     if (d === 0) {
       const s = R.i(4, 14) * 5, t = R.i(2, 6), D = s * t;
-      return { text: who + ' ' + how2 + ' at ' + B(s + ' ' + u[2]) + ' for ' + B(t + ' hours') + '. How far is that?', ans: D, unit: u[0],
+      return { text: who + ' ' + how2 + ' at ' + B(s + ' ' + u[2]) + ' for ' + B(t + ' hours') + '. How far does ' + who + ' ' + how2.slice(0, -1) + '?', ans: D, unit: u[0],
         how: ['distance = speed × time', 'distance = ' + s + ' × ' + t, '= ' + B(D) + ' ' + u[0]],
-        steps: [{ text: 'How far in 1 hour?', ans: s, unit: u[0] }, { text: B(s + ' × ' + t) + ' = ?', ans: D, unit: u[0] }],
+        steps: [{ text: who + ' ' + how2 + ' at ' + B(s + ' ' + u[2]) + '. How far does ' + who + ' ' + how2.slice(0, -1) + ' in 1 hour?', ans: s, unit: u[0] }, { text: B(s + ' × ' + t) + ' = ?', ans: D, unit: u[0] }],
         traps: [tr(s + t, 'x_rate', 'Each hour adds another ' + s + ' ' + u[0] + ', so multiply.'), tr(s / t, 'x_rate', 'More time means farther, so multiply, don\'t divide.'), tr(D + s, 'm_breakapart', 'Check ' + s + ' × ' + t + '.')] };
     }
     if (d === 1) {
@@ -398,7 +398,7 @@ const DEFS = [
         how: ['time = distance ÷ speed', 'time = ' + D + ' ÷ ' + s, W('= ' + B(t) + ' hours', 'check: ' + s + ' × ' + t + ' = ' + D)],
         steps: [{ text: B(D + ' ÷ ' + s) + ' = ?', ans: t }],
         traps: [tr(D - s, 'x_rate', 'Time = distance ÷ speed, not distance take away speed.'), tr(D * s, 'x_rate', 'Divide the distance by the speed.'), tr(t + 1, 'm_divbig', 'Check: ' + s + ' × your answer should be ' + D + '.')] };
-      return { text: who + ' ' + how2 + ' ' + B(D + ' ' + u[0]) + ' in ' + B(t + ' hours') + ' at a steady speed. How fast is that, in ' + u[2] + '?', ans: s, unit: u[1],
+      return { text: who + ' ' + how2 + ' ' + B(D + ' ' + u[0]) + ' in ' + B(t + ' hours') + ' at a steady speed. What is ' + who + '\'s speed in ' + u[2] + '?', ans: s, unit: u[1],
         how: ['speed = distance ÷ time', 'speed = ' + D + ' ÷ ' + t, '= ' + B(s) + ' ' + u[2]],
         steps: [{ text: B(D + ' ÷ ' + t) + ' = ?', ans: s }],
         traps: [tr(D * t, 'x_rate', 'Speed = distance ÷ time.'), tr(D - t, 'x_rate', 'Share the distance equally over the hours: divide.'), tr(s + 5, 'm_divbig', 'Check: your speed × ' + t + ' should be ' + D + '.')] };
@@ -407,7 +407,7 @@ const DEFS = [
     if (k === 0) {
       const m = R.pick([10, 15, 20, 30, 40, 45, 90]), g = gcd(60, m), s = R.i(2, 16) * (60 / g), D = s * m / 60;
       if (s > 90 || D < 2) return null;
-      return { text: who + ' ' + how2 + ' at ' + B(s + ' ' + u[2]) + ' for ' + B(m + ' minutes') + '. How far is that?', ans: D, unit: u[0],
+      return { text: who + ' ' + how2 + ' at ' + B(s + ' ' + u[2]) + ' for ' + B(m + ' minutes') + '. How far does ' + who + ' ' + how2.slice(0, -1) + '?', ans: D, unit: u[0],
         how: [W('time = ' + fl(m, 60) + ' hour = ' + fr(m, 60) + ' hour', 'the speed is per hour, so change minutes to hours'), 'distance = ' + s + ' × ' + fr(m, 60), W('= ' + B(D) + ' ' + u[0], s + ' ÷ ' + (60 / g) + ' × ' + (m / g))],
         steps: [{ text: m + ' minutes is what fraction of an hour?', ans: F(m, 60), type: 'frac' }, { text: B(s + ' × ' + fr(m, 60)) + ' = ?', ans: D }],
         traps: [tr(s * m, 't_facts', 'The speed is per hour, but the time is in minutes. Change ' + m + ' minutes into hours first.'), tr(s * m / 100, 't_facts', 'An hour has 60 minutes, not 100.')] };
@@ -415,15 +415,16 @@ const DEFS = [
     if (k === 1) {
       const m = R.pick([10, 12, 15, 20, 30]), s = R.i(2, 12) * (60 / m), D = s * m / 60;
       if (s > 90) return null;
-      return { text: 'A train covers ' + B(D + ' ' + u[0]) + ' in ' + B(m + ' minutes') + '. What is its speed in ' + u[2] + '?', ans: s, unit: u[1],
+      return { text: 'A train goes ' + B(D + ' ' + u[0]) + ' in ' + B(m + ' minutes') + '. What is its speed in ' + u[2] + '?', ans: s, unit: u[1],
         how: [W('1 hour = ' + (60 / m) + ' × ' + m + ' minutes', '60 ÷ ' + m + ' = ' + (60 / m)), 'speed = ' + D + ' × ' + (60 / m), '= ' + B(s) + ' ' + u[2]],
-        steps: [{ text: 'How many lots of ' + m + ' minutes make an hour?', ans: 60 / m }, { text: B(D + ' × ' + (60 / m)) + ' = ?', ans: s }],
+        steps: [{ text: 'How many ' + m + '-minute parts make 1 hour?', ans: 60 / m }, { text: B(D + ' × ' + (60 / m)) + ' = ?', ans: s }],
         traps: [tr(D / m, 't_facts', 'That is ' + u[0] + ' per minute. The question asks per hour.'), tr(D * m, 'x_rate', 'Find how many ' + m + '-minute parts are in an hour, then scale up.')] };
     }
     const s1 = R.i(4, 14) * 5, s2 = R.i(4, 14) * 5, t = R.i(2, 5), D = (s1 + s2) * t;
-    return { text: 'Two cars start ' + B(D + ' ' + u[0]) + ' apart and drive toward each other at ' + B(s1) + ' and ' + B(s2 + ' ' + u[2]) + '. How many hours until they meet?', ans: t, unit: 'hours',
+    const cars = s1 === s2 ? 'Each car goes ' + B(s1 + ' ' + u[2]) + '.' : 'One car goes ' + B(s1 + ' ' + u[2]) + ' and the other goes ' + B(s2 + ' ' + u[2]) + '.';
+    return { text: 'Two cars start ' + B(D + ' ' + u[0]) + ' apart. The cars drive toward each other. ' + cars + ' How many hours until the cars meet?', ans: t, unit: 'hours',
       how: [W('closing speed = ' + s1 + ' + ' + s2 + ' = ' + (s1 + s2) + ' ' + u[1], 'together they close the gap this much each hour'), 'time = ' + D + ' ÷ ' + (s1 + s2), '= ' + B(t) + ' hours'],
-      steps: [{ text: 'How much does the gap shrink each hour?', ans: s1 + s2, unit: u[0] }, { text: B(D + ' ÷ ' + (s1 + s2)) + ' = ?', ans: t }],
+      steps: [{ text: 'Two cars drive toward each other. ' + cars + ' How much closer do the cars get each hour?', ans: s1 + s2, unit: u[0] }, { text: B(D + ' ÷ ' + (s1 + s2)) + ' = ?', ans: t }],
       traps: [tr(D / s1, 'x_rate', 'Both cars move, so add their speeds.'), s1 !== s2 ? tr(D / Math.abs(s1 - s2), 'x_rate', 'They drive toward each other, so the gap closes at the sum of the speeds.') : null] };
   } },
 
@@ -437,18 +438,19 @@ const DEFS = [
     if (E === 0 || E === Bk || d === 0 && E < 0) return null;
     const lhs = br ? a + bin(1, p) : poly([A, Bk]), e = lhs + ' = ' + poly([c, E]), how = [e], steps = [];
     const undo = b => b < 0 ? 'add ' + num(-b) + ' to both sides' : 'take ' + num(b) + ' from both sides';
+    const cap = t => t[0].toUpperCase() + t.slice(1), full = B(poly([A, Bk]) + ' = ' + poly([c, E])) + '. ';
     if (br) how.push(W(poly([A, Bk]) + ' = ' + poly([c, E]), 'multiply out the bracket'));
     const k = Math.abs(A - c);
     if (A > c) {
       how.push(W(poly([k, Bk]) + ' = ' + num(E), 'take ' + term(c, 'x') + ' from both sides'));
       how.push(W(k > 1 ? term(k, 'x') + ' = ' + num(E - Bk) : 'x = ' + B(num(x)), undo(Bk)));
-      steps.push({ text: 'Take ' + term(c, 'x') + ' from both sides: ' + B('?x ' + signed(Bk) + ' = ' + num(E)), ans: k }, { text: B(term(k, 'x') + ' = ?'), ans: E - Bk });
+      steps.push({ text: full + 'Take ' + term(c, 'x') + ' from both sides: ' + B('?x ' + signed(Bk) + ' = ' + num(E)), ans: k }, { text: B(poly([k, Bk]) + ' = ' + num(E)) + '. ' + cap(undo(Bk)) + ': ' + B(term(k, 'x') + ' = ?'), ans: E - Bk });
     } else {
       how.push(W(num(Bk) + ' = ' + poly([k, E]), 'take ' + term(A, 'x') + ' from both sides'));
       how.push(W(k > 1 ? num(Bk - E) + ' = ' + term(k, 'x') : 'x = ' + B(num(x)), undo(E)));
-      steps.push({ text: 'Take ' + term(A, 'x') + ' from both sides: ' + B(num(Bk) + ' = ?x ' + signed(E)), ans: k }, { text: B('? = ' + term(k, 'x')), ans: Bk - E });
+      steps.push({ text: full + 'Take ' + term(A, 'x') + ' from both sides: ' + B(num(Bk) + ' = ?x ' + signed(E)), ans: k }, { text: B(num(Bk) + ' = ' + poly([k, E])) + '. ' + cap(undo(E)) + ': ' + B('? = ' + term(k, 'x')), ans: Bk - E });
     }
-    if (k > 1) { how.push(W('x = ' + B(num(x)), 'divide both sides by ' + k)); steps.push({ text: 'x = ?', ans: x }); }
+    if (k > 1) { how.push(W('x = ' + B(num(x)), 'divide both sides by ' + k)); steps.push({ text: B(A > c ? term(k, 'x') + ' = ' + num(E - Bk) : num(Bk - E) + ' = ' + term(k, 'x')) + '. x = ?', ans: x }); }
     const traps = [tr(k > 1 ? (A > c ? E - Bk : Bk - E) : null, 'x_onestep', 'One more step: divide both sides by ' + k + '.'), tr(-x, A > c ? 'n_intsub' : 'n_intsub', 'Check the signs when you move numbers across the =.')];
     if ((E - Bk) % (A + c) === 0) traps.push(tr((E - Bk) / (A + c), 'x_bothsides', 'To move ' + term(c, 'x') + ' to the other side, take it away from both sides.'));
     if (br && A !== c && (E - p) % (A - c) === 0) traps.push(tr((E - p) / (A - c), 'x_distribute', 'The ' + a + ' multiplies the ' + num(p) + ' in the bracket too.'));
@@ -486,7 +488,7 @@ const DEFS = [
       const co = askX ? a : b, ot = askX ? b : a, v = askX ? 'x' : 'y', o = askX ? 'y' : 'x', ans = c / co;
       return { text: 'Where does ' + B(e) + ' cross the ' + B(v + '-axis') + '? Type the ' + v + '-value.', ans,
         how: [e, W(askX ? term(a, 'x') + ' ' + signed(b) + '(0) = ' + num(c) : num(a) + '(0) ' + signed(b) + 'y = ' + num(c), 'on the ' + v + '-axis, ' + o + ' = 0'), term(co, v) + ' = ' + num(c), v + ' = ' + B(num(ans))],
-        steps: [{ text: 'Put ' + o + ' = 0. ' + B('?' + v + ' = ' + num(c)), ans: co }, { text: B(term(co, v) + ' = ' + num(c)) + '. ' + v + ' = ?', ans }],
+        steps: [{ text: B(e) + '. Put ' + o + ' = 0: ' + B('?' + v + ' = ' + num(c)), ans: co }, { text: B(term(co, v) + ' = ' + num(c)) + '. ' + v + ' = ?', ans }],
         traps: [tr(c / ot, 'x_intercept', 'On the ' + v + '-axis it is ' + o + ' that is 0, so cover up the ' + o + '-term.'), tr(c, 'x_onestep', 'One more step: divide by ' + num(co) + '.'), tr(-ans, 'n_intmul', 'Check the sign when you divide.')] };
     }
     const fracM = d === 2;
@@ -496,7 +498,7 @@ const DEFS = [
     if (fracM) how.push(W('x = ' + num(-b) + ' × ' + fr(q, p), 'multiply both sides by the flip of ' + fr(p, q)));
     if (mS !== 'x') how.push('x = ' + B(num(xi)));
     return { text: 'Where does ' + B(e) + ' cross the ' + B('x-axis') + '? Type the x-value.', ans: xi, how,
-      steps: [{ text: 'Put y = 0 and move the number over: ' + B(mS + ' = ?'), ans: -b }, { text: 'x = ?', ans: xi }],
+      steps: [{ text: B(e) + '. Put y = 0, then ' + undo(b) + ': ' + B(mS + ' = ?'), ans: -b }, { text: mS === 'x' ? B(e) + ' crosses the x-axis at ' + B('x = ?') : B(mS + ' = ' + num(-b)) + '. x = ?', ans: xi }],
       traps: [tr(-xi, 'x_onestep', 'Moving ' + num(b) + ' to the other side changes its sign.'), tr(b, 'x_intercept', 'That is where it crosses the y-axis. For the x-axis, set y = 0.'), fracM ? tr(-b * p / q, 'f_divfrac', 'To undo × ' + fr(p, q) + ', multiply by its flip, ' + fr(q, p) + '.') : null] };
   } },
 
@@ -515,7 +517,7 @@ const DEFS = [
       const x = nz(R, -9, 9), Y = m * x + b, undo = b < 0 ? 'add ' + num(-b) + ' to both sides' : 'take ' + num(b) + ' from both sides';
       return { text: 'For ' + B(eq) + ', what is x when ' + B('y = ' + num(Y)) + '?', ans: x,
         how: [W(num(Y) + ' = ' + poly([m, b]), 'put in y = ' + num(Y)), W(num(Y - b) + ' = ' + term(m, 'x'), undo), W('x = ' + B(num(x)), 'divide both sides by ' + num(m))],
-        steps: [{ text: undo[0].toUpperCase() + undo.slice(1) + ': ' + B('? = ' + term(m, 'x')), ans: Y - b }, { text: 'x = ?', ans: x }],
+        steps: [{ text: B(num(Y) + ' = ' + poly([m, b])) + '. ' + undo[0].toUpperCase() + undo.slice(1) + ': ' + B('? = ' + term(m, 'x')), ans: Y - b }, { text: B(num(Y - b) + ' = ' + term(m, 'x')) + '. x = ?', ans: x }],
         traps: [(Y + b) % m === 0 ? tr((Y + b) / m, 'n_intsub', 'To undo ' + signed(b) + ', do the opposite.') : null, tr(Y - b, 'x_twostep', 'One more step: divide by ' + num(m) + '.'), tr(m * Y + b, 'x_linear', 'You are given y, not x. Solve for x.')] };
     }
     const x1 = nz(R, -6, 6), y1 = m * x1 + b;
@@ -527,7 +529,7 @@ const DEFS = [
         traps: [tr(y1 + m * x2, 'x_linear', 'Measure the run from x = ' + num(x1) + ', not from 0.'), tr(y1 - rise, 'n_intmul', 'Check the sign of the rise.'), tr(m * x2, 'x_linear', 'Start from the point you know, y = ' + num(y1) + '.')] };
     }
     const p = m * x1;
-    return { text: 'A line has slope ' + B(num(m)) + ' and goes through ' + B(pt(x1, y1)) + '. Write it as y = ' + num(m) + 'x + b. What is b?', ans: b,
+    return { text: 'A line has slope ' + B(num(m)) + ' and goes through ' + B(pt(x1, y1)) + '. The equation of the line is ' + B('y = ' + term(m, 'x') + ' + b') + '. What is b?', ans: b,
       how: [W(num(y1) + ' = ' + num(m) + ' × ' + par2(x1) + ' + b', 'put in the point'), num(y1) + ' = ' + num(p) + ' + b', W('b = ' + num(y1) + M + par2(p) + ' = ' + B(num(b)), 'take ' + num(p) + ' from both sides')],
       steps: [{ text: B(num(m) + ' × ' + par2(x1)) + ' = ?', ans: p }, { text: B(num(y1) + M + par2(p)) + ' = ?', ans: b }],
       traps: [tr(y1 + p, 'n_intsub', 'To get b alone, take ' + num(p) + ' away from both sides.'), tr(y1, 'x_linear', 'b is y when x = 0, and this point has x = ' + num(x1) + '.')] };
@@ -542,22 +544,22 @@ const DEFS = [
       y = R.i(1, 12); x = y + R.i(1, 12); const s = x + y, t = x - y;
       e1 = 'x + y = ' + s; e2 = 'x ' + MINUS + ' y = ' + t;
       how = askX ? [W('2x = ' + (s + t), 'add the equations: + y and ' + MINUS + ' y cancel'), 'x = ' + B(x)] : [W('2y = ' + (s - t), 'take the second equation from the first: the x\'s cancel'), 'y = ' + B(y)];
-      steps = [{ text: (askX ? 'Add the equations: ' + B('2x = ?') : 'Take the second from the first: ' + B('2y = ?')), ans: askX ? s + t : s - t }, { text: v + ' = ?', ans: askX ? x : y }];
+      steps = [{ text: B(e1) + '<br>' + B(e2) + '<br>' + (askX ? 'Add the equations: ' + B('2x = ?') : 'Take the second equation from the first: ' + B('2y = ?')), ans: askX ? s + t : s - t }, { text: B('2' + v + ' = ' + (askX ? s + t : s - t)) + '. ' + v + ' = ?', ans: askX ? x : y }];
     } else if (d === 1) {
       x = nz(R, -6, 9); y = nz(R, -6, 9); const a = R.i(1, 6), dd = R.i(1, 6), b = nz(R, -6, 6), opp = R.chance(.5), b2 = opp ? -b : b;
       const K = opp ? a + dd : Math.abs(a - dd); if (K === 0) return null;
       const c = a * x + b * y, e = dd * x + b2 * y, rhs = opp ? c + e : a > dd ? c - e : e - c;
       e1 = lin2(a, b, c); e2 = lin2(dd, b2, e);
       how = isol(K, 'x', rhs, opp ? 'add the equations: the y-terms cancel' : a > dd ? 'take the second equation from the first: the y-terms cancel' : 'take the first equation from the second: the y-terms cancel', askX);
-      steps = [{ text: (opp ? 'Add' : 'Subtract') + ' the equations: ' + B('?x = ' + num(rhs)), ans: K }, { text: 'x = ?', ans: x }];
-      if (!askX) { how = how.concat([W(ex([[a * x, ''], [b, 'y']]) + ' = ' + num(c), 'put x = ' + num(x) + ' into the first equation')], isol(b, 'y', c - a * x, a * x > 0 ? 'take ' + num(a * x) + ' from both sides' : 'add ' + num(-a * x) + ' to both sides', true)); steps.push({ text: 'Put x = ' + num(x) + ' into the first equation. y = ?', ans: y }); }
+      steps = [{ text: B(e1) + '<br>' + B(e2) + '<br>' + (opp ? 'Add the equations' : a > dd ? 'Take the second equation from the first' : 'Take the first equation from the second') + ': ' + B('?x = ' + num(rhs)), ans: K }, { text: B(K + 'x = ' + num(rhs)) + '. x = ?', ans: x }];
+      if (!askX) { how = how.concat([W(ex([[a * x, ''], [b, 'y']]) + ' = ' + num(c), 'put x = ' + num(x) + ' into the first equation')], isol(b, 'y', c - a * x, a * x > 0 ? 'take ' + num(a * x) + ' from both sides' : 'add ' + num(-a * x) + ' to both sides', true)); steps.push({ text: 'Put ' + B('x = ' + num(x)) + ' into ' + B(e1) + '. y = ?', ans: y }); }
     } else {
       x = nz(R, -6, 8); y = nz(R, -6, 8); const a = R.i(2, 5), b = nz(R, -6, 6), e = nz(R, -5, 5), K0 = b - a * e, K = Math.abs(K0); if (K === 0) return null;
       const c = a * x + b * y, f = x + e * y, rhs = K0 > 0 ? c - a * f : a * f - c;
       e1 = lin2(a, b, c); e2 = lin2(1, e, f);
       how = [W(lin2(a, a * e, a * f), 'multiply the second equation by ' + a)].concat(isol(K, 'y', rhs, K0 > 0 ? 'take it from the first equation: the x-terms cancel' : 'take the first equation from it: the x-terms cancel', !askX));
-      steps = [{ text: 'Multiply the second by ' + a + ' and subtract to cancel x: ' + B('?y = ' + num(rhs)), ans: K }, { text: 'y = ?', ans: y }];
-      if (askX) { how = how.concat([W(ex([[1, 'x'], [e * y, '']]) + ' = ' + num(f), 'put y = ' + num(y) + ' into the second equation'), 'x = ' + B(num(x))]); steps.push({ text: 'Put y = ' + num(y) + ' into the second equation. x = ?', ans: x }); }
+      steps = [{ text: B(e1) + '<br>' + B(e2) + '<br>Multiply the second equation by ' + a + '. ' + (K0 > 0 ? 'Then take it from the first equation' : 'Then take the first equation from it') + ' to cancel x: ' + B('?y = ' + num(rhs)), ans: K }, { text: B(K + 'y = ' + num(rhs)) + '. y = ?', ans: y }];
+      if (askX) { how = how.concat([W(ex([[1, 'x'], [e * y, '']]) + ' = ' + num(f), 'put y = ' + num(y) + ' into the second equation'), 'x = ' + B(num(x))]); steps.push({ text: 'Put ' + B('y = ' + num(y)) + ' into ' + B(e2) + '. x = ?', ans: x }); }
     }
     const ans = askX ? x : y, oth = askX ? y : x;
     return { text: 'Solve the system:<br>' + B(e1) + '<br>' + B(e2) + '<br>What is ' + v + '?', ans, how, steps,
@@ -574,18 +576,19 @@ const DEFS = [
     const mL = bold => st === 1 ? [W('m = ' + num(ys[1]) + M + par2(ys[0]) + ' = ' + (bold ? B(num(m)) : num(m)), 'y changes this much each time x goes up 1')]
       : [W('m = (' + num(ys[1]) + M + par2(ys[0]) + ') ÷ (' + num(xs[1]) + M + par2(xs[0]) + ')', 'change in y ÷ change in x'), 'm = ' + num(dy) + ' ÷ ' + st + ' = ' + (bold ? B(num(m)) : num(m))];
     const bL = bold => [W(num(ys[0]) + ' = ' + num(m) + ' × ' + par2(xs[0]) + ' + b', 'put in the first pair'), 'b = ' + num(ys[0]) + M + par2(m * xs[0]) + ' = ' + (bold ? B(num(b)) : num(b))];
-    const vis = table([['x'].concat(xs), ['y'].concat(ys)]), rule = 'The table follows a rule y = mx + b. ';
-    const mSteps = [{ text: 'Change in y from one column to the next?', ans: dy }, { text: 'm = ?', ans: m }], bStep = { text: 'b = ?', ans: b };
+    const vis = table([['x'].concat(xs), ['y'].concat(ys)]), rule = 'The table follows the rule y = mx + b. ';
+    const mSteps = [{ text: 'How much does y change from one column to the next?', vis, ans: dy }, { text: 'The number m is how much y changes when x goes up by 1. Here y changes by ' + B(num(dy)) + ' when x goes up by ' + B(st) + '. What is ' + B('m') + '?', ans: m }];
+    const bStep = { text: 'The rule is ' + B('y = ' + term(m, 'x') + ' + b') + '. When ' + B('x = ' + num(xs[0])) + ', ' + B('y = ' + num(ys[0])) + '. What is ' + B('b') + '?', ans: b };
     if (ask === 'm') return { text: rule + 'What is ' + B('m') + '?', vis, ans: m, how: mL(true), steps: mSteps,
       traps: [st > 1 ? tr(dy, 'x_slope', 'x goes up by ' + st + ' each time, so divide the change in y by ' + st + '.') : null, tr(-m, 'n_intsub', 'Check the sign: does y go up or down?'), tr(ys[0], 'x_functab', 'm is how much y changes, not the first y.')] };
     if (ask === 'b') return { text: rule + 'What is ' + B('b') + '?', vis, ans: b, how: mL(false).concat(bL(true)), steps: mSteps.concat([bStep]),
       traps: [tr(ys[0], 'x_functab', 'b is y when x = 0. Step back from x = ' + num(xs[0]) + ' to x = 0.'), tr(ys[0] + m * xs[0], 'n_intsub', 'Stepping back to x = 0 means taking ' + num(xs[0]) + ' lots of m away.'), tr(m, 'x_functab', 'That is m. b is where the line starts.')] };
     if (ask === 'y') { const X = R.pick([10, 12, 15, 20, 25]), Y = m * X + b;
-      return { text: rule + 'What is y when ' + B('x = ' + X) + '?', vis, ans: Y, how: mL(false).concat(bL(false), ['y = ' + num(m) + ' × ' + X + ' ' + signed(b) + ' = ' + B(num(Y))]), steps: mSteps.concat([bStep, { text: 'y when x = ' + X + '?', ans: Y }]),
+      return { text: rule + 'What is y when ' + B('x = ' + X) + '?', vis, ans: Y, how: mL(false).concat(bL(false), ['y = ' + num(m) + ' × ' + X + ' ' + signed(b) + ' = ' + B(num(Y))]), steps: mSteps.concat([bStep, { text: 'The rule is ' + B('y = ' + poly([m, b])) + '. What is y when ' + B('x = ' + X) + '?', ans: Y }]),
         traps: [tr(m * X, 'x_linear', 'Don\'t forget to add b.'), tr(ys[3] + m * (X - xs[3]) + m, 'x_functab', 'Count the steps from the last column carefully.'), st > 1 ? tr(dy * X + b, 'x_slope', 'm is the change in y for x going up by 1, not by ' + st + '.') : null] }; }
     const X = R.i(8, 16), Y = m * X + b, und = b < 0 ? 'add ' + num(-b) + ' to both sides' : 'take ' + num(b) + ' from both sides';
     return { text: rule + 'What is x when ' + B('y = ' + num(Y)) + '?', vis, ans: X, how: mL(false).concat(bL(false), [num(Y) + ' = ' + poly([m, b])], isol(m, 'x', Y - b, und, true)),
-      steps: mSteps.concat([bStep, { text: 'x = ?', ans: X }]),
+      steps: mSteps.concat([bStep, { text: 'The rule is ' + B('y = ' + poly([m, b])) + '. What is x when ' + B('y = ' + num(Y)) + '?', ans: X }]),
       traps: [tr(m * Y + b, 'x_functab', 'You are given y. Solve for x.'), (Y + b) % m === 0 ? tr((Y + b) / m, 'n_intsub', 'To undo ' + signed(b) + ', do the opposite.') : null] };
   } },
 
@@ -1037,29 +1040,36 @@ const DEFS = [
       [['red', 'blue', 'green', 'pink'], l => 'votes for ' + l, 'votes for a favorite color'], [['soccer', 'tennis', 'swim', 'dance'], l => 'kids in ' + l, 'kids in each club'],
       [['Mon', 'Tue', 'Wed', 'Thu'], l => 'books on ' + l, 'books read each day']];
     const [L, ph, what] = R.pick(sets), M = ' ' + MINUS + ' ';
+    /* each graph asks in its own words: one bar, two bars together, more or fewer, and the name of a group of bars */
+    const [one, both, cmp, grp] = {
+      'pets in our class': [a => 'How many ' + a + ' are there?', (a, b) => 'How many ' + a + ' and ' + b + ' are there altogether?', (w, a, b) => 'How many ' + w + ' ' + a + ' than ' + b + ' are there?', l => l.map(x => 'the ' + x).join(' and ')],
+      'fruits picked': [a => 'How many ' + a + ' were picked?', (a, b) => 'How many ' + a + ' and ' + b + ' were picked altogether?', (w, a, b) => 'How many ' + w + ' ' + a + ' than ' + b + ' were picked?', l => l.map(x => 'the ' + x).join(' and ')],
+      'votes for a favorite color': [a => 'How many votes did ' + a + ' get?', (a, b) => 'How many votes did ' + a + ' and ' + b + ' get altogether?', (w, a, b) => 'How many ' + w + ' votes did ' + a + ' get than ' + b + '?', l => 'the votes for ' + l.join(' and ')],
+      'kids in each club': [a => 'How many kids are in ' + a + '?', (a, b) => 'How many kids are in ' + a + ' and ' + b + ' altogether?', (w, a, b) => 'How many ' + w + ' kids are in ' + a + ' than in ' + b + '?', l => 'the kids in ' + l.join(' and ')],
+      'books read each day': [a => 'How many books were read on ' + a + '?', (a, b) => 'How many books were read on ' + a + ' and ' + b + ' altogether?', (w, a, b) => 'How many ' + w + ' books were read on ' + a + ' than on ' + b + '?', l => 'the books for ' + l.join(' and ')] }[what];
     if (d < 2) {
       const step = d === 0 ? 1 : R.pick([2, 5]), max = d === 0 ? 10 : step * 10, vals = L.map(() => step * R.i(1, max / step));
       const i = R.i(0, 3), j = R.i(0, 3); if (i === j || vals[i] === vals[j]) return null;
       const big = vals[i] > vals[j] ? i : j, sm = big === i ? j : i, vis = barSVG(L, vals, { step });
       const kind = d === 0 ? R.pick(['more', 'fewer']) : R.pick(['more', 'fewer', 'all']);
       if (kind === 'all') { const ans = vals[i] + vals[j];
-        return { text: 'The graph shows ' + what + '. How many ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + ' are there altogether?', vis, ans,
+        return { text: 'The graph shows ' + what + '. ' + both(B(L[i]), B(L[j])), vis, ans,
           how: [ph(L[i]) + ': ' + vals[i] + '. ' + ph(L[j]) + ': ' + vals[j] + '. (Read the top of each bar against the numbers on the side.)', vals[i] + ' + ' + vals[j] + ' = ' + B(ans) + '.'],
-          steps: [{ text: 'How many ' + ph(L[i]) + '?', ans: vals[i] }, { text: 'How many ' + ph(L[j]) + '?', ans: vals[j] }, { text: B(vals[i] + ' + ' + vals[j]) + ' = ?', ans }],
+          steps: [{ text: one(B(L[i])), vis, ans: vals[i] }, { text: one(B(L[j])), vis, ans: vals[j] }, { text: B(vals[i] + ' + ' + vals[j]) + ' = ?', ans }],
           traps: [tr(Math.abs(vals[i] - vals[j]), 'd_bar', 'Altogether means add them.'), tr(ans + step, 'd_bar', 'Read each bar carefully: the lines go up by ' + step + '.'), tr(ans - step, 'd_bar', 'Read each bar carefully: the lines go up by ' + step + '.')] }; }
-      const ans = vals[big] - vals[sm], q = kind === 'more' ? 'How many more ' + B(ph(L[big])) + ' than ' + B(ph(L[sm])) + '?' : 'How many fewer ' + B(ph(L[sm])) + ' than ' + B(ph(L[big])) + '?';
+      const ans = vals[big] - vals[sm], q = kind === 'more' ? cmp('more', B(L[big]), B(L[sm])) : cmp('fewer', B(L[sm]), B(L[big]));
       return { text: 'The graph shows ' + what + '. ' + q, vis, ans,
         how: [ph(L[big]) + ': ' + vals[big] + '. ' + ph(L[sm]) + ': ' + vals[sm] + '.', 'How many ' + kind + ' means find the difference: ' + vals[big] + M + vals[sm] + ' = ' + B(ans) + '.'],
-        steps: [{ text: 'How many ' + ph(L[big]) + '?', ans: vals[big] }, { text: 'How many ' + ph(L[sm]) + '?', ans: vals[sm] }, { text: B(vals[big] + M + vals[sm]) + ' = ?', ans }],
+        steps: [{ text: one(B(L[big])), vis, ans: vals[big] }, { text: one(B(L[sm])), vis, ans: vals[sm] }, { text: B(vals[big] + M + vals[sm]) + ' = ?', ans }],
         traps: [tr(vals[big] + vals[sm], 'd_bar', 'How many ' + kind + ' means take away, not add.'), tr(vals[big], 'd_bar', 'Compare the two bars: take the smaller one away.'), tr(ans + step, 'd_bar', 'Check where each bar ends: the lines go up by ' + step + '.')] };
     }
     const each = R.pick([2, 5, 10]), sym = R.pick(['⭐', '🍎', '⚽', '📚']), cnt = L.map(() => R.i(1, 7)), vals = cnt.map(c => c * each);
     const vis = table(L.map((l, k) => [l, sym.repeat(cnt[k])]).concat([['key', sym + ' = ' + each]]));
     const [i, j, k] = R.shuffle([0, 1, 2, 3]); const ans = vals[i] + vals[j] - vals[k]; if (ans <= 0) return null;
-    return { text: 'The graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + B(ph(L[i])) + ' and ' + B(ph(L[j])) + '. How many more is that than ' + B(ph(L[k])) + '?', vis, ans,
+    return { text: 'The graph shows ' + what + '. Each ' + sym + ' stands for ' + B(each) + '. Add ' + grp([B(L[i]), B(L[j])]) + '. How many more is that than ' + grp([B(L[k])]) + '?', vis, ans,
       how: [L[i] + ': ' + cnt[i] + ' × ' + each + ' = ' + vals[i] + '. ' + L[j] + ': ' + cnt[j] + ' × ' + each + ' = ' + vals[j] + '. ' + L[k] + ': ' + cnt[k] + ' × ' + each + ' = ' + vals[k] + '.',
             'Together: ' + vals[i] + ' + ' + vals[j] + ' = ' + (vals[i] + vals[j]) + '.', (vals[i] + vals[j]) + M + vals[k] + ' = ' + B(ans) + '.'],
-      steps: [{ text: 'How many ' + ph(L[i]) + ' and ' + ph(L[j]) + ' together?', ans: vals[i] + vals[j] }, { text: 'How many ' + ph(L[k]) + '?', ans: vals[k] }, { text: B((vals[i] + vals[j]) + M + vals[k]) + ' = ?', ans }],
+      steps: [{ text: both(B(L[i]), B(L[j])), vis, ans: vals[i] + vals[j] }, { text: one(B(L[k])), vis, ans: vals[k] }, { text: B((vals[i] + vals[j]) + M + vals[k]) + ' = ?', ans }],
       traps: [tr(cnt[i] + cnt[j] - cnt[k], 'd_bar', 'Each ' + sym + ' is worth ' + each + ', not 1.'), tr(vals[i] + vals[j] + vals[k], 'd_bar', 'How many more means take away.'), tr(vals[i] + vals[j], 'd_bar', 'Now take away the ' + ph(L[k]) + '.')] };
   } },
 
@@ -1074,7 +1084,7 @@ const DEFS = [
     const sorted = vals.slice().sort((a, b) => a - b), med = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
     return { text: 'What is the mean of ' + B(vals.join(', ')) + '?', ans: m,
       how: ['Guess ' + G + '. How far is each number from ' + G + '? ' + ds + '.', 'The gaps add to ' + num(tot) + '. Share that out: ' + num(tot) + ' ÷ ' + n + ' = ' + num(share) + '.', 'Mean = ' + G + ' ' + signed(share) + ' = ' + B(m) + '.'],
-      steps: [{ text: 'Add up the gaps from ' + G + ' (' + ds + '):', ans: tot }, { text: B(num(tot) + ' ÷ ' + n) + ' = ?', ans: share }, { text: B(G + ' ' + signed(share)) + ' = ?', ans: m }],
+      steps: [{ text: 'Each number is this far from ' + G + ': ' + B(ds) + '. What do these gaps add up to?', ans: tot }, { text: B(num(tot) + ' ÷ ' + n) + ' = ?', ans: share }, { text: B(G + ' ' + signed(share)) + ' = ?', ans: m }],
       traps: [tr(S, 'd_mean', 'That is the total. Share it out over the ' + n + ' numbers.'), tr(G + tot, 'd_mean', 'Share the gaps out over all ' + n + ' numbers before adding.'), tr(S % (n - 1) === 0 ? S / (n - 1) : null, 'd_mean', 'Divide by how many numbers there are: ' + n + '.'), tr(med, 'd_median', 'That is the middle number (median). The mean evens all the numbers out.')] };
   } },
 
@@ -1093,17 +1103,18 @@ const DEFS = [
     const list = B(vals.join(', ')), srt = W(sorted.join(', '), 'put them in order');
     if (kind === 'range') { const ans = sorted[n - 1] - sorted[0];
       return { text: 'What is the range of ' + list + '?', ans, how: [srt, W('range = ' + sorted[n - 1] + ' ' + MINUS + ' ' + sorted[0], 'biggest ' + MINUS + ' smallest'), 'range = ' + B(ans)],
-        steps: [{ text: 'The biggest number?', ans: sorted[n - 1] }, { text: 'The smallest number?', ans: sorted[0] }, { text: 'Range = ?', ans }],
+        steps: [{ text: 'What is the biggest number in ' + list + '?', ans: sorted[n - 1] }, { text: 'What is the smallest number in ' + list + '?', ans: sorted[0] }, { text: 'Range: ' + B(sorted[n - 1] + ' ' + MINUS + ' ' + sorted[0]) + ' = ?', ans }],
         traps: [tr(sorted[n - 1], 'd_median', 'The range is the biggest take away the smallest.'), tr(Math.abs(vals[n - 1] - vals[0]), 'd_median', 'Use the biggest and smallest numbers, not the last and first in the list.'), tr(sorted[n - 1] + sorted[0], 'd_median', 'Range means take away, not add.')] }; }
     if (kind === 'mode') { const ans = modes[0];
       return { text: 'What is the mode of ' + list + '?', ans, how: [srt, W('mode = ' + B(ans), ans + ' appears ' + top + ' times, more than any other')],
-        steps: [{ text: 'Which number appears most often?', ans }],
+        steps: [{ text: 'Which number appears most often in ' + list + '?', ans }],
         traps: [tr(n % 2 ? sorted[(n - 1) / 2] : null, 'd_median', 'That is the median. The mode is the most common number.'), tr(top, 'd_median', 'That is how many times it appears. The mode is the number itself.')] }; }
     const odd = n % 2 === 1, ans = odd ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2, mid = odd ? [sorted[(n - 1) / 2]] : [sorted[n / 2 - 1], sorted[n / 2]];
     const mean = sum(vals) / n;
     return { text: 'What is the median of ' + list + '?', ans,
       how: [srt].concat(odd ? [W('median = ' + B(num(ans)), n + ' numbers, so the middle one is the ' + ord((n + 1) / 2))] : [W('middle two: ' + mid[0] + ' and ' + mid[1], n + ' numbers, so the ' + ord(n / 2) + ' and ' + ord(n / 2 + 1)), W('median = (' + mid[0] + ' + ' + mid[1] + ') ÷ 2 = ' + B(num(ans)), 'halfway between them')]),
-      steps: odd ? [{ text: 'Put them in order. What is the smallest?', ans: sorted[0] }, { text: 'The middle number?', ans }] : [{ text: 'In order, the ' + ord(n / 2) + ' number?', ans: mid[0] }, { text: 'The ' + ord(n / 2 + 1) + ' number?', ans: mid[1] }, { text: 'Halfway between them?', ans }],
+      steps: odd ? [{ text: 'Put ' + list + ' in order. Which number is the smallest?', ans: sorted[0] }, { text: 'In order, the numbers are ' + B(sorted.join(', ')) + '. Which number is in the middle?', ans }]
+        : [{ text: 'Put ' + list + ' in order from smallest to biggest. What is the ' + ord(n / 2) + ' number?', ans: mid[0] }, { text: 'In order, the numbers are ' + B(sorted.join(', ')) + '. What is the ' + ord(n / 2 + 1) + ' number?', ans: mid[1] }, { text: 'What number is halfway between ' + B(mid[0]) + ' and ' + B(mid[1]) + '?', ans }],
       traps: [tr(odd ? vals[(n - 1) / 2] : (vals[n / 2 - 1] + vals[n / 2]) / 2, 'd_median', 'Put the numbers in order first.'), tr(isInt(mean * 100) ? mean : null, 'd_mean', 'That is the mean. The median is the middle number.'), odd ? null : tr(mid[0], 'd_median', 'With an even count there are two middle numbers: go halfway between them.')] };
   } },
 
@@ -1115,23 +1126,24 @@ const DEFS = [
       const n = d === 0 ? 4 : R.i(4, 5), m = d === 0 ? R.i(5, 15) : R.i(72, 92), lo = d === 0 ? 1 : 60, hi = d === 0 ? 25 : 100;
       const given = []; for (let k = 0; k < n - 1; k++) given.push(R.i(Math.max(lo, m - (d ? 15 : 6)), Math.min(hi, m + (d ? 12 : 6))));
       const T = n * m, S = sum(given), ans = T - S; if (ans < lo || ans > hi || ans === m || given.includes(ans) && R.chance(.5)) return null;
-      const text = d === 0 ? 'The mean of ' + n + ' numbers is ' + B(m) + '. Three of them are ' + B(given.join(', ')) + '. What is the fourth?'
-        : R.pick(NAMES) + '\'s test scores are ' + B(given.join(', ')) + '. What score on the next test makes the mean of all ' + n + ' tests exactly ' + B(m) + '?';
+      const lst = given.slice(0, -1).join(', ') + ' and ' + given[n - 2];
+      const text = d === 0 ? 'The mean of ' + n + ' numbers is ' + B(m) + '. Three of them are ' + B(lst) + '. What is the fourth number?'
+        : (who => who + '\'s test scores so far are ' + B(lst) + '. ' + who + ' has one more test. What score does ' + who + ' need to make the mean of all ' + n + ' tests exactly ' + B(m) + '?')(R.pick(NAMES));
       return { text, ans,
         how: [W('total needed = ' + n + ' × ' + m + ' = ' + T, 'mean × how many'), 'total so far = ' + given.join(' + ') + ' = ' + S, 'missing = ' + T + M + S + ' = ' + B(ans)],
-        steps: [{ text: 'Total needed: ' + B(n + ' × ' + m) + ' = ?', ans: T }, { text: 'Total so far?', ans: S }, { text: B(T + M + S) + ' = ?', ans }],
+        steps: [{ text: 'Total needed: ' + B(n + ' × ' + m) + ' = ?', ans: T }, { text: 'Total so far: ' + B(given.join(' + ')) + ' = ?', ans: S }, { text: B(T + M + S) + ' = ?', ans }],
         traps: [tr(m, 'd_meanmiss', 'The last number has to make up for the others, so it is not just the mean.'), tr(T, 'd_meanmiss', 'That is the total needed. Take away what you already have.'), tr(isInt(S / (n - 1)) ? S / (n - 1) : null, 'd_mean', 'That is the mean of the numbers you have. Use the total needed instead.')] };
     }
     const n = R.i(4, 7), m = R.i(8, 30), add = R.chance(.5);
     if (add) { const m2 = m + nz(R, -4, 4), T1 = n * m, T2 = (n + 1) * m2, ans = T2 - T1; if (ans <= 0) return null;
       return { text: 'The mean of ' + n + ' numbers is ' + B(m) + '. One more number is added and the mean becomes ' + B(m2) + '. What number was added?', ans,
         how: [W('old total = ' + n + ' × ' + m + ' = ' + T1, 'mean × how many'), W('new total = ' + (n + 1) + ' × ' + m2 + ' = ' + T2, 'now there are ' + (n + 1)), 'added = ' + T2 + M + T1 + ' = ' + B(ans)],
-        steps: [{ text: 'Old total?', ans: T1 }, { text: 'New total?', ans: T2 }, { text: 'The number added?', ans }],
+        steps: [{ text: 'Total of the first ' + n + ' numbers: ' + B(n + ' × ' + m) + ' = ?', ans: T1 }, { text: 'Total of all ' + (n + 1) + ' numbers: ' + B((n + 1) + ' × ' + m2) + ' = ?', ans: T2 }, { text: 'The number added: ' + B(T2 + M + T1) + ' = ?', ans }],
         traps: [tr(m2, 'd_meanmiss', 'Compare the totals, not the means.'), tr(n * m2 - T1, 'd_meanmiss', 'The new total is for ' + (n + 1) + ' numbers.'), tr(Math.abs(m2 - m), 'd_meanmiss', 'Compare the totals, not the means.')] }; }
     const m2 = m + nz(R, -4, 4), T1 = n * m, T2 = (n - 1) * m2, ans = T1 - T2; if (ans <= 0) return null;
     return { text: 'The mean of ' + n + ' numbers is ' + B(m) + '. One number is taken away and the mean of the other ' + (n - 1) + ' is ' + B(m2) + '. What number was taken away?', ans,
       how: [W('total of ' + n + ' = ' + n + ' × ' + m + ' = ' + T1, 'mean × how many'), 'total of ' + (n - 1) + ' = ' + (n - 1) + ' × ' + m2 + ' = ' + T2, 'taken away = ' + T1 + M + T2 + ' = ' + B(ans)],
-      steps: [{ text: 'Total of all ' + n + '?', ans: T1 }, { text: 'Total of the other ' + (n - 1) + '?', ans: T2 }, { text: 'The number taken away?', ans }],
+      steps: [{ text: 'Total of all ' + n + ' numbers: ' + B(n + ' × ' + m) + ' = ?', ans: T1 }, { text: 'Total of the other ' + (n - 1) + ' numbers: ' + B((n - 1) + ' × ' + m2) + ' = ?', ans: T2 }, { text: 'The number taken away: ' + B(T1 + M + T2) + ' = ?', ans }],
       traps: [tr(Math.abs(m - m2), 'd_meanmiss', 'Compare the totals, not the means.'), tr(T1 - n * m2, 'd_meanmiss', 'Only ' + (n - 1) + ' numbers are left.'), tr(m, 'd_meanmiss', 'Work with totals: mean × how many.')] };
   } },
 
@@ -1143,10 +1155,10 @@ const DEFS = [
     if (d === 0 || d === 2 && R.chance(.3)) {
       const cols = ['red', 'blue', 'green', 'yellow'], k = d === 0 ? 3 : 4, cnt = cols.slice(0, k).map(() => R.i(1, 9)), T = sum(cnt), i = R.i(0, k - 1);
       const two = d === 2, j = two ? (i + 1) % k : -1, fav = two ? cnt[i] + cnt[j] : cnt[i], name = two ? cols[i] + ' or ' + cols[j] : cols[i];
-      const desc = cols.slice(0, k).map((c, t) => cnt[t] + ' ' + c).join(', ');
-      return { text: 'A bag has ' + B(desc) + ' marbles. You pick one without looking. What is the probability it is ' + B(name) + '? Give a fraction in lowest terms.', ans: F(fav, T), type: 'frac', low: true,
+      const desc = cols.slice(0, k - 1).map((c, t) => cnt[t] + ' ' + c).join(', ') + ' and ' + cnt[k - 1] + ' ' + cols[k - 1], bag = 'A bag has ' + B(desc) + (cnt[k - 1] === 1 ? ' marble. ' : ' marbles. ');
+      return { text: bag + 'You pick one without looking. What is the probability that the marble is ' + B(name) + '? Give a fraction in lowest terms.', ans: F(fav, T), type: 'frac', low: true,
         how: fin(fav, T, [W('all the ways: ' + cnt.join(' + ') + ' = ' + T, 'every marble is one way'), W('P(' + name + ') = ' + fl(num(fav), num(T)), (two ? cnt[i] + ' + ' + cnt[j] + ' ' : fav + ' ') + name + ' ' + plural(fav, 'marble'))]),
-        steps: [{ text: 'How many marbles in all?', ans: T }, { text: 'How many are ' + name + '?', ans: fav }, { text: 'The probability in lowest terms?', ans: F(fav, T), type: 'frac', low: true }],
+        steps: [{ text: bag + 'How many marbles are there in all?', ans: T }, { text: bag + 'How many marbles are ' + name + '?', ans: fav }, { text: 'The probability is ' + B(fav + ' out of ' + T) + '. Write it as a fraction in lowest terms.', ans: F(fav, T), type: 'frac', low: true }],
         traps: [T - fav ? tr(F(fav, T - fav), 'd_prob', 'The bottom is all the marbles, including the ' + name + ' ones.') : null, tr(F(T - fav, T), 'd_complement', 'That is the chance of NOT ' + name + '.')] };
     }
     if (d === 1) {
@@ -1154,15 +1166,16 @@ const DEFS = [
       const test = { even: v => v % 2 === 0, mult: v => v % k === 0, prime: v => C.isPrime(v), more: v => v > t }[ev], fav = Array.from({ length: N }, (_, q) => q + 1).filter(test);
       const name = { even: 'an even number', mult: 'a multiple of ' + k, prime: 'a prime number', more: 'more than ' + t }[ev], obj = N === 6 ? 'You roll a fair six-sided die.' : 'Cards numbered 1 to ' + N + ' are shuffled and you pick one.';
       const f = fav.length, list = f <= 12 ? fav.join(', ') : fav.slice(0, 3).join(', ') + ', …, ' + fav[f - 1];
-      return { text: obj + ' What is the probability of ' + B(name) + '? Give a fraction in lowest terms.', ans: F(f, N), type: 'frac', low: true,
+      const many = { even: 'even numbers', mult: 'multiples of ' + k, prime: 'prime numbers', more: 'more than ' + t }[ev], isA = { even: 'even', mult: 'a multiple of ' + k, prime: 'prime', more: 'more than ' + t }[ev];
+      return { text: obj + ' What is the probability that the number is ' + B(isA) + '? Give a fraction in lowest terms.', ans: F(f, N), type: 'frac', low: true,
         how: fin(f, N, [W(list, 'the ways it can happen: ' + f + ' of them'), W('P = ' + fl(num(f), num(N)), N + ' equally likely ' + (N === 6 ? 'sides' : 'cards'))]),
-        steps: [{ text: 'How many of 1 to ' + N + ' are ' + name + '?', ans: f }, { text: 'The probability in lowest terms?', ans: F(f, N), type: 'frac', low: true }],
+        steps: [{ text: 'How many of the numbers from 1 to ' + N + ' are ' + many + '?', ans: f }, { text: 'The probability is ' + B(f + ' out of ' + N) + '. Write it as a fraction in lowest terms.', ans: F(f, N), type: 'frac', low: true }],
         traps: [N - f ? tr(F(f, N - f), 'd_prob', 'The bottom is all ' + N + ' possible results.') : null, tr(F(N - f, N), 'd_complement', 'That is the chance it is NOT ' + name + '.'), ev === 'more' ? tr(F(f + 1, N), 'd_prob', '"More than ' + t + '" does not include ' + t + ' itself.') : null] };
     }
     const s = R.i(2, 12), w = 6 - Math.abs(s - 7), pairs = []; for (let a = 1; a <= 6; a++) { const b = s - a; if (b >= 1 && b <= 6) pairs.push(a + '+' + b); }
-    return { text: 'You roll two fair dice and add them. What is the probability the total is ' + B(s) + '? Give a fraction in lowest terms.', ans: F(w, 36), type: 'frac', low: true,
+    return { text: 'You roll two fair dice and add the two numbers. What is the probability that the total is ' + B(s) + '? Give a fraction in lowest terms.', ans: F(w, 36), type: 'frac', low: true,
       how: fin(w, 36, [W(pairs.join(', '), w + ' ways to make ' + s + '; 4+3 and 3+4 are different rolls'), W('P = ' + fl(num(w), '36'), '6 × 6 = 36 equally likely rolls')]),
-      steps: [{ text: 'How many ways make a total of ' + s + '?', ans: w }, { text: 'How many rolls are possible in all?', ans: 36 }, { text: 'The probability in lowest terms?', ans: F(w, 36), type: 'frac', low: true }],
+      steps: [{ text: 'You roll a red die and a blue die. How many different rolls add up to ' + B(s) + '?', ans: w }, { text: 'You roll a red die and a blue die. How many different rolls are possible in all?', ans: 36 }, { text: 'The probability is ' + B(w + ' out of 36') + '. Write it as a fraction in lowest terms.', ans: F(w, 36), type: 'frac', low: true }],
       traps: [tr(F(1, 11), 'd_prob', 'The 11 totals are not equally likely. Count the 36 rolls instead.'), tr(F(Math.ceil(w / 2), 36), 'd_prob', 'Count both orders: 4+3 and 3+4 are different rolls.'), tr(F(w, 12), 'd_countways', 'Two dice give 6 × 6 rolls, not 6 + 6.')] };
   } },
 
@@ -1170,39 +1183,40 @@ const DEFS = [
   tip: 'The chance something does NOT happen is 1 − the chance it does. P(rain) = 3/10, so P(no rain) = 7/10. "At least one" = 1 − P(none).',
   gen(d, R) {
     if (d === 0) {
-      const b = R.pick([5, 7, 8, 9, 10, 12, 20, 100]), a = R.i(1, b - 1), ev = R.pick(['it rains tomorrow', 'the bus is late', 'a spinner lands on red', 'Mia wins the game', 'the phone rings in the next hour']), ans = F(b - a, b); if (gcd(a, b) > 1) return null;
-      return { text: 'The probability that ' + ev + ' is ' + B(fr(a, b)) + '. What is the probability that it does not happen? (A fraction is fine.)', ans, type: 'frac',
+      const b = R.pick([5, 7, 8, 9, 10, 12, 20, 100]), a = R.i(1, b - 1), ev = R.pick([['it rains tomorrow', 'it does not rain tomorrow'], ['the bus is late', 'the bus is not late'], ['a spinner lands on red', 'the spinner does not land on red'], ['Mia wins the game', 'Mia does not win the game'], ['the phone rings in the next hour', 'the phone does not ring in the next hour']]), ans = F(b - a, b); if (gcd(a, b) > 1) return null;
+      return { text: 'The probability that ' + ev[0] + ' is ' + B(fr(a, b)) + '. What is the probability that ' + ev[1] + '? (A fraction is fine.)', ans, type: 'frac',
         how: ['P(not) = 1 ' + MINUS + ' P', W('= ' + fl(num(b), num(b)) + ' ' + MINUS + ' ' + fl(num(a), num(b)), '1 is ' + b + ' out of ' + b), '= ' + B(fr(b - a, b))],
         steps: [{ text: 'Write 1 as a fraction over ' + b + ': ?/' + b, ans: b }, { text: B(b + ' ' + MINUS + ' ' + a) + ' = ?', ans: b - a }],
         traps: [tr(F(a, b), 'd_complement', 'That is the chance it happens. Take it away from 1.'), tr(F(b - a, 1), 'd_complement', 'Keep the same bottom: it is out of ' + b + '.')] };
     }
     if (d === 1) {
       if (R.chance(.5)) { const cols = ['red', 'blue', 'green'], cnt = cols.map(() => R.i(2, 9)), T = sum(cnt), i = R.i(0, 2), ans = F(T - cnt[i], T);
-        return { text: 'A bag has ' + B(cols.map((c, t) => cnt[t] + ' ' + c).join(', ')) + ' marbles. What is the probability of picking a marble that is ' + B('not ' + cols[i]) + '? Give a fraction in lowest terms.', ans, type: 'frac', low: true,
+        const bag = 'A bag has ' + B(cnt[0] + ' red, ' + cnt[1] + ' blue and ' + cnt[2] + ' green') + ' marbles. ';
+        return { text: bag + 'What is the probability of picking a marble that is ' + B('not ' + cols[i]) + '? Give a fraction in lowest terms.', ans, type: 'frac', low: true,
           how: [W('P(' + cols[i] + ') = ' + fl(cnt[i], T), cnt[i] + ' of ' + T + ' marbles'), W('P(not ' + cols[i] + ') = 1 ' + MINUS + ' ' + fl(cnt[i], T) + ' = ' + fl(T - cnt[i], T), 'the rest of the bag'), '= ' + B(fr(T - cnt[i], T))],
-          steps: [{ text: 'How many marbles are not ' + cols[i] + '?', ans: T - cnt[i] }, { text: 'The probability in lowest terms?', ans, type: 'frac', low: true }],
+          steps: [{ text: bag + 'How many marbles are not ' + cols[i] + '?', ans: T - cnt[i] }, { text: 'The probability is ' + B((T - cnt[i]) + ' out of ' + T) + '. Write it as a fraction in lowest terms.', ans, type: 'frac', low: true }],
           traps: [tr(F(cnt[i], T), 'd_complement', 'That is the chance of ' + cols[i] + '. You want everything else.'), tr(F(T - cnt[i], cnt[i]), 'd_prob', 'The bottom is all ' + T + ' marbles.')] }; }
       const ev = R.pick([['a 6', 1], ['a 1 or a 2', 2], ['an even number', 3], ['a multiple of 3', 2], ['a number above 4', 2]]), ans = F(6 - ev[1], 6);
       return { text: 'You roll a fair die. What is the probability of ' + B('not') + ' rolling ' + B(ev[0]) + '? Give a fraction in lowest terms.', ans, type: 'frac', low: true,
         how: [W('P(' + ev[0] + ') = ' + fl(ev[1], 6), ev[1] + ' of the 6 sides'), 'P(not) = 1 ' + MINUS + ' ' + fl(ev[1], 6) + ' = ' + fl(6 - ev[1], 6), '= ' + B(fr(6 - ev[1], 6))],
-        steps: [{ text: 'How many sides are ' + ev[0] + '?', ans: ev[1] }, { text: 'The probability of not, in lowest terms?', ans, type: 'frac', low: true }],
+        steps: [{ text: 'A die has 6 sides. How many sides show ' + ev[0] + '?', ans: ev[1] }, { text: B(ev[1]) + ' of the 6 sides ' + (ev[1] === 1 ? 'shows ' : 'show ') + ev[0] + '. What is the probability of not rolling ' + ev[0] + '? Give a fraction in lowest terms.', ans, type: 'frac', low: true }],
         traps: [tr(F(ev[1], 6), 'd_complement', 'That is the chance it happens. Take it away from 1.'), tr(F(5, 6) === ans ? null : F(5, 6), 'd_complement', 'Count how many sides are ' + ev[0] + ' first.')] };
     }
     const kind = R.i(0, 2);
     if (kind === 0) { const n = R.i(2, 5), den = Math.pow(2, n), ans = F(den - 1, den);
       return { text: 'You flip a fair coin ' + B(n + ' times') + '. What is the probability of getting ' + B('at least one head') + '? (A fraction is fine.)', ans, type: 'frac',
         how: ['P(at least one head) = 1 ' + MINUS + ' P(no heads)', W('P(no heads) = ' + pw('(' + fl(1, 2) + ')', n) + ' = ' + fl(1, den), 'tails every time'), '1 ' + MINUS + ' ' + fl(1, den) + ' = ' + B(frac(den - 1, den))],
-        steps: [{ text: 'P(all tails) = 1/?', ans: den }, { text: 'P(at least one head)?', ans, type: 'frac' }],
+        steps: [{ text: 'You flip a coin ' + n + ' times. The probability of all tails is 1 out of how many?', ans: den }, { text: 'The probability of all tails is ' + frac(1, den) + '. What is the probability of at least one head?', ans, type: 'frac' }],
         traps: [tr(F(1, den), 'd_complement', 'That is the chance of no heads at all. Take it away from 1.'), tr(F(n, 2), 'd_indep', 'Adding the chances counts some outcomes twice. Use 1 ' + MINUS + ' P(none).'), tr(F(1, 2), 'd_complement', 'Each flip is a new chance; find P(no heads) first.')] }; }
     if (kind === 1) { const ans = F(11, 36);
       if (R.chance(.5)) return { text: 'You roll a fair die ' + B('twice') + '. What is the probability of at least one ' + B('6') + '? (A fraction is fine.)', ans, type: 'frac',
         how: ['P(at least one 6) = 1 ' + MINUS + ' P(no 6)', W('P(no 6) = ' + fl(5, 6) + ' × ' + fl(5, 6) + ' = ' + fl(25, 36), 'no 6 on either roll'), '1 ' + MINUS + ' ' + fl(25, 36) + ' = ' + B(frac(11, 36))],
-        steps: [{ text: 'P(no 6 on both rolls) = ?/36', ans: 25 }, { text: 'P(at least one 6)?', ans, type: 'frac' }],
+        steps: [{ text: 'You roll a die twice. The probability of no 6 on either roll is how many out of 36?', ans: 25 }, { text: 'The probability of no 6 on either roll is ' + frac(25, 36) + '. What is the probability of at least one 6?', ans, type: 'frac' }],
         traps: [tr(F(1, 3), 'd_indep', 'Adding 1/6 + 1/6 counts double sixes twice. Use 1 ' + MINUS + ' P(none).'), tr(F(25, 36), 'd_complement', 'That is the chance of no 6. Take it away from 1.'), tr(F(1, 36), 'd_indep', 'That is the chance of two 6s. At least one includes just one 6.')] }; }
     const r = R.i(1, 5), o = R.i(2, 7), T = r + o, ans = F(T * T - o * o, T * T);
     return { text: 'A bag has ' + B(r + ' red and ' + o + ' blue') + ' marbles. You pick one, put it back, and pick again. What is the probability of ' + B('at least one red') + '? (A fraction is fine.)', ans, type: 'frac',
       how: ['P(at least one red) = 1 ' + MINUS + ' P(no red)', W('P(no red) = ' + fl(o, T) + ' × ' + fl(o, T) + ' = ' + fl(o * o, T * T), 'blue both times'), '1 ' + MINUS + ' ' + fl(o * o, T * T) + ' = ' + B(fr(T * T - o * o, T * T))],
-      steps: [{ text: 'P(blue both times) = ?/' + (T * T), ans: o * o }, { text: 'P(at least one red)?', ans, type: 'frac' }],
+      steps: [{ text: 'A bag has ' + B(r + ' red and ' + o + ' blue') + ' marbles. You pick one, put it back, and pick again. The probability of blue both times is how many out of ' + (T * T) + '?', ans: o * o }, { text: 'The probability of blue both times is ' + fl(o * o, T * T) + '. What is the probability of at least one red?', ans, type: 'frac' }],
       traps: [tr(F(2 * r, T), 'd_indep', 'Adding the chances counts red-red twice. Use 1 ' + MINUS + ' P(none).'), tr(F(o * o, T * T), 'd_complement', 'That is the chance of no red. Take it away from 1.'), tr(F(r * r, T * T), 'd_indep', 'That is red both times. At least one includes one red.')] };
   } },
 
@@ -1210,33 +1224,35 @@ const DEFS = [
   tip: 'If you make one choice and then another, multiply the number of options. 3 shirts and 4 pants make 3 × 4 = 12 outfits. A 3-digit code has 10 × 10 × 10 = 1,000.',
   gen(d, R) {
     if (d === 0) {
-      const a = R.i(2, 8), b = R.i(2, 8), w = R.pick([['shirts', 'pairs of pants', 'outfits', 'shirt'], ['kinds of bread', 'fillings', 'sandwiches', 'kind of bread'], ['ice cream flavors', 'toppings', 'sundaes with one of each', 'flavor'], ['colors of card', 'stickers', 'cards with one of each', 'color']]), ans = a * b;
-      return { text: 'You have ' + B(a + ' ' + w[0]) + ' and ' + B(b + ' ' + w[1]) + '. How many different ' + w[2] + ' can you make?', ans,
+      const a = R.i(2, 8), b = R.i(2, 8), w = R.pick([['shirts', 'pairs of pants', 'outfits', 'shirt', 'pair of pants'], ['kinds of bread', 'fillings', 'sandwiches', 'kind of bread', 'filling'], ['ice cream flavors', 'toppings', 'sundaes', 'flavor', 'topping'], ['colors of paper', 'stickers', 'cards', 'color', 'sticker']]), ans = a * b;
+      return { text: 'You have ' + B(a + ' ' + w[0]) + ' and ' + B(b + ' ' + w[1]) + '. How many different ' + w[2] + ' can you make with one ' + w[3] + ' and one ' + w[4] + '?', ans,
         how: ['Each of the ' + a + ' ' + w[0] + ' goes with each of the ' + b + ' ' + w[1] + '.', a + ' × ' + b + ' = ' + B(ans) + '.'],
-        steps: [{ text: 'With just one ' + w[3] + ', how many choices?', ans: b }, { text: B(a + ' × ' + b) + ' = ?', ans }],
+        steps: [{ text: 'You have ' + B(b + ' ' + w[1]) + '. How many different ' + w[2] + ' can you make with just one ' + w[3] + '?', ans: b }, { text: B(a + ' × ' + b) + ' = ?', ans }],
         traps: [tr(a + b, 'd_countways', 'Each ' + w[3] + ' pairs with every one of the ' + w[1] + ', so multiply.'), tr(ans + a, fx(a, b), 'Check ' + a + ' × ' + b + '.')] };
     }
     if (d === 1) {
       if (R.chance(.5)) { const a = R.i(2, 5), b = R.i(2, 6), c = R.i(2, 5), ans = a * b * c;
-        return { text: 'A lunch menu has ' + B(a + ' drinks') + ', ' + B(b + ' mains') + ' and ' + B(c + ' desserts') + '. How many different meals of one of each are there?', ans,
+        return { text: 'A lunch menu has ' + B(a + ' drinks') + ', ' + B(b + ' main dishes') + ' and ' + B(c + ' desserts') + '. A meal is one drink, one main dish and one dessert. How many different meals are there?', ans,
           how: ['Multiply the choices at each step.', a + ' × ' + b + ' × ' + c + ' = ' + (a * b) + ' × ' + c + ' = ' + B(ans) + '.'],
-          steps: [{ text: 'Drinks and mains: ' + B(a + ' × ' + b) + ' = ?', ans: a * b }, { text: B((a * b) + ' × ' + c) + ' = ?', ans }],
+          steps: [{ text: 'Drinks and main dishes: ' + B(a + ' × ' + b) + ' = ?', ans: a * b }, { text: B((a * b) + ' × ' + c) + ' = ?', ans }],
           traps: [tr(a + b + c, 'd_countways', 'Each choice multiplies the number of meals.'), tr(a * b + c, 'd_countways', 'Multiply by the desserts too.')] }; }
       const k = R.pick([['digits', 10, 2], ['digits', 10, 3], ['digits', 10, 4], ['letters', 26, 2], ['vowels', 5, 3], ['vowels', 5, 2], ['colors', 4, 3], ['colors', 3, 4]]), ans = Math.pow(k[1], k[2]);
-      return { text: 'A code has ' + B(k[2] + ' spots') + '. Each spot can be any of ' + B(k[1] + ' ' + k[0]) + '. Repeats are allowed. How many codes are there?', ans,
+      return { text: 'A code has ' + B(k[2] + ' spots') + '. Each spot can be any of ' + B(k[1] + ' ' + k[0]) + '. Repeats are allowed. How many different codes are there?', ans,
         how: ['Each of the ' + k[2] + ' spots has ' + k[1] + ' choices.', Array(k[2]).fill(k[1]).join(' × ') + ' = ' + B(num(ans)) + '.'],
-        steps: [{ text: 'Choices for each spot?', ans: k[1] }, { text: 'How many codes?', ans }],
+        steps: [{ text: 'Each spot in a code can be any of ' + B(k[1] + ' ' + k[0]) + '. How many choices are there for each spot?', ans: k[1] }, { text: 'A code has ' + B(k[2] + ' spots') + ' with ' + B(k[1] + ' choices') + ' each. ' + B(Array(k[2]).fill(k[1]).join(' × ')) + ' = ?', ans }],
         traps: [tr(k[1] * k[2], 'd_countways', 'Multiply ' + k[1] + ' by itself ' + k[2] + ' times, not by ' + k[2] + '.'), tr(k[1] + k[2], 'd_countways', 'Each spot multiplies the choices.'), tr(Math.pow(k[1] - 1, k[2]), 'd_countways', 'Repeats are allowed, so every spot has all ' + k[1] + ' choices.')] };
     }
     const n = R.i(2, 4), kind = R.i(0, 3), lo = Math.pow(10, n - 1), hi = Math.pow(10, n) - 1, rng = '(' + num(lo) + ' to ' + num(hi) + ')';
-    const P = [[n + '-digit numbers that use only odd digits', Array(n).fill(5), 'each digit is 1, 3, 5, 7 or 9', Array(n).fill(10), 'Only odd digits count: 5 choices each.'],
-      ['even ' + n + '-digit numbers ' + rng, [9].concat(Array(n - 2).fill(10), [5]), 'first digit 1 to 9, last digit 0, 2, 4, 6 or 8' + (n > 2 ? ', the rest 0 to 9' : ''), [10].concat(Array(n - 2).fill(10), [5]), 'The first digit cannot be 0.'],
-      [n + '-digit numbers with no zero in them', Array(n).fill(9), '1 to 9 in every spot', [9].concat(Array(n - 1).fill(10)), 'No zeros anywhere, so every spot has 9 choices.'],
-      [n + '-digit numbers ' + rng + ' with all different digits', [9, 9, 8, 7].slice(0, n), 'first digit 1 to 9, then 9 left (0 is allowed now), then one fewer each time', [9].concat([10, 10, 10].slice(0, n - 1)), 'A digit used once can\'t be used again.']][kind];
+    const P = [[n + '-digit numbers use only odd digits',Array(n).fill(5), 'each digit is 1, 3, 5, 7 or 9', Array(n).fill(10), 'Only odd digits count: 5 choices each.', 'A ' + n + '-digit number uses only odd digits.'],
+      [n + '-digit numbers ' + rng + ' are even',[9].concat(Array(n - 2).fill(10), [5]), 'first digit 1 to 9, last digit 0, 2, 4, 6 or 8' + (n > 2 ? ', the rest 0 to 9' : ''), [10].concat(Array(n - 2).fill(10), [5]), 'The first digit cannot be 0.', 'A ' + n + '-digit number is even.'],
+      [n + '-digit numbers have no zero in them',Array(n).fill(9), '1 to 9 in every spot', [9].concat(Array(n - 1).fill(10)), 'No zeros anywhere, so every spot has 9 choices.', 'A ' + n + '-digit number has no zero in it.'],
+      [n + '-digit numbers ' + rng + ' have all different digits',[9, 9, 8, 7].slice(0, n), 'first digit 1 to 9, then 9 left (0 is allowed now), then one fewer each time', [9].concat([10, 10, 10].slice(0, n - 1)), 'A digit used once can\'t be used again.', 'A ' + n + '-digit number has all different digits.']][kind];
     const ans = P[1].reduce((a, b) => a * b, 1), wrong = P[3].reduce((a, b) => a * b, 1);
-    return { text: 'How many ' + B(P[0]) + ' are there?', ans,
+    return { text: 'How many ' + B(P[0]) + '?', ans,
       how: ['Count the choices for each spot: ' + P[2] + '.', P[1].join(' × ') + ' = ' + B(num(ans)) + '.'],
-      steps: [{ text: 'Choices for the first digit?', ans: P[1][0] }, { text: 'Choices for the last digit?', ans: P[1][P[1].length - 1] }, { text: 'How many in all?', ans }],
+      steps: [{ text: P[5] + ' How many choices are there for the first digit?', ans: P[1][0] },
+        { text: P[5] + (kind === 3 ? (n === 2 ? ' The first digit is already picked.' : ' The first ' + (n - 1) + ' digits are already picked.') + ' How many choices are left for the last digit?' : ' How many choices are there for the last digit?'), ans: P[1][P[1].length - 1] },
+        { text: 'Multiply the choices: ' + B(P[1].join(' × ')) + ' = ?', ans }],
       traps: [tr(wrong, 'd_countways', P[4]), tr(sum(P[1]), 'd_countways', 'Multiply the choices, don\'t add them.')] };
   } },
 
@@ -1246,26 +1262,33 @@ const DEFS = [
     const mul = (fs, names, note) => { const n = fs.reduce((a, f) => a * f[0], 1), dd = fs.reduce((a, f) => a * f[1], 1);
       return { n, dd, how: [W(names.map((nm, i) => 'P(' + nm + ') = ' + frac(fs[i][0], fs[i][1])).join(', '), note), W(fs.map(f => frac(f[0], f[1])).join(' × ') + ' = ' + fl(num(n), num(dd)), 'separate events: multiply tops, multiply bottoms')].concat(gcd(n, dd) > 1 ? [W('= ' + B(fr(n, dd)), 'lowest terms')] : ['So the answer is ' + B(fr(n, dd)) + '.']) }; };
     const coin = [['heads', [1, 2]], ['tails', [1, 2]]], die = [['a 6', [1, 6]], ['an even number', [1, 2]], ['a 1 or 2', [1, 3]], ['a number above 2', [2, 3]], ['a 5', [1, 6]]];
-    let fs, names, text, note;
+    let fs, names, text, note, asks;
     if (d === 0) {
       const A = R.pick(coin.concat(die)), Bv = R.pick(die), isCoin = coin.includes(A);
       fs = [A[1], Bv[1]]; names = [A[0], Bv[0]]; note = isCoin ? 'the coin and the die do not affect each other' : 'the two rolls do not affect each other';
-      text = (isCoin ? 'You flip a coin and roll a die. What is the probability of ' + B(A[0]) + ' and ' + B(Bv[0]) + '?' : 'You roll a die twice. What is the probability of ' + B(A[0]) + ' first and then ' + B(Bv[0]) + '?');
+      text = (isCoin ? 'You flip a coin and roll a die. What is the probability of getting ' + B(A[0]) + ' and ' + B(Bv[0]) + '?' : 'You roll a die twice. What is the probability of rolling ' + B(A[0]) + ' first and then ' + B(Bv[0]) + '?');
+      asks = isCoin ? ['You flip a coin. What is the probability of ' + A[0] + '?', 'You roll a die. What is the probability of rolling ' + Bv[0] + '?']
+        : ['You roll a die twice. What is the probability of rolling ' + A[0] + ' on the first roll?', 'You roll a die twice. What is the probability of rolling ' + Bv[0] + ' on the second roll?'];
     } else if (d === 1) {
       const r = R.i(1, 6), b = R.i(1, 6), g = R.i(0, 4), T = r + b + g, rr = R.chance(.5);
       fs = rr ? [[r, T], [r, T]] : [[r, T], [b, T]]; names = rr ? ['red', 'red'] : ['red', 'blue']; note = 'it goes back, so the second pick has the same chances';
-      text = 'A bag has ' + B(r + ' red, ' + b + ' blue' + (g ? ' and ' + g + ' green' : '')) + ' marbles. You pick one, put it back, then pick again. What is the probability of ' + B(names[0] + ' then ' + names[1]) + '?';
+      const bag = 'A bag has ' + B(r + ' red' + (g ? ', ' + b + ' blue and ' + g + ' green' : ' and ' + b + ' blue')) + ((g || b) === 1 ? ' marble. ' : ' marbles. ');
+      text = bag + 'You pick one, put it back, then pick again. What is the probability of picking ' + B(names[0] + ' and then ' + names[1]) + '?';
+      asks = [bag + 'You pick one. What is the probability of picking ' + names[0] + '?', bag + 'You put the first marble back and pick again. What is the probability of picking ' + names[1] + '?'];
     } else if (R.chance(.5)) {
       const p = R.pick([[1, 2], [1, 3], [2, 3], [3, 4], [1, 4], [2, 5], [3, 5], [4, 5]]), who = R.pick(NAMES), pat = R.pick([['hit', 'hit', 'hit'], ['miss', 'miss', 'hit'], ['hit', 'miss', 'hit'], ['hit', 'hit', 'miss']]);
       fs = pat.map(s => s === 'hit' ? p : [p[1] - p[0], p[1]]); names = pat.map((s, i) => ord(i + 1) + ' ' + s); note = 'a miss has chance 1 ' + MINUS + ' ' + fr(p[0], p[1]) + ' = ' + fr(p[1] - p[0], p[1]);
-      text = who + ' makes a free throw with probability ' + B(fr(p[0], p[1])) + ', and each shot is separate. What is the probability of ' + B(pat.join(', ')) + ', in that order?';
+      const shot = 'The probability that ' + who + ' hits a free throw is ' + B(fr(p[0], p[1])) + '. ';
+      text = shot + 'One shot does not change the next. ' + who + ' takes 3 shots. What is the probability of ' + B(pat.map(s => 'a ' + s).join(', then ')) + '?';
+      asks = pat.map((s, i) => shot + 'What is the probability that ' + who + ' ' + (s === 'hit' ? 'hits' : 'misses') + ' the ' + ord(i + 1) + ' shot?');
     } else {
       const k = R.pick([3, 4]); fs = Array(k).fill([1, 2]); names = Array(k).fill('heads'); note = 'each flip is separate';
       text = 'You flip a coin ' + B(k + ' times') + '. What is the probability of ' + B('heads every time') + '?';
+      asks = fs.map((f, i) => 'You flip a coin ' + k + ' times. What is the probability of heads on the ' + ord(i + 1) + ' flip?');
     }
     const m = mul(fs, names, note), ans = F(m.n, m.dd), sumN = fs.reduce((a, f) => [a[0] * f[1] + f[0] * a[1], a[1] * f[1]], [0, 1]);
     return { text: text + ' Give a fraction in lowest terms.', ans, type: 'frac', low: true, how: m.how,
-      steps: fs.map((f, i) => ({ text: 'P(' + names[i] + ') = ?', ans: F(f[0], f[1]), type: 'frac' })).concat([{ text: 'Multiply them, lowest terms:', ans, type: 'frac', low: true }]),
+      steps: fs.map((f, i) => ({ text: asks[i], ans: F(f[0], f[1]), type: 'frac' })).concat([{ text: 'Multiply and give the answer in lowest terms: ' + B(fs.map(f => frac(f[0], f[1])).join(' × ')) + ' = ?', ans, type: 'frac', low: true }]),
       traps: [tr(F(sumN[0], sumN[1]), 'd_indep', '"And" for separate events means multiply, not add.'), tr(F(fs.reduce((a, f) => a * f[0], 1), fs.reduce((a, f) => a + f[1], 0)), 'f_mult', 'Multiply the bottoms too, not add them.'), d === 1 ? tr(F(fs[0][0] * (fs[1][0] - (names[0] === names[1] ? 1 : 0)), fs[0][1] * (fs[0][1] - 1)), 'd_indep', 'The marble goes back, so the second pick has the same chances as the first.') : null] };
   } },
 
@@ -1279,20 +1302,20 @@ const DEFS = [
       const g = R.pick([['students in class A', 'students in class B', 'test score', 'students'], ['players on the red team', 'players on the blue team', 'score', 'players'], ['girls', 'boys', 'long jump (in cm)', 'kids']]);
       return { text: 'The mean ' + g[2] + ' of ' + B(n1) + ' ' + g[0] + ' is ' + B(A) + '. The mean for ' + B(n2) + ' ' + g[1] + ' is ' + B(Bm) + '. What is the mean for all ' + N + ' ' + g[3] + '?', ans,
         how: [W('total 1 = ' + n1 + ' × ' + A + ' = ' + t1, 'mean × how many'), 'total 2 = ' + n2 + ' × ' + Bm + ' = ' + t2, W('mean = (' + t1 + ' + ' + t2 + ') ÷ ' + N, 'all the points shared over everyone'), '= ' + B(ans)],
-        steps: [{ text: 'Total for ' + g[0] + '?', ans: t1 }, { text: 'Total for ' + g[1] + '?', ans: t2 }, { text: 'Mean for all ' + N + '?', ans }],
+        steps: [{ text: 'Total for the ' + g[0] + ': ' + B(n1 + ' × ' + A) + ' = ?', ans: t1 }, { text: 'Total for the ' + g[1] + ': ' + B(n2 + ' × ' + Bm) + ' = ?', ans: t2 }, { text: 'Mean for all ' + N + ' ' + g[3] + ': ' + B('(' + t1 + ' + ' + t2 + ') ÷ ' + N) + ' = ?', ans }],
         traps: [n1 !== n2 ? tr((A + Bm) / 2, 'd_weighted', 'The groups are different sizes, so the bigger group pulls the mean toward its own.') : null, tr(t1 + t2, 'd_mean', 'That is the total. Share it over all ' + N + ' students.'), tr((t1 + t2) / 2, 'd_weighted', 'Divide by the number of students, ' + N + ', not by 2.')] };
     }
     if (R.chance(.5)) {
       const N = R.pick([10, 12, 20, 24, 25, 30]), n1 = R.i(2, N - 2), Mn = R.i(65, 90), A = R.i(60, 95), rest = (N * Mn - n1 * A) / (N - n1); if (!isInt(rest) || rest < 40 || rest > 100 || A === Mn) return null;
-      return { text: 'A class of ' + B(N) + ' has a mean score of ' + B(Mn) + '. The ' + B(n1) + ' students in the front row have a mean of ' + B(A) + '. What is the mean of the other ' + (N - n1) + '?', ans: rest,
+      return { text: 'A class of ' + B(N) + ' has a mean score of ' + B(Mn) + '. The ' + B(n1) + ' students in the front row have a mean of ' + B(A) + '. What is the mean of the other ' + (N - n1) + ' students?', ans: rest,
         how: [W('class total = ' + N + ' × ' + Mn + ' = ' + num(N * Mn), 'mean × how many'), 'front row total = ' + n1 + ' × ' + A + ' = ' + num(n1 * A), 'rest total = ' + num(N * Mn) + M + num(n1 * A) + ' = ' + num(N * Mn - n1 * A), 'mean of the rest = ' + num(N * Mn - n1 * A) + ' ÷ ' + (N - n1) + ' = ' + B(rest)],
-        steps: [{ text: 'Class total?', ans: N * Mn }, { text: 'Front row total?', ans: n1 * A }, { text: 'Mean of the other ' + (N - n1) + '?', ans: rest }],
+        steps: [{ text: 'Total for the class: ' + B(N + ' × ' + Mn) + ' = ?', ans: N * Mn }, { text: 'Total for the front row: ' + B(n1 + ' × ' + A) + ' = ?', ans: n1 * A }, { text: 'Mean of the other ' + (N - n1) + ' students: ' + B('(' + num(N * Mn) + M + num(n1 * A) + ') ÷ ' + (N - n1)) + ' = ?', ans: rest }],
         traps: [tr(2 * Mn - A, 'd_weighted', 'The groups are different sizes, so work with totals.'), tr(N * Mn - n1 * A, 'd_mean', 'That is their total. Divide by ' + (N - n1) + '.'), tr((N * Mn - n1 * A) / N, 'd_weighted', 'Share the rest total over the ' + (N - n1) + ' other students only.')] };
     }
     const w = R.pick([[60, 40], [70, 30], [80, 20], [75, 25], [50, 50]]), a = R.i(12, 19) * 5, b = R.i(12, 20) * 5, ans = (w[0] * a + w[1] * b) / 100; if (a === b || !isInt(ans)) return null;
-    return { text: 'Tests count ' + B(w[0] + '%') + ' of the grade and homework counts ' + B(w[1] + '%') + '. ' + R.pick(NAMES) + ' averages ' + B(a) + ' on tests and ' + B(b) + ' on homework. What is the final grade?', ans,
+    return { text: (who => 'Tests count for ' + B(w[0] + '%') + ' of the grade and homework counts for ' + B(w[1] + '%') + '. ' + who + ' averages ' + B(a) + ' on tests and ' + B(b) + ' on homework. What is ' + who + '\'s final grade?')(R.pick(NAMES)), ans,
       how: [W('tests: ' + (w[0] / 100) + ' × ' + a + ' = ' + num(w[0] * a / 100), w[0] + '% of ' + a), 'homework: ' + (w[1] / 100) + ' × ' + b + ' = ' + num(w[1] * b / 100), num(w[0] * a / 100) + ' + ' + num(w[1] * b / 100) + ' = ' + B(num(ans))],
-      steps: [{ text: B(w[0] + '% of ' + a) + ' = ?', ans: w[0] * a / 100 }, { text: B(w[1] + '% of ' + b) + ' = ?', ans: w[1] * b / 100 }, { text: 'Final grade?', ans }],
+      steps: [{ text: B(w[0] + '% of ' + a) + ' = ?', ans: w[0] * a / 100 }, { text: B(w[1] + '% of ' + b) + ' = ?', ans: w[1] * b / 100 }, { text: 'Final grade: ' + B(num(w[0] * a / 100) + ' + ' + num(w[1] * b / 100)) + ' = ?', ans }],
       traps: [w[0] !== w[1] ? tr((a + b) / 2, 'd_weighted', 'Tests count more, so the grade sits closer to the test average.') : null, tr((w[1] * a + w[0] * b) / 100, 'd_weighted', 'Match each weight to its own average: ' + w[0] + '% goes with tests.')] };
   } },
 

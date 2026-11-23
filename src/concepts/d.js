@@ -133,7 +133,7 @@ C.defs([
       return { text: 'What is ' + B(num(v) + ' × 11') + '?', ans, traps,
         how: ['Write the end digits: ' + ds[0] + ' _ _ ' + ds[2] + '. In between, add next-door digits: ' + ds[0] + ' + ' + ds[1] + ' = ' + cols[1] + ' and ' + ds[1] + ' + ' + ds[2] + ' = ' + cols[2] + '.',
           'Carry from the right. ' + carry.join('; ') + '.', 'So ' + num(v) + ' × 11 = ' + B(num(ans)) + '.'],
-        steps: [st('What is ' + B(ds[0] + ' + ' + ds[1]) + '?', cols[1]), st('What is ' + B(ds[1] + ' + ' + ds[2]) + '?', cols[2]), st('Now carry from the right. What is ' + B(num(v) + ' × 11') + '?', ans)] };
+        steps: [st('What is ' + B(ds[0] + ' + ' + ds[1]) + '?', cols[1]), st('What is ' + B(ds[1] + ' + ' + ds[2]) + '?', cols[2]), st('The places hold ' + cols.slice(0, -1).join(', ') + ' and ' + cols[cols.length - 1] + '. Now carry from the right. What is ' + B(num(v) + ' × 11') + '?', ans)] };
     } },
 
   { id: 'm_est', s: 'mul', g: 5, title: 'Estimate: round, then multiply', pre: ['n_round100'],
@@ -291,7 +291,7 @@ C.defs([
         const pos = d === 0 ? R.pick([1, 2]) : R.pick([2, 3]), dig = ds[pos], x = Number(ds.join('')) / Math.pow(10, k), ans = dig / Math.pow(10, pos);
         return { text: 'In ' + B(num(x)) + ', what is the ' + B(dig) + ' worth? Type it as a decimal.', ans,
           how: ['After the point the places go tenths, hundredths, thousandths.', 'The ' + dig + ' is ' + pos + (pos === 1 ? ' place' : ' places') + ' after the point: the ' + PLACE[pos] + ' place. So it is worth ' + dig + ' ' + (dig === 1 ? PLACE1[pos] : PLACE[pos]) + ' = ' + B(num(ans)) + '.'],
-          steps: [st('How many places after the point is the ' + B(dig) + '?', pos), st('Write ' + dig + ' ' + (dig === 1 ? PLACE1[pos] : PLACE[pos]) + ' as a decimal.', ans)],
+          steps: [st('In ' + num(x) + ', how many places after the point is the ' + B(dig) + '?', pos), st('Write ' + dig + ' ' + (dig === 1 ? PLACE1[pos] : PLACE[pos]) + ' as a decimal.', ans)],
           traps: TR([tr(dig, 'n_decplace', 'That is the digit. What is it worth in its place?'), tr(dig / Math.pow(10, pos === 1 ? 2 : pos - 1), 'n_decplace', 'Count the places after the point: tenths first, then hundredths, then thousandths.'),
             tr(dig / Math.pow(10, pos + 1), 'n_decplace', 'Count the places after the point again: the first place is tenths.'), tr(dig * Math.pow(10, pos), 'n_place', 'Digits after the point are worth less than 1.')]) };
       }
@@ -300,9 +300,9 @@ C.defs([
         const X = w * 1000 + a * 100 + b * 10 + c, ans = X / 1000, parts = [num(w)];
         if (a) parts.push(num(a / 10)); if (b) parts.push(num(b / 100)); parts.push(num(c / 1000));
         const gap = !a ? 'tenths' : !b ? 'hundredths' : '';
-        return { text: 'Write as one decimal: ' + B(parts.join(' + ')), ans,
+        return { text: 'Write this as one decimal: ' + B(parts.join(' + ')), ans,
           how: ['Put each digit in its place: ' + w + ' ones, ' + a + ' tenths, ' + b + ' hundredths, ' + c + ' thousandths.', (gap ? 'There are no ' + gap + ', so a 0 holds that place. ' : '') + 'The number is ' + B(num(ans)) + '.'],
-          steps: [st('Which digit goes in the hundredths place?', b), st('Now write the whole number.', ans)],
+          steps: [st('Write ' + parts.join(' + ') + ' as one decimal. Which digit goes in the hundredths place?', b), st('Now write ' + parts.join(' + ') + ' as one decimal.', ans)],
           traps: TR([gap ? tr(Number(String(w) + '.' + [a, b, c].filter(v => v).join('')), 'n_place', 'An empty place still needs a 0 to hold it, or the other digits slide into the wrong places.') : null,
             tr(w + (a * 100 + b * 10 + c) / 100, 'n_decplace', 'Thousandths are the third place after the point.'), tr(a * 100 + b * 10 + c + w, 'n_decplace', 'These parts are tenths, hundredths and thousandths, not whole numbers.')]) };
       }
@@ -315,7 +315,7 @@ C.defs([
           how: [num(step) + ' is 1 ' + PLACE1[pos] + ', so only the ' + PLACE[pos] + ' place changes. The ' + PLACE[pos] + ' digit of ' + num(x) + ' is ' + ds[pos] + '.',
             up ? '9 + 1 = 10 ' + PLACE[pos] + ': write 0 there and carry 1 to the ' + PLACE[pos - 1] + '.' : '0 − 1 needs a borrow: take 1 from the ' + PLACE[pos - 1] + ', so the ' + PLACE[pos] + ' digit becomes 9.',
             'So the answer is ' + B(num(ans)) + '.'],
-          steps: [st('What is the ' + PLACE[pos] + ' digit of ' + B(num(x)) + '?', ds[pos]), st('Now ' + (up ? 'add ' : 'take away ') + num(step) + '. What is the new number?', ans)],
+          steps: [st('What is the ' + PLACE[pos] + ' digit of ' + B(num(x)) + '?', ds[pos]), st('Now ' + (up ? 'add ' + num(step) + ' to ' : 'take ' + num(step) + ' away from ') + num(x) + '. What is the new number?', ans)],
           traps: TR([tr((up ? X + 10 * s : X - 10 * s) / 1000, 'n_decplace', num(step) + ' is one ' + PLACE1[pos] + '. Change the ' + PLACE[pos] + ' place.'),
             s > 1 ? tr((up ? X + s / 10 : X - s / 10) / 1000, 'n_decplace', num(step) + ' is one ' + PLACE1[pos] + '. Change the ' + PLACE[pos] + ' place.') : null,
             up ? tr((X - 9 * s) / 1000, 'a_regroup', '9 + 1 makes 10, so carry the 1 to the next place.') : tr((X + 9 * s) / 1000, 'a_borrow', 'You can’t take 1 from 0. Borrow from the next place first.')]) };
@@ -326,7 +326,7 @@ C.defs([
       return { text: 'How many ' + B(PLACE[k]) + ' are in ' + B(num(x)) + '?', ans: X,
         how: ['1 whole is ' + num(Math.pow(10, k)) + ' ' + PLACE[k] + ', so ' + w + ' wholes are ' + num(w * Math.pow(10, k)) + ' ' + PLACE[k] + '.',
           'Add the ' + num(rest) + ' ' + PLACE[k] + ' after the point: ' + num(w * Math.pow(10, k)) + ' + ' + num(rest) + ' = ' + B(num(X)) + '. (Move the point ' + k + ' place' + (k > 1 ? 's' : '') + ' right.)'],
-        steps: [st('How many ' + PLACE[k] + ' are in ' + w + ' wholes?', w * Math.pow(10, k)), st('Add the ' + PLACE[k] + ' after the point. How many in all?', X)],
+        steps: [st('How many ' + PLACE[k] + ' are in ' + w + ' wholes?', w * Math.pow(10, k)), st('Now add the ' + num(rest) + ' ' + (rest === 1 ? PLACE1[k] : PLACE[k]) + ' after the point. How many ' + PLACE[k] + ' are in ' + num(x) + '?', X)],
         traps: TR([tr(rest, 'n_decplace', 'The wholes count too: each whole is ' + num(Math.pow(10, k)) + ' ' + PLACE[k] + '.'), k > 1 ? tr(X / 10, 'n_times10', 'Move the point ' + k + ' places, one for each place after it.') : null, tr(X * 10, 'n_times10', 'Move the point only ' + k + ' place' + (k > 1 ? 's' : '') + '.')]) };
     } },
 
@@ -360,23 +360,23 @@ C.defs([
         const a = -R.i(1, 9), b = R.i(1, 9), rev = R.chance(.4), from = rev ? b : a, to = rev ? a : b, ans = b - a;
         return { text: 'How many steps is it from ' + B(num(from)) + ' to ' + B(num(to)) + ' on the number line?', ans, vis: line([a, b]),
           how: ['Count to zero, then on. From ' + num(a) + ' to 0 is ' + (-a) + (a === -1 ? ' step.' : ' steps.'), 'From 0 to ' + b + ' is ' + b + (b === 1 ? ' step.' : ' steps.'), (-a) + ' + ' + b + ' = ' + B(ans) + '.'],
-          steps: [st('How many steps from ' + B(num(a)) + ' to 0?', -a), st('From 0 to ' + B(b) + '?', b), st('Add them: ' + B((-a) + ' + ' + b) + ' = ?', ans)],
+          steps: [st('How many steps is it from ' + B(num(a)) + ' to 0?', -a), st('How many steps is it from 0 to ' + B(b) + '?', b), st('Add them: ' + B((-a) + ' + ' + b) + ' = ?', ans)],
           traps: TR([tr(Math.abs(b + a), 'n_neg', 'The numbers are on opposite sides of zero, so the two parts add.'), tr(ans + 1, 'n_neg', 'Count the jumps, not the marks.')]) };
       }
       const kind = d === 1 ? R.i(0, 3) : R.i(4, 6);
       if (kind === 0 || kind === 4) {
         const lo = kind === 0 ? -R.i(3, 15) : -R.i(12, 90), hi = kind === 0 ? R.i(2, 20) : R.i(15, 300), ans = hi - lo;
-        const text = kind === 0 ? 'At dawn it was ' + B(num(lo) + DEG) + '. By noon it was ' + B(hi + DEG) + '. How many degrees did it warm up?' : 'A diver is at ' + B(num(lo) + ' m') + ' (below sea level). A bird flies at ' + B(hi + ' m') + '. How far apart are they?';
+        const text = kind === 0 ? 'At dawn it was ' + B(num(lo) + DEG) + '. By noon it was ' + B(hi + DEG) + '. How many degrees did it warm up?' : 'Sea level is 0 m. A diver is at ' + B(num(lo) + ' m') + '. A bird flies at ' + B(hi + ' m') + '. How many meters apart are the diver and the bird?';
         return { text, ans, unit: kind === 0 ? DEG : 'm', vis: kind === 0 ? numLineSVG(-20, 20, 1, [{ v: lo, t: num(lo) }, { v: hi, t: num(hi) }], 5) : '',
           how: ['Count up to zero first: ' + num(lo) + ' to 0 is ' + (-lo) + '.', 'Then 0 to ' + hi + ' is ' + hi + '. ' + (-lo) + ' + ' + hi + ' = ' + B(ans) + '.'],
-          steps: [st('How far from ' + B(num(lo)) + ' to 0?', -lo), st('How far from 0 to ' + B(hi) + '?', hi), st('Add them.', ans)],
+          steps: [st('How far is it from ' + B(num(lo)) + ' to 0?', -lo), st('How far is it from 0 to ' + B(hi) + '?', hi), st('Add them: ' + B((-lo) + ' + ' + hi) + ' = ?', ans)],
           traps: TR([tr(Math.abs(hi + lo), 'n_neg', 'They are on opposite sides of zero, so the two parts add.'), tr(hi, 'n_neg', 'Count the part below zero too.')]) };
       }
       if (kind === 1) {
         const a = -R.i(10, 30), b = a + R.i(3, 9), ans = b - a;
         return { text: 'How far apart are ' + B(num(a)) + ' and ' + B(num(b)) + ' on the number line?', ans, vis: numLineSVG(-30, 0, 1, [{ v: a, t: num(a) }, { v: b, t: num(b) }], 5),
           how: ['Both are below zero: ' + num(a) + ' is ' + (-a) + ' below and ' + num(b) + ' is ' + (-b) + ' below.', 'On the same side, take away: ' + (-a) + M + (-b) + ' = ' + B(ans) + '.'],
-          steps: [st('How far below zero is ' + B(num(a)) + '?', -a), st('And ' + B(num(b)) + '?', -b), st('How far apart are they?', ans)],
+          steps: [st('How far below zero is ' + B(num(a)) + '?', -a), st('How far below zero is ' + B(num(b)) + '?', -b), st('How far apart are ' + B(num(a)) + ' and ' + B(num(b)) + '?', ans)],
           traps: TR([tr(-a - b, 'n_neg', 'Both are on the same side of zero, so take away the distances.'), tr(-ans, 'n_neg', 'A distance is never negative.')]) };
       }
       if (kind === 2 || kind === 6) {
@@ -385,7 +385,7 @@ C.defs([
         const how = down ? (s > 0 ? ['Go down ' + s + ' to reach 0.', 'Then ' + (k - s) + ' more below zero: ' + B(num(ans)) + '.'] : ['Going down from ' + num(s) + ' moves further below zero.', (-s) + ' + ' + k + ' = ' + (-ans) + ' below zero: ' + B(num(ans)) + '.'])
           : (k < -s ? ['Going up from ' + num(s) + ' moves toward zero.', 'You are still ' + (-s) + M + k + ' = ' + (-ans) + ' below zero: ' + B(num(ans)) + '.'] : ['Go up ' + (-s) + ' to reach 0.', 'Then ' + (k + s) + ' more: ' + B(num(ans)) + '.']);
         return { text: 'What number is ' + B(k + (down ? ' less' : ' more')) + ' than ' + B(num(s)) + '?', ans, how, vis: down ? line([s]) : '',
-          steps: [st(down ? (s > 0 ? 'How far is it from ' + s + ' down to 0?' : 'How far below zero is ' + B(num(s)) + '?') : 'How far below zero is ' + B(num(s)) + '?', down && s > 0 ? s : -s), st('Where do you end up?', ans)],
+          steps: [st(down ? (s > 0 ? 'How far is it from ' + s + ' down to 0?' : 'How far below zero is ' + B(num(s)) + '?') : 'How far below zero is ' + B(num(s)) + '?', down && s > 0 ? s : -s), st('Start at ' + num(s) + ' and go ' + (down ? 'down ' : 'up ') + k + '. Where do you end up?', ans)],
           traps: TR([tr(down ? s + k : s - k, 'n_neg', down ? 'Less means move down the line, to the left.' : 'More means move up the line, to the right.'), tr(-ans, 'n_intadd', 'Check the sign: which side of zero do you end on?')]) };
       }
       if (kind === 3) {
@@ -393,14 +393,14 @@ C.defs([
         const sorted = vals.slice().sort((a, b) => a - b), ans = sorted[1], bySize = vals.slice().sort((a, b) => Math.abs(a) - Math.abs(b));
         return { text: 'Put these in order from least to greatest: ' + B(vals.map(num).join(',  ')) + '. Which number is ' + B('second') + '?', ans,
           how: ['The most negative number is the least. Negatives come first, the bigger the size the smaller the number.', 'In order: ' + sorted.map(num).join(', ') + '. The second is ' + B(num(ans)) + '.'],
-          steps: [st('Which number is the least?', sorted[0]), st('Which number comes next?', ans)],
+          steps: [st('Which of these numbers is the least? ' + B(vals.map(num).join(',  ')), sorted[0]), st(num(sorted[0]) + ' is the least. Which of these numbers comes next? ' + B(vals.map(num).join(',  ')), ans)],
           traps: TR([tr(bySize[1], 'n_neg', 'For negatives, a bigger size means a smaller number: ' + MINUS + '9 is less than ' + MINUS + '2.'), tr(sorted[3], 'n_neg', 'Least to greatest starts with the most negative number.')]) };
       }
       let a, b; do { a = -R.i(2, 30); b = R.i(2, 30); } while ((a + b) % 2 !== 0 || a + b === 0);
       const D = b - a, ans = (a + b) / 2;
       return { text: 'What number is exactly halfway between ' + B(num(a)) + ' and ' + B(num(b)) + '?', ans,
         how: ['The distance from ' + num(a) + ' to ' + b + ' is ' + (-a) + ' + ' + b + ' = ' + D + '.', 'Half of that is ' + D / 2 + '. Go ' + D / 2 + ' up from ' + num(a) + ': ' + B(num(ans)) + '.'],
-        steps: [st('How far is it from ' + B(num(a)) + ' to ' + B(b) + '?', D), st('What is half of ' + D + '?', D / 2), st('Go that far up from ' + num(a) + '. Where are you?', ans)],
+        steps: [st('How far is it from ' + B(num(a)) + ' to ' + B(b) + '?', D), st('What is half of ' + D + '?', D / 2), st('Start at ' + num(a) + ' and go up ' + D / 2 + '. Where do you end up?', ans)],
         traps: TR([tr(a + b, 'n_neg', 'Find the distance, then go half of it from one end.'), tr(D / 2, 'n_neg', 'That is half the distance. Now start at ' + num(a) + ' and go that far.'), tr(-ans, 'n_intadd', 'Check the sign: is the halfway point above or below zero?')]) };
     } },
 
@@ -435,13 +435,13 @@ C.defs([
         const a = -R.i(2, 15), b = -R.i(2, 15), ans = Math.abs(a) * Math.abs(b) ;
         return { text: 'What is ' + B(bar(num(a)) + ' × ' + bar(num(b))) + '?', ans,
           how: [bar(num(a)) + ' = ' + (-a) + ' and ' + bar(num(b)) + ' = ' + (-b) + '.', (-a) + ' × ' + (-b) + ' = ' + B(ans) + '.'],
-          steps: [st('What is ' + B(bar(num(a))) + '?', -a), st('What is ' + B(bar(num(b))) + '?', -b), st('Multiply them.', ans)],
+          steps: [st('What is ' + B(bar(num(a))) + '?', -a), st('What is ' + B(bar(num(b))) + '?', -b), st('Multiply them: ' + B((-a) + ' × ' + (-b)) + ' = ?', ans)],
           traps: TR([tr(-ans, 'n_abs', 'Each absolute value is a distance, so both are positive.'), tr(-a - b, 'n_abs', 'Multiply the two distances.')]) };
       }
       const k = R.i(3, 15), strict = R.chance(.5), ans = strict ? 2 * k - 1 : 2 * k + 1, top = strict ? k - 1 : k;
-      return { text: 'How many whole numbers x (counting negatives and 0) have ' + B('|x| ' + (strict ? '&lt; ' : '≤ ') + k) + '?', ans,
-        how: ['They are the whole numbers from ' + MINUS + top + ' to ' + top + '.', top + ' negatives, ' + top + ' positives and 0: ' + top + ' + ' + top + ' + 1 = ' + B(ans) + '.'],
-        steps: [st('What is the biggest x that works?', top), st('Count the negatives, the positives and 0. How many?', ans)],
+      return { text: 'Integers can be positive, negative or 0. How many integers x have ' + B('|x| ' + (strict ? '&lt; ' : '≤ ') + k) + '?', ans,
+        how: ['They are the integers from ' + MINUS + top + ' to ' + top + '.', top + ' negatives, ' + top + ' positives and 0: ' + top + ' + ' + top + ' + 1 = ' + B(ans) + '.'],
+        steps: [st('What is the biggest integer x with ' + B('|x| ' + (strict ? '&lt; ' : '≤ ') + k) + '?', top), st('Count the integers from ' + MINUS + top + ' to ' + top + '. How many are there?', ans)],
         traps: TR([tr(2 * top, 'n_abs', 'Don’t forget 0: |0| = 0 works too.'), tr(top + 1, 'n_abs', 'Negative numbers count too: |' + MINUS + '2| = 2.'), tr(strict ? 2 * k + 1 : 2 * k - 1, 'n_abs', strict ? '|x| &lt; ' + k + ' leaves out ' + k + ' and ' + MINUS + k + '.' : '|x| ≤ ' + k + ' includes ' + k + ' and ' + MINUS + k + '.')]) };
     } },
 
@@ -480,7 +480,7 @@ C.defs([
       const negA = R.chance(.5), a = negA ? -R.i(5, 40) : R.i(5, 40), c = negA ? R.i(3, 40) : -R.i(3, 40), ans = c - a;
       return { text: 'Solve: ' + B(num(a) + ' + ? = ' + num(c)), ans,
         how: [num(a) + ' + ? = ' + num(c), '? = ' + num(c) + M + ng(a), negA ? why('? = ' + num(c) + ' + ' + (-a), 'take away a negative: add its opposite') : why('? = ' + num(c) + ' + ' + ng(-a), 'take away ' + a + ': add ' + num(-a)), '? = ' + B(num(ans))],
-        steps: [st('Undo the adding: ? = ' + num(c) + M + ng(a) + '. Change it to adding: ' + num(c) + ' + ?', -a), st('What is ' + B(num(c) + ' + ' + ng(-a)) + '?', ans)],
+        steps: [st('Undo the adding: ? = ' + num(c) + M + ng(a) + '. Taking away ' + num(a) + ' is the same as adding what number?', -a), st('What is ' + B(num(c) + ' + ' + ng(-a)) + '?', ans)],
         traps: TR([tr(c + a, 'n_intsub', 'To undo adding ' + ng(a) + ', take it away: ' + num(c) + M + ng(a) + '.'), tr(-ans, 'n_intadd', 'Check the sign: from ' + num(a) + ', which way do you go to reach ' + num(c) + '?'), tr(Math.abs(Math.abs(c) - Math.abs(a)), 'n_neg', 'The path crosses zero, so the two parts add: ' + Math.abs(a) + ' + ' + Math.abs(c) + '.')]) };
     } },
 
@@ -502,7 +502,7 @@ C.defs([
       if (!ans || a === c) return null;
       return { text: 'Solve: ' + B(num(a) + M + '? = ' + num(c)), ans,
         how: [num(a) + M + '? = ' + num(c), why('? = ' + num(a) + M + ng(c), 'swap the ? and ' + num(c)), why('? = ' + num(a) + ' + ' + ng(-c), 'add the opposite'), '? = ' + B(num(ans))],
-        steps: [st('? = ' + num(a) + M + ng(c) + '. Change it to adding: ' + num(a) + ' + ?', -c), st('What is ' + B(num(a) + ' + ' + ng(-c)) + '?', ans)],
+        steps: [st('? = ' + num(a) + M + ng(c) + '. Taking away ' + num(c) + ' is the same as adding what number?', -c), st('What is ' + B(num(a) + ' + ' + ng(-c)) + '?', ans)],
         traps: TR([tr(a + c, 'n_intsub', 'The missing number is ' + num(a) + M + ng(c) + '. Taking away ' + ng(c) + ' is adding its opposite.'), tr(-ans, 'n_intadd', 'Check the sign: is ' + num(c) + ' below or above ' + num(a) + '?'), tr(c - a, 'n_intsub', 'Order matters: ' + num(a) + M + '? = ' + num(c) + ' means ? = ' + num(a) + M + ng(c) + '.')]) };
     } },
 
@@ -515,14 +515,14 @@ C.defs([
         const a = sa ? -x : x, b = sb ? -y : y, ans = a * b, P = x * y, negs = (sa ? 1 : 0) + (sb ? 1 : 0), expr = ng(a) + ' × ' + ng(b);
         return { text: 'Work it out: ' + B(expr), ans,
           how: ['Sizes: ' + x + ' × ' + y + ' = ' + P, why('Negatives: ' + negs, negs === 1 ? 'one negative makes a negative' : 'two negatives make a positive'), expr + ' = ' + B(num(ans))],
-          steps: [st(B(x + ' × ' + y) + ' = ?', P), st('Now the sign. What is ' + B(expr) + '?', ans)],
+          steps: [st(B(x + ' × ' + y) + ' = ?', P), st('Now find the sign. What is ' + B(expr) + '?', ans)],
           traps: TR([tr(-ans, 'n_intmul', negs === 1 ? 'One negative sign makes the answer negative.' : 'Two negatives make a positive.'), tr(Math.sign(ans) * (P + x), factC(x, y), 'Check the fact ' + x + ' × ' + y + '.'), tr(Math.sign(ans) * (P - y), factC(x, y), 'Check the fact ' + x + ' × ' + y + '.')]) };
       }
       if (d === 1) {
         const q = R.i(2, 9), r = R.i(2, 9), sa = R.chance(.5), sb = !sa || R.chance(.5), A = (sa ? -1 : 1) * q * r, Bv = (sb ? -1 : 1) * q, ans = A / Bv, negs = (sa ? 1 : 0) + (sb ? 1 : 0), expr = num(A) + ' ÷ ' + ng(Bv);
         return { text: 'Work it out: ' + B(expr), ans,
           how: ['Sizes: ' + q * r + ' ÷ ' + q + ' = ' + r + '   (think ' + q + ' × ? = ' + q * r + ')', why('Negatives: ' + negs, negs === 1 ? 'different signs make a negative' : 'two negatives make a positive'), expr + ' = ' + B(num(ans))],
-          steps: [st(B(q * r + ' ÷ ' + q) + ' = ?', r), st('Now the sign. What is ' + B(expr) + '?', ans)],
+          steps: [st(B(q * r + ' ÷ ' + q) + ' = ?', r), st('Now find the sign. What is ' + B(expr) + '?', ans)],
           traps: TR([tr(-ans, 'n_intmul', 'Dividing follows the same sign rules as times.'), tr(Math.sign(ans) * (r + 1), 'm_divfam', 'Check the fact: ' + q + ' × ? = ' + q * r + '.')]) };
       }
       const kind = R.i(0, 2);
@@ -531,7 +531,7 @@ C.defs([
         const P = xs.reduce((s, v) => s * Math.abs(v), 1), negs = xs.filter(v => v < 0).length, ans = xs[0] * xs[1] * xs[2], expr = xs.map(ng).join(' × ');
         return { text: 'Work it out: ' + B(expr), ans,
           how: ['Sizes: ' + xs.map(Math.abs).join(' × ') + ' = ' + P, why('Negatives: ' + negs, negs === 2 ? 'they pair up, so positive' : negs === 1 ? 'one negative, so negative' : 'a pair cancels and one is left, so negative'), expr + ' = ' + B(num(ans))],
-          steps: [st(B(xs.map(Math.abs).join(' × ')) + ' = ?', P), st('How many negative signs are there?', negs), st('What is ' + B(expr) + '?', ans)],
+          steps: [st(B(xs.map(Math.abs).join(' × ')) + ' = ?', P), st('How many negative signs are in ' + B(expr) + '?', negs), st('What is ' + B(expr) + '?', ans)],
           traps: TR([tr(-ans, 'n_intmul', 'Count the negative signs: an even number gives a positive, an odd number a negative.')]) };
       }
       if (kind === 1) {
@@ -542,7 +542,7 @@ C.defs([
           traps: TR([tr(-ans, 'n_intmul', 'Count the negative signs: ' + e + ' is ' + (e % 2 ? 'odd' : 'even') + '.'), tr(-x * e, 'w_exp', 'A power means multiply ' + MINUS + x + ' by itself ' + e + ' times, not ' + MINUS + x + ' × ' + e + '.')]) };
       }
       const e = R.pick([2, 2, 4]), x = e === 2 ? R.i(3, 12) : R.i(2, 5), P = Math.pow(x, e), ans = -P;
-      return { text: 'Work it out: ' + B(MINUS + pw(x, e)) + '   (no brackets)', ans,
+      return { text: 'There are no brackets here. Work it out: ' + B(MINUS + pw(x, e)), ans,
         how: [why(MINUS + pw(x, e) + ' = ' + MINUS + '(' + pw(x, e) + ')', 'the power is only on the ' + x + ', not on the minus'), pw(x, e) + ' = ' + num(P), MINUS + pw(x, e) + ' = ' + B(num(ans))],
         steps: [st(B(pw(x, e)) + ' = ?', P), st('Now put the minus in front. What is ' + B(MINUS + pw(x, e)) + '?', ans)],
         traps: TR([tr(P, 'x_order', 'Powers come before the minus sign. Only (' + MINUS + x + ')' + '<sup>' + e + '</sup> would be positive.'), tr(-x * e, 'w_exp', 'A power means repeated multiplying: ' + Array(e).fill(x).join(' × ') + '.')]) };
@@ -571,8 +571,8 @@ C.defs([
         how: ['Pair the ends: ' + a + ' + ' + b + ' = ' + P + ', ' + (a + step) + ' + ' + (b - step) + ' = ' + P + ', … Every pair makes ' + P + '.',
           countLine + (even ? ', so ' + pairs + ' pairs.' : ', an odd count: ' + pairs + ' pairs and the middle number ' + num(mid) + ' with no partner.'),
           even ? pairs + ' × ' + P + ' = ' + B(num(ans)) + '.' : pairs + ' × ' + P + ' + ' + num(mid) + ' = ' + num(pairs * P) + ' + ' + num(mid) + ' = ' + B(num(ans)) + '.'],
-        steps: [st('What does each pair add to? ' + B(a + ' + ' + b) + ' = ?', P), st('How many numbers are in the list?', N),
-          st(even ? 'How many pairs is that?' : 'How many full pairs (leave out the middle number)?', pairs), st('Now find the total.', ans)],
+        steps: [st('Pair the first number with the last: ' + B(a + ' + ' + b) + ' = ?', P), st('How many numbers are added in ' + B(list) + '?', N),
+          st(even ? N + ' numbers make how many pairs?' : 'The middle number has no partner. The other ' + (N - 1) + ' numbers make how many pairs?', pairs), st('Now find the total: ' + B(pairs + ' × ' + P + (even ? '' : ' + ' + num(mid))) + ' = ?', ans)],
         traps: TR([tr(N * P, 'p_gauss', 'Each pair makes ' + P + ', but there are only half as many pairs as numbers.'),
           a !== 1 ? tr((N - 1) * P / 2, 'p_gauss', 'Count the numbers again: add 1, because both ends count.') : null,
           a === 1 ? tr(N * b / 2, 'p_gauss', 'Each pair makes ' + b + ' + 1 = ' + P + ', not ' + b + '.') : null]) };
@@ -599,7 +599,7 @@ C.defs([
       const list = d === 0 ? Array.from({ length: n }, (_, i) => 2 * i + 1).join(' + ') : '1 + 3 + 5 + … + ' + L;
       return { text: 'What is ' + B(list) + '?', ans, vis: d === 0 ? dotsSVG(n, n) : '',
         how: [d === 0 ? 'Count the odd numbers: there are ' + n + '.' : 'How many odd numbers? (' + L + ' + 1) ÷ 2 = ' + n + '.', 'The first ' + n + ' odd numbers always add to ' + n + ' × ' + n + ': ' + sq(n) + ' = ' + B(ans) + '.'],
-        steps: [st('How many odd numbers are added?', n), st(B(sq(n)) + ' = ?', ans)],
+        steps: [st('How many odd numbers are added in ' + B(list) + '?', n), st(B(sq(n)) + ' = ?', ans)],
         traps: TR([tr(L * L, 'p_oddsum', 'Square how many odd numbers there are, not the last one.'), tr((n - 1) * (n - 1), 'p_oddsum', 'Count the odd numbers again: (' + L + ' + 1) ÷ 2.'), tr(2 * n, 'w_exp', 'The first ' + n + ' odd numbers add to ' + n + ' × ' + n + ', not ' + n + ' × 2.')]) };
     } },
 
@@ -634,7 +634,7 @@ C.defs([
       return { text: lead + ' What is the second number?', ans, vis: seqB([t[0], null, null, t[3]]),
         how: ['Call the second number ?. The third is ' + t[0] + ' + ?, and the fourth is ? + (' + t[0] + ' + ?) = ' + t[0] + ' + 2 × ?.',
           t[0] + ' + 2 × ? = ' + t[3] + ', so 2 × ? = ' + t[3] + M + t[0] + ' = ' + X + '.', '? = ' + X + ' ÷ 2 = ' + B(ans) + '.  Check: ' + t[0] + ', ' + t[1] + ', ' + t[2] + ', ' + t[3] + '.'],
-        steps: [st('The fourth number is ' + t[0] + ' + 2 × ?. What is ' + B(t[3] + M + t[0]) + '?', X), st('What is half of ' + X + '?', ans)],
+        steps: [st('The fourth number, ' + t[3] + ', is ' + t[0] + ' plus twice the second number. What is ' + B(t[3] + M + t[0]) + '?', X), st('What is half of ' + X + '?', ans)],
         traps: TR([tr(X, 'p_fib', 'That is 2 × ?. Now halve it.'), X % 3 === 0 ? tr(t[0] + X / 3, 'p_rule', 'This is not a same-jump pattern. Each number is the two before it added.') : null]) };
     } },
 
@@ -650,7 +650,7 @@ C.defs([
         how: [(base !== u ? base + ' ends in ' + u + ', and only the last digit matters. ' : '') + 'The last digits of ' + firsts + ' are ' + cy.join(', ') + ', then they repeat every ' + L + '.',
           n + ' ÷ ' + L + ' = ' + Math.floor(n / L) + ' r ' + r + (r === 0 ? ': no remainder means the end of a cycle.' : ': remainder ' + r + ' means the ' + ordn(r) + ' digit of the cycle.'),
           'So the last digit is ' + B(ans) + '.'],
-        steps: [st('How many last digits are in the repeating cycle for ' + u + '?', L), st('What is the remainder when ' + n + ' is divided by ' + L + '?', r), st('Which digit of the cycle ' + cy.join(', ') + ' is it?', ans)],
+        steps: [st((base !== u ? base + ' ends in ' + u + '. ' : '') + 'The last digits of the powers of ' + u + ' go ' + cy.join(', ') + ', then repeat. How many digits are in the cycle?', L), st('What is the remainder when ' + n + ' is divided by ' + L + '?', r), st('The cycle is ' + cy.join(', ') + ' and the remainder is ' + r + '. What is the last digit of ' + B(pw(base, n)) + '?', ans)],
         traps: TR([r === 0 ? tr(cy[0], 'p_lastdigit', 'No remainder means a whole number of cycles: you land on the last digit of the cycle.') : tr(cy[r % L], 'p_cycle', 'Remainder ' + r + ' points at the ' + ordn(r) + ' digit of the cycle, counting from the first.'),
           tr(u, 'fa_units', 'The last digit changes with each power. Find the cycle: ' + cy.join(', ') + '.')]) };
     } },
@@ -665,7 +665,7 @@ C.defs([
         return { text: 'This pattern keeps repeating. What is the ' + B(ordn(k)) + ' number?', ans, vis: seqB(cy.concat(cy, ['…'])),
           how: ['The pattern ' + cy.join(', ') + ' repeats every ' + L + '.', k + ' ÷ ' + L + ' = ' + Math.floor(k / L) + ' r ' + r + '.',
             r === 0 ? 'No remainder: the ' + ordn(k) + ' number ends a cycle, so it is the last one, ' + B(ans) + '.' : 'Remainder ' + r + ': the ' + ordn(r) + ' number in the pattern, ' + B(ans) + '.'],
-          steps: [st('How long is the repeating part?', L), st('What is the remainder when ' + k + ' is divided by ' + L + '?', r), st('Which number is it?', ans)],
+          steps: [st('The pattern ' + cy.join(', ') + ' keeps repeating. How many numbers are in the repeating part?', L), st('What is the remainder when ' + k + ' is divided by ' + L + '?', r), st('The repeating part is ' + cy.join(', ') + ' and the remainder is ' + r + '. What is the ' + ordn(k) + ' number?', ans)],
           traps: TR([r === 0 ? tr(cy[0], 'p_cycle', 'No remainder means a full cycle has just ended, so it is the last number in the pattern.') : tr(cy[r % L], 'p_cycle', 'Remainder ' + r + ' means the ' + ordn(r) + ' number, counting from the first.'),
             tr(cy[(Math.floor(k / L) - 1) % L], 'm_remain', 'Use the remainder, not how many times it goes in.')]) };
       }
@@ -682,7 +682,7 @@ C.defs([
         return { text: 'The decimal for ' + frac(1, den) + ' is ' + B('0.' + cyS + cyS + '…') + '. What is the ' + B(ordn(k)) + ' digit after the point?', ans,
           how: ['The digits ' + cyS + ' repeat, ' + L + ' at a time.', k + ' ÷ ' + L + ' = ' + Math.floor(k / L) + ' r ' + r + '.',
             r === 0 ? 'No remainder: the last digit of ' + cyS + ', which is ' + B(ans) + '.' : 'Remainder ' + r + ': the ' + ordn(r) + ' digit of ' + cyS + ', which is ' + B(ans) + '.'],
-          steps: [st('How many digits repeat?', L), st('What is the remainder when ' + k + ' is divided by ' + L + '?', r), st('Which digit is it?', ans)],
+          steps: [st('In 0.' + cyS + cyS + '…, how many digits repeat?', L), st('What is the remainder when ' + k + ' is divided by ' + L + '?', r), st('The digits ' + cy.join(', ') + ' repeat and the remainder is ' + r + '. What is the ' + ordn(k) + ' digit after the point?', ans)],
           traps: TR([r === 0 ? tr(cy[0], 'p_cycle', 'No remainder means a full cycle has just ended: the last digit.') : tr(cy[r % L], 'p_cycle', 'Remainder ' + r + ' means the ' + ordn(r) + ' digit, counting from the first.')]) };
       }
       const L = R.i(3, 4), cy = pick(L).map(v => Math.min(v, 6)), N = R.i(15, 40); if (new Set(cy).size < L) return null;
@@ -690,7 +690,7 @@ C.defs([
       return { text: 'This pattern keeps repeating. What do the first ' + B(N) + ' numbers add up to?', ans, vis: seqB(cy.concat(cy, ['…'])),
         how: ['One cycle, ' + cy.join(' + ') + ', adds to ' + S + '.', N + ' ÷ ' + L + ' = ' + q + ' r ' + r + ': ' + q + ' full cycles make ' + q + ' × ' + S + ' = ' + q * S + '.',
           r ? 'Plus the first ' + r + ' of the next cycle: ' + cy.slice(0, r).join(' + ') + ' = ' + extra + '. Total ' + q * S + ' + ' + extra + ' = ' + B(ans) + '.' : 'No numbers left over, so the total is ' + B(ans) + '.'],
-        steps: [st('What does one cycle add up to?', S), st('How many full cycles are in ' + N + ' numbers?', q), st('Now add the leftovers. What is the total?', ans)],
+        steps: [st('Add one cycle: ' + B(cy.join(' + ')) + ' = ?', S), st('One cycle is ' + L + ' numbers. How many full cycles are in ' + N + ' numbers?', q), st((r ? 'Add the full cycles and the leftover numbers: ' : 'No numbers are left over: ') + B(q + ' × ' + S + (r ? ' + ' + cy.slice(0, r).join(' + ') : '')) + ' = ?', ans)],
         traps: TR([tr(q * S, 'p_cycle', 'Add the leftover numbers from the start of the next cycle too.'), tr(N * S, 'p_cycle', 'Each cycle is ' + L + ' numbers, so there are only ' + q + ' full cycles.'), tr(q * S + cy.slice(L - r).reduce((s, v) => s + v, 0), 'p_cycle', 'The leftovers are the first ' + r + ' numbers of the pattern.')]) };
     } },
 
@@ -704,7 +704,7 @@ C.defs([
         return { text: 'Find the ' + B(ordn(n) + ' term') + ' of this pattern.', ans, vis: seqB(show.concat(['…'])),
           how: [why('jump = ' + num(show[1]) + M + ng(show[0]) + ' = ' + num(j), 'the same every time'), why('term ' + n + ' = ' + num(s) + ' + (' + n + M + '1) × ' + ng(j), 'start + (n − 1) jumps'),
             '= ' + num(s) + ' + ' + ng(prod), '= ' + B(num(ans))],
-          steps: [st('What is the jump?', j), st('How many jumps from the 1st term to the ' + ordn(n) + '?', n - 1), st(B((n - 1) + ' × ' + ng(j)) + ' = ?', prod), st(B(num(s) + ' + ' + ng(prod)) + ' = ?', ans)],
+          steps: [st('The pattern starts ' + show.map(num).join(', ') + '. What is the jump from one term to the next?', j), st('How many jumps is it from the 1st term to the ' + ordn(n) + '?', n - 1), st(B((n - 1) + ' × ' + ng(j)) + ' = ?', prod), st(B(num(s) + ' + ' + ng(prod)) + ' = ?', ans)],
           traps: TR([tr(s + n * j, 'p_nth', 'From the 1st term to the ' + ordn(n) + ' is ' + (n - 1) + ' jumps, not ' + n + '.'), tr(n * j, 'p_nth', 'Start from the first term, ' + num(s) + ', then add the jumps.'),
             j < 0 ? tr(s - prod, 'n_intmul', 'Check the sign: ' + (n - 1) + ' × ' + ng(j) + ' is negative, because the pattern goes down by ' + Math.abs(j) + ' each time.') : null]) };
       }
@@ -713,13 +713,13 @@ C.defs([
         return { text: 'Which term of this pattern is ' + B(num(X)) + '?', ans: n, vis: seqB(show.concat(['…'])),
           how: [why('jump = ' + num(j), num(show[0]) + ' to ' + num(show[1])), num(X) + ' = ' + num(s) + ' + (n ' + MINUS + ' 1) × ' + ng(j),
             num(X - s) + ' = (n ' + MINUS + ' 1) × ' + ng(j) + ', so n ' + MINUS + ' 1 = ' + num(X - s) + ' ÷ ' + ng(j) + ' = ' + (n - 1), 'n = ' + B(n)],
-          steps: [st('How far is ' + num(X) + ' from the first term, ' + num(s) + '?   (' + num(X) + M + ng(s) + ')', X - s), st('How many jumps of ' + num(j) + ' is that?', n - 1), st('So which term is it?', n)],
+          steps: [st('Take away the first term: ' + B(num(X) + M + ng(s)) + ' = ?', X - s), st('How many jumps of ' + num(j) + ' make ' + num(X - s) + '?', n - 1), st((n - 1) + ' jumps after the 1st term is which term?', n)],
           traps: TR([tr(n - 1, 'p_nth', 'That is the number of jumps. The 1st term has no jumps, so add 1.'), j !== 0 && X % j === 0 ? tr(X / j, 'p_nth', 'Take away the first term first, then count the jumps.') : null, tr(n + 1, 'p_nth', 'The number of jumps is one less than the term number.')]) };
       }
       const A = T(4), Bv = T(10), ans = s;
-      return { text: 'In a same-jump pattern the ' + B('4th term is ' + num(A)) + ' and the ' + B('10th term is ' + num(Bv)) + '. What is the 1st term?', ans,
+      return { text: 'A pattern has the same jump each time. The ' + B('4th term is ' + num(A)) + '. The ' + B('10th term is ' + num(Bv)) + '. What is the 1st term?', ans,
         how: [why('jump = (' + num(Bv) + M + ng(A) + ') ÷ 6 = ' + num(Bv - A) + ' ÷ 6 = ' + num(j), '6 jumps from the 4th to the 10th term'), why('term 1 = ' + num(A) + M + '3 × ' + ng(j), '3 jumps back from the 4th term'), '= ' + num(A) + M + ng(3 * j), '= ' + B(num(ans))],
-        steps: [st('How many jumps from the 4th term to the 10th?', 6), st('What is one jump?', j), st('Go 3 jumps back from the 4th term. What is the 1st term?', ans)],
+        steps: [st('How many jumps is it from the 4th term to the 10th?', 6), st('6 jumps take you from ' + num(A) + ' to ' + num(Bv) + '. What is one jump?', j), st('The 4th term is ' + num(A) + ' and one jump is ' + num(j) + '. Go 3 jumps back. What is the 1st term?', ans)],
         traps: TR([tr(A - 4 * j, 'p_nth', 'From the 1st term to the 4th is 3 jumps, not 4.'), tr(Number.isInteger((Bv - A) / 7) ? A - (Bv - A) / 7 * 3 : null, 'p_nth', 'From the 4th to the 10th term is 6 jumps.'), tr(A + 3 * j, 'n_intadd', 'Go back to the 1st term: take the jumps away.')]) };
     } },
 
@@ -735,19 +735,19 @@ C.defs([
         const a = R.i(1, 6), r = R.pick([2, 3, 10]), t = [a, a * r, a * r * r, a * r * r * r], ans = t[3] * r;
         return { text: 'What comes next?', ans, vis: seqB(t.concat([null])),
           how: ['Each term is ' + r + ' times the one before: ' + t[1] + ' ÷ ' + t[0] + ' = ' + r + '.', t[3] + ' × ' + r + ' = ' + B(num(ans)) + '.'],
-          steps: [st('What do you multiply by each time?', r), st(B(t[3] + ' × ' + r) + ' = ?', ans)],
+          steps: [st('The pattern starts ' + t.slice(0, 3).join(', ') + '. What do you multiply by each time?', r), st(B(t[3] + ' × ' + r) + ' = ?', ans)],
           traps: TR([tr(t[3] + (t[3] - t[2]), 'p_rule', 'The jumps are not the same: each term is ' + r + ' times the one before.'), tr(t[3] + r, 'p_geo', 'Multiply by ' + r + ', don’t add it.')]) };
       }
       if (d === 1 && R.chance(.5)) {
         const a = R.i(1, 5) * (R.chance(.3) ? -1 : 1), r = R.pick([2, 3, -2, -3]), t = [0, 1, 2, 3, 4].map(k => a * Math.pow(r, k)), m = R.i(1, 3), ans = t[m];
         return { text: 'Each term is multiplied by the same number. What number is missing?', ans, vis: seqB(t.map((v, i) => (i === m ? null : v))),
           how: ['Find the multiplier: ' + num(t[m === 1 ? 3 : 1]) + ' ÷ ' + ng(t[m === 1 ? 2 : 0]) + ' = ' + num(r) + '.', ng(t[m - 1]) + ' × ' + ng(r) + ' = ' + B(num(ans)) + '.'],
-          steps: [st('What is the multiplier?', r), st(B(ng(t[m - 1]) + ' × ' + ng(r)) + ' = ?', ans)],
+          steps: [st('The pattern goes ' + t.map((v, i) => (i === m ? '?' : num(v))).join(', ') + '. What do you multiply by each time?', r), st(B(ng(t[m - 1]) + ' × ' + ng(r)) + ' = ?', ans)],
           traps: TR([tr(-ans, 'n_intmul', 'Check the sign: a negative multiplier flips the sign every time.'), tr((t[m - 1] + t[m + 1]) / 2, 'p_rule', 'This is a multiply pattern, not a same-jump pattern.')]) };
       }
       if (d === 2 && R.chance(.5)) {
         const A = R.i(2, 9), top = R.i(2, 6), Bv = A * top * top, ans = A * top;
-        return { text: 'In a multiply pattern, the terms ' + B(A + ', ?, ' + num(Bv)) + ' come one after another. All terms are positive. What is the missing term?', ans,
+        return { text: 'Each term is multiplied by the same number. Three terms in a row are ' + B(A + ', ?, ' + num(Bv)) + '. All terms are positive. What is the missing term?', ans,
           how: ['Call the multiplier r. The missing term is ' + A + ' × r, and ' + num(Bv) + ' is ' + A + ' × r × r.', 'So r × r = ' + num(Bv) + ' ÷ ' + A + ' = ' + top * top + ', and r = ' + top + '.', 'The missing term is ' + A + ' × ' + top + ' = ' + B(num(ans)) + '.'],
           steps: [st(B(num(Bv) + ' ÷ ' + A) + ' = ?', top * top), st('Which number times itself makes ' + top * top + '?', top), st(B(A + ' × ' + top) + ' = ?', ans)],
           traps: TR([tr((A + Bv) / 2, 'p_geo', 'Halfway is right for a same-jump pattern. Here each step multiplies by the same number.'), tr(top * top, 'w_roots', 'That is r × r. Find r, then multiply ' + A + ' by it.'), tr(A * top * top / 2, 'p_geo', 'Two equal multiplications get from ' + A + ' to ' + num(Bv) + '. Find one of them.')]) };
@@ -880,9 +880,9 @@ C.defs([
         const n = R.i(2, 8), V = P(10, n);
         if (R.chance(.5)) return { text: 'What is ' + B(pw(10, n)) + '?', ans: V,
           how: [pw(10, n) + ' is ' + n + ' tens multiplied' + (n <= 4 ? ': ' + Array(n).fill(10).join(' × ') : '') + '.', 'Each 10 adds one zero: 1 followed by ' + zw(n) + ' = ' + B(num(V)) + '.'],
-          steps: [st('How many zeros does ' + B(pw(10, n)) + ' have when you write it out?', n), st('Write it out.', V)],
+          steps: [st('How many zeros does ' + B(pw(10, n)) + ' have when you write it out?', n), st('Write ' + B(pw(10, n)) + ' out.', V)],
           traps: TR([tr(10 * n, 'w_exp', 'A power means repeated multiplying: ' + n + ' tens multiplied, not 10 × ' + n + '.'), tr(V * 10, 'n_times10', 'One zero for each 10.'), tr(V / 10, 'n_times10', 'One zero for each 10.')]) };
-        return { text: 'Write ' + B(num(V)) + ' as a power of 10. Ten to what power?', ans: n,
+        return { text: B(num(V)) + ' is 10 to what power?', ans: n,
           how: ['Count the zeros in ' + num(V) + ': there are ' + n + '.', 'So ' + num(V) + ' = ' + pw(10, B(n)) + '.'],
           steps: [st('How many zeros does ' + B(num(V)) + ' have?', n)],
           traps: TR([tr(n + 1, 'w_pow10', 'Count only the zeros, not the 1.'), tr(n - 1, 'w_pow10', 'Count every zero.')]) };
@@ -900,13 +900,13 @@ C.defs([
         const n = R.i(Math.max(3, p + 1), 7), k = K / P(10, p), V = K * P(10, n - p);
         return { text: B(num(V) + ' = ' + num(k) + ' × ' + pw(10, '?')) + '. What is the power?', ans: n,
           how: ['To turn ' + num(k) + ' into ' + num(V) + ', the digits move left. Count the places from the point in ' + num(k) + ' to the end of ' + num(V) + '.', 'They move ' + n + ' places, so the power is ' + B(n) + '.'],
-          steps: [st('How many digits does ' + B(num(V)) + ' have?', String(V).length), st('The first digit stays in front. How many places do the digits move?', n)],
+          steps: [st('How many digits does ' + B(num(V)) + ' have?', String(V).length), st('To turn ' + num(k) + ' into ' + num(V) + ', how many places do the digits move left?', n)],
           traps: TR([tr(n + 1, 'w_pow10', 'Count the moves, not the digits: the first digit stays in front.'), tr(String(V).replace(/[^0]/g, '').length !== n ? String(V).replace(/[^0]/g, '').length : null, 'w_pow10', 'Counting zeros only works when the front number is a single digit. Count the places the digits move.')]) };
       }
       const a = R.i(1, 3), b = R.i(a + 2, 8), ans = P(10, b - a);
-      return { text: 'How many ' + B(num(P(10, a)) + 's') + ' are in ' + B(pw(10, b)) + '?', ans,
+      return { text: 'How many times does ' + B(num(P(10, a))) + ' go into ' + B(pw(10, b)) + '?', ans,
         how: [pw(10, b) + ' has ' + b + ' zeros and ' + num(P(10, a)) + ' has ' + a + '.', 'Dividing takes ' + a + ' zeros off: ' + (b - a) + ' zeros are left, ' + B(num(ans)) + '.'],
-        steps: [st('How many zeros are left after taking ' + a + ' off ' + b + '?', b - a), st('Write the answer out.', ans)],
+        steps: [st(pw(10, b) + ' has ' + b + ' zeros. Dividing by ' + num(P(10, a)) + ' takes off ' + a + (a === 1 ? ' zero' : ' zeros') + '. How many zeros are left?', b - a), st('What number is 1 followed by ' + (b - a) + ' zeros?', ans)],
         traps: TR([tr(b - a, 'w_pow10', 'That is how many zeros. Write the number itself.'), tr(P(10, b + a), 'w_rules', 'Dividing takes zeros away.'), tr(b % a === 0 ? P(10, b / a) : null, 'w_rules', 'Dividing powers of 10 takes away the zeros; it does not divide the powers.')]) };
     } },
 
@@ -981,12 +981,12 @@ C.defs([
         const n = k * k / 100, ans = k / 10;
         return { text: 'What is ' + B(rt(num(n))) + '?', ans,
           how: [num(n) + ' is ' + k * k + ' hundredths, and ' + rt(k * k) + ' = ' + k + ', ' + rt(100) + ' = 10.', 'So ' + rt(num(n)) + ' = ' + k + ' ÷ 10 = ' + B(num(ans)) + '.  Check: ' + num(ans) + ' × ' + num(ans) + ' = ' + num(n) + '.'],
-          steps: [st('What is ' + B(rt(k * k)) + '?', k), st('Now ÷ 10. What is ' + B(rt(num(n))) + '?', ans)],
+          steps: [st('What is ' + B(rt(k * k)) + '?', k), st('Now divide by 10. What is ' + B(rt(num(n))) + '?', ans)],
           traps: TR([tr(k / 100, 'n_times10', 'Check: ' + num(k / 100) + ' × ' + num(k / 100) + ' is much smaller than ' + num(n) + '.'), tr(k, 'w_roots', 'Check: ' + k + ' × ' + k + ' = ' + k * k + ', not ' + num(n) + '.')]) }; }
       const a = R.i(2, 9), b = R.i(2, 9); if (a === b) return null;
       return { text: 'What is ' + B(rt(a * a + ' × ' + b * b)) + '?', ans: a * b,
         how: ['Take the root of each part: ' + rt(a * a) + ' = ' + a + ' and ' + rt(b * b) + ' = ' + b + '.', a + ' × ' + b + ' = ' + B(a * b) + '.'],
-        steps: [st('What is ' + B(rt(a * a)) + '?', a), st('What is ' + B(rt(b * b)) + '?', b), st('Multiply them.', a * b)],
+        steps: [st('What is ' + B(rt(a * a)) + '?', a), st('What is ' + B(rt(b * b)) + '?', b), st('Multiply them: ' + B(a + ' × ' + b) + ' = ?', a * b)],
         traps: TR([tr(a * a * b * b, 'w_roots', 'Take the square root at the end.'), tr(a + b, 'w_roots', 'The roots multiply: ' + a + ' × ' + b + '.')]) };
     } },
 
@@ -999,7 +999,7 @@ C.defs([
         const fa = Math.floor(Math.sqrt(a)), fb = Math.floor(Math.sqrt(b)), ans = fb - fa;
         return { text: 'How many whole numbers are between ' + B(rt(a)) + ' and ' + B(rt(b)) + '?', ans,
           how: [rt(a) + ' is between ' + fa + ' and ' + (fa + 1) + ', and ' + rt(b) + ' is between ' + fb + ' and ' + (fb + 1) + '.', 'The whole numbers between them are ' + (fa + 1) + ' to ' + fb + ': ' + fb + M + fa + ' = ' + B(ans) + ' numbers.'],
-          steps: [st('What is the smallest whole number bigger than ' + B(rt(a)) + '?', fa + 1), st('What is the biggest whole number smaller than ' + B(rt(b)) + '?', fb), st('How many whole numbers from ' + (fa + 1) + ' to ' + fb + '?', ans)],
+          steps: [st('What is the smallest whole number bigger than ' + B(rt(a)) + '?', fa + 1), st('What is the biggest whole number smaller than ' + B(rt(b)) + '?', fb), st('How many whole numbers are there from ' + (fa + 1) + ' to ' + fb + '?', ans)],
           traps: TR([tr(ans + 1, 'w_sqrtest', 'Count only the whole numbers strictly between the two roots.'), tr(ans - 1, 'w_sqrtest', 'Count from ' + (fa + 1) + ' to ' + fb + ', including both.'), tr(b - a - 1, 'w_sqrtest', 'Count whole numbers between the roots, not between ' + a + ' and ' + b + '.')]) };
       }
       let n; do { n = d === 0 ? R.i(2, 150) : d === 1 ? R.i(10, 200) : R.i(200, 1000); } while (Number.isInteger(Math.sqrt(n)));
@@ -1012,7 +1012,7 @@ C.defs([
       return { text: 'What is ' + B(rt(n)) + ' to the nearest whole number?', ans,
         how: [n + ' is between ' + sq(k) + ' = ' + lo + ' and ' + sq(k + 1) + ' = ' + hi + '.',
           n + ' is ' + (n - lo) + ' above ' + lo + ' and ' + (hi - n) + ' below ' + hi + ', so it is closer to ' + (ans === k ? lo : hi) + '. ' + rt(n) + ' is about ' + B(ans) + '.'],
-        steps: [st('What is the biggest square number less than ' + n + '?', lo), st('And the smallest square number more than ' + n + '?', hi), st('Which is ' + n + ' closer to? Type the nearest whole number for ' + rt(n) + '.', ans)],
+        steps: [st('What is the biggest square number less than ' + n + '?', lo), st('What is the smallest square number more than ' + n + '?', hi), st(num(n) + ' is between ' + num(lo) + ' and ' + num(hi) + '. Is ' + rt(n) + ' closer to ' + k + ' or ' + (k + 1) + '?', ans)],
         traps: TR([tr(ans === k ? k + 1 : k, 'w_sqrtest', n + ' is closer to ' + (ans === k ? lo : hi) + ', so the root is closer to ' + ans + '.'), tr(Math.round(n / 2), 'w_roots', 'A square root is not half: which number times itself is close to ' + n + '?')]) };
     } },
 
@@ -1029,36 +1029,36 @@ C.defs([
           traps: TR([tr(V * 10, 'n_times10', 'Move the point exactly ' + n + ' places.'), tr(V / 10, 'n_times10', 'Move the point exactly ' + n + ' places.'), tr(A * P(10, n), 'w_sci', num(a) + ' already has a digit after the point, so it takes one of the moves.')]) };
         return { text: 'Write ' + B(num(V)) + ' in scientific notation: ' + B(num(a) + ' × ' + pw(10, '?')) + '. What is the power?', ans: n,
           how: [num(V) + ' = ' + num(a) + ' × ' + pw(10, '?'), why('the point moves from the end of ' + num(V) + ' to just after the ' + String(A)[0], 'count the places: ' + n), num(V) + ' = ' + num(a) + ' × ' + pw(10, B(n))],
-          steps: [st('How many digits does ' + B(num(V)) + ' have?', String(V).length), st('The point ends after the first digit. How many places does it move?', n)],
+          steps: [st('How many digits does ' + B(num(V)) + ' have?', String(V).length), st('To turn ' + num(V) + ' into ' + num(a) + ', how many places does the point move?', n)],
           traps: TR([tr(n + 1, 'w_sci', 'Count the moves of the point, not the digits.'), tr(n - 1, 'w_sci', 'Count every place the point moves.')]) };
       }
       if (d === 1) {
         const k = R.i(1, 5), V = A / P(10, k + 1);
         if (R.chance(.5)) return { text: 'Write ' + B(num(V)) + ' in scientific notation: ' + B(num(a) + ' × ' + pw(10, '?')) + '. What is the power?', ans: -k,
           how: [num(V) + ' = ' + num(a) + ' × ' + pw(10, '?'), why('the point moves ' + k + ' place' + (k > 1 ? 's' : '') + ' right to make ' + num(a), 'a small number needs a negative power'), '? = ' + B(num(-k))],
-          steps: [st('How many places right does the point move to make ' + num(a) + '?', k), st('Small numbers get a negative power. What is the power?', -k)],
+          steps: [st('To turn ' + num(V) + ' into ' + num(a) + ', how many places right does the point move?', k), st('The point moves ' + k + (k > 1 ? ' places' : ' place') + '. ' + num(V) + ' is less than 1, so the power is negative. What is the power?', -k)],
           traps: TR([tr(k, 'w_negexp', num(V) + ' is less than 1, so the power of 10 is negative.'), tr(-(k + 1), 'w_sci', 'Count the moves of the point again.'), tr(-(k - 1) || null, 'w_sci', 'Count the moves of the point again.')]) };
         return { text: 'Write ' + B(num(a) + ' × ' + pw(10, MINUS + k)) + ' as an ordinary number.', ans: V,
           how: [num(a) + ' × ' + pw(10, MINUS + k), why('= ' + num(a) + ' ÷ ' + num(P(10, k)), 'a negative power divides'), why('= ' + B(num(V)), 'the point moves ' + k + ' place' + (k > 1 ? 's' : '') + ' left')],
-          steps: [st('How many places left does the point move?', k), st('Write the number.', V)],
+          steps: [st('In ' + B(num(a) + ' × ' + pw(10, MINUS + k)) + ', how many places left does the point move?', k), st('Move the point in ' + num(a) + ' left ' + k + (k > 1 ? ' places' : ' place') + '. What number do you get?', V)],
           traps: TR([tr(A * P(10, k - 1), 'w_negexp', 'A negative power makes the number smaller: divide by ' + num(P(10, k)) + '.'), tr(V * 10, 'n_times10', 'Move the point exactly ' + k + ' places.'), tr(V / 10, 'n_times10', 'Move the point exactly ' + k + ' places.')]) };
       }
       const m = R.i(2, 9), n = R.i(2, 9);
       if (R.chance(.5)) {
         const Bb = R.i(12, 99), Pr = A * Bb; if (Bb % 10 === 0 || Pr < 1000) return null;
         const b = Bb / 10, ab = Pr / 100, c = Pr / 1000, e = m + n + 1;
-        return { text: 'Work it out in scientific notation: ' + B('(' + num(a) + ' × ' + pw(10, m) + ') × (' + num(b) + ' × ' + pw(10, n) + ')') + '. What is the power of 10?', ans: e,
+        return { text: 'Work it out in scientific notation: ' + B('(' + num(a) + ' × ' + pw(10, m) + ') × (' + num(b) + ' × ' + pw(10, n) + ')') + '. What is the power of 10 in the answer?', ans: e,
           how: ['(' + num(a) + ' × ' + num(b) + ') × (' + pw(10, m) + ' × ' + pw(10, n) + ')', why('= ' + num(ab) + ' × ' + pw(10, m + n), 'multiply the numbers, add the powers'),
             why('= ' + num(c) + ' × ' + pw(10, e), num(ab) + ' is 10 or more: move the point one place left and add 1 to the power'), 'power = ' + B(e)],
-          steps: [st(B(num(a) + ' × ' + num(b)) + ' = ?', ab), st(B(pw(10, m) + ' × ' + pw(10, n)) + ' = 10 to what power?', m + n), st(num(ab) + ' is more than 10. What is the final power of 10?', e)],
+          steps: [st(B(num(a) + ' × ' + num(b)) + ' = ?', ab), st(B(pw(10, m) + ' × ' + pw(10, n)) + ' = 10 to what power?', m + n), st(B(num(ab) + ' × ' + pw(10, m + n) + ' = ' + num(c) + ' × ' + pw(10, '?')) + '. What is the power?', e)],
           traps: TR([tr(m + n, 'w_sci', num(ab) + ' is more than 10, so it is not in scientific notation yet. Move the point and add 1.'), tr(m * n, 'w_rules', 'Multiplying powers of 10: add the powers.'), tr(m + n - 1, 'w_sci', 'Moving the point left makes the number smaller, so the power goes up by 1.')]) };
       }
       const b = R.i(2, 9), Cc = R.i(12, 99); if (Cc % 10 === 0 || b * Cc < 100 || (b * Cc) % 10 === 0) return null;
       const av = b * Cc / 100, q = Cc / 100, e = m - n - 1;
-      return { text: 'Work it out in scientific notation: ' + B('(' + num(av) + ' × ' + pw(10, m) + ') ÷ (' + b + ' × ' + pw(10, n) + ')') + '. What is the power of 10?', ans: e,
+      return { text: 'Work it out in scientific notation: ' + B('(' + num(av) + ' × ' + pw(10, m) + ') ÷ (' + b + ' × ' + pw(10, n) + ')') + '. What is the power of 10 in the answer?', ans: e,
         how: ['(' + num(av) + ' ÷ ' + b + ') × (' + pw(10, m) + ' ÷ ' + pw(10, n) + ')', why('= ' + num(q) + ' × ' + pw(10, num(m - n)), 'divide the numbers, take away the powers'),
           why('= ' + num(Cc / 10) + ' × ' + pw(10, num(e)), num(q) + ' is less than 1: move the point one place right and take 1 off the power'), 'power = ' + B(num(e))],
-        steps: [st(B(num(av) + ' ÷ ' + b) + ' = ?', q), st(B(pw(10, m) + ' ÷ ' + pw(10, n)) + ' = 10 to what power?', m - n), st(num(q) + ' is less than 1. What is the final power of 10?', e)],
+        steps: [st(B(num(av) + ' ÷ ' + b) + ' = ?', q), st(B(pw(10, m) + ' ÷ ' + pw(10, n)) + ' = 10 to what power?', m - n), st(B(num(q) + ' × ' + pw(10, num(m - n)) + ' = ' + num(Cc / 10) + ' × ' + pw(10, '?')) + '. What is the power?', e)],
         traps: TR([tr(m - n, 'w_sci', num(q) + ' is less than 1, so move the point right and take 1 off the power.'), tr(m - n + 1, 'w_sci', 'Moving the point right makes the number bigger, so the power goes down by 1.'), tr(m + n - 1, 'w_rules', 'Dividing powers of 10: take away the powers.')]) };
     } },
 
@@ -1082,7 +1082,7 @@ C.defs([
         }
         const a = R.i(2, 6), b = R.i(2, 5), lhs = supP(pw(X, a), b);
         return ask(lhs, a * b, [lhs, why('= ' + pw(X, a + ' × ' + b), b + ' groups of ' + pw(X, a) + ': a power of a power multiplies'), '= ' + pw(X, B(a * b))],
-          [st('A power of a power multiplies. What is ' + B(a + ' × ' + b) + '?', a * b)],
+          [st('For a power of a power, multiply the powers. What is ' + B(a + ' × ' + b) + '?', a * b)],
           [tr(a + b, 'w_rules', 'There are ' + b + ' copies of ' + pw(X, a) + ', so multiply the powers.'), tr(P(a, b), 'w_exp', 'Multiply the powers: ' + a + ' × ' + b + ', not ' + pw(a, b) + '.')]);
       }
       const kind = R.i(0, 2);
@@ -1090,14 +1090,14 @@ C.defs([
         const a = R.i(2, 4), b = R.i(2, 4), c = R.i(1, 6), e = R.i(2, a * b + c - 1), r = a * b + c - e, Y = typeof X === 'number' ? 'x' : X;
         const lhs = supP(pw(Y, a), b) + ' × ' + pw(Y, c) + ' ÷ ' + pw(Y, e);
         return ask(lhs, r, [lhs, why('= ' + pw(Y, a * b) + ' × ' + pw(Y, c) + ' ÷ ' + pw(Y, e), 'power of a power: ' + a + ' × ' + b), why('= ' + pw(Y, a * b + ' + ' + c + M + e), 'times adds, divide takes away'), '= ' + pw(Y, B(r))],
-          [st('What is the power of ' + B(supP(pw(Y, a), b)) + '?', a * b), st('Now ' + B(a * b + ' + ' + c + M + e) + ' = ?', r)],
+          [st(B(supP(pw(Y, a), b)) + ' = ' + Y + ' to what power?', a * b), st('Now add and take away the powers: ' + B(a * b + ' + ' + c + M + e) + ' = ?', r)],
           [tr(a + b + c - e, 'w_rules', 'A power of a power multiplies: ' + supP(pw(Y, a), b) + ' = ' + pw(Y, a * b) + '.'), tr(a * b + c + e, 'w_rules', 'Dividing takes the power away.')], Y);
       }
       if (kind === 1) {
         const [g, s] = R.pick([[2, 2], [2, 3], [3, 2]]), big = P(g, s), a = R.i(2, 5), b = R.i(2, 6), r = s * a + b;
         const lhs = pw(big, a) + ' × ' + pw(g, b);
         return ask(lhs, r, [lhs, why('= ' + supP(pw(g, s), a) + ' × ' + pw(g, b), 'make the bases match: ' + big + ' = ' + pw(g, s)), '= ' + pw(g, s * a) + ' × ' + pw(g, b), '= ' + pw(g, B(r))],
-          [st('Write ' + big + ' as a power of ' + g + '. ' + big + ' = ' + g + ' to what power?', s), st('What is the power of ' + B(supP(pw(g, s), a)) + '?', s * a), st('Now add the powers.', r)],
+          [st('Write ' + big + ' as a power of ' + g + '. ' + big + ' = ' + g + ' to what power?', s), st(B(supP(pw(g, s), a)) + ' = ' + g + ' to what power?', s * a), st('Now add the powers: ' + B(s * a + ' + ' + b) + ' = ?', r)],
           [tr(a + b, 'w_rules', 'The bases are different. First write ' + big + ' as ' + pw(g, s) + '.'), tr(a * b, 'w_rules', 'Make the bases match first, then add the powers.')], g);
       }
       const k = R.i(2, 5), a = R.i(2, 5), b = R.i(2, 3), K = P(k, b);
@@ -1114,19 +1114,19 @@ C.defs([
         if (R.chance(.5)) { const v = R.i(2, 99), k = R.i(2, 20);
           return { text: 'What is ' + B(pw(v, 0) + ' + ' + k) + '?', ans: Q(k + 1, 1), type: 'frac',
             how: ['Any number (except 0) to the power 0 is 1. (' + pw(v, 3) + ' ÷ ' + pw(v, 3) + ' = ' + pw(v, 0) + ', and anything divided by itself is 1.)', '1 + ' + k + ' = ' + B(k + 1) + '.'],
-            steps: [st('What is ' + B(pw(v, 0)) + '?', Q(1, 1), { type: 'frac' }), st('Now add ' + k + '.', Q(k + 1, 1), { type: 'frac' })],
+            steps: [st('What is ' + B(pw(v, 0)) + '?', Q(1, 1), { type: 'frac' }), st(B('1 + ' + k) + ' = ?', Q(k + 1, 1), { type: 'frac' })],
             traps: TR([tr(Q(k, 1), 'w_negexp', pw(v, 0) + ' is 1, not 0.'), tr(Q(v + k, 1), 'w_negexp', pw(v, 0) + ' is 1, not ' + v + '.')]) }; }
         const b = R.i(2, 12);
         return { text: 'What is ' + B(pw(b, MINUS + '1')) + '? Type it as a fraction.', ans: Q(1, b), type: 'frac',
           how: ['A negative power means one over the positive power.', pw(b, MINUS + '1') + ' = 1 ÷ ' + b + ' = ' + B(frac(1, b)) + '.'],
-          steps: [st('Write it as one over a number. What is the bottom number?', b)],
+          steps: [st('Write ' + B(pw(b, MINUS + '1')) + ' as one over a number. What is the bottom number?', b)],
           traps: TR([tr(Q(-b, 1), 'w_negexp', 'A negative power does not make a negative number. It means one over.'), tr(Q(-1, b), 'w_negexp', 'The answer is not negative: a negative power means one over.')]) };
       }
       if (d === 1) {
         const [b, n] = R.pick([[2, 2], [2, 3], [2, 4], [2, 5], [3, 2], [3, 3], [4, 2], [4, 3], [5, 2], [5, 3], [6, 2], [10, 2], [10, 3], [7, 2], [8, 2], [9, 2]]), V = P(b, n);
         if (R.chance(.3)) return { text: 'What is ' + B(supP(frac(1, b), MINUS + n)) + '?', ans: Q(V, 1), type: 'frac',
           how: ['A negative power flips the fraction: ' + supP(frac(1, b), MINUS + n) + ' = ' + pw(b, n) + '.', pw(b, n) + ' = ' + B(num(V)) + '.'],
-          steps: [st('Flip the fraction. What is the power of ' + b + ' now?', n), st('What is ' + B(pw(b, n)) + '?', Q(V, 1), { type: 'frac' })],
+          steps: [st('A negative power flips the fraction. ' + B(supP(frac(1, b), MINUS + n)) + ' = ' + b + ' to what power?', n), st('What is ' + B(pw(b, n)) + '?', Q(V, 1), { type: 'frac' })],
           traps: TR([tr(Q(1, V), 'w_negexp', 'The negative power flips ' + frac(1, b) + ' over to ' + b + '.'), tr(Q(-V, 1), 'w_negexp', 'A negative power flips the number; it does not make it negative.')]) };
         return { text: 'What is ' + B(pw(b, MINUS + n)) + '? Type it as a fraction.', ans: Q(1, V), type: 'frac',
           how: ['A negative power means one over the positive power: ' + pw(b, MINUS + n) + ' = 1 ÷ ' + pw(b, n) + '.', pw(b, n) + ' = ' + num(V) + ', so the answer is ' + B(frac(1, V)) + '.'],
@@ -1138,7 +1138,7 @@ C.defs([
         const [p, q] = R.pick([[2, 3], [3, 2], [3, 4], [2, 5], [5, 2], [4, 3], [1, 2], [1, 3], [3, 5]]), n = R.i(1, 3), ans = Q(P(q, n), P(p, n));
         return { text: 'What is ' + B(supP(frac(p, q), MINUS + n)) + '?', ans, type: 'frac',
           how: ['A negative power flips the fraction: ' + supP(frac(p, q), MINUS + n) + ' = ' + (n === 1 ? fr(q, p) : supP(fr(q, p), n)) + '.', n === 1 ? 'So the answer is ' + B(fq(ans)) + '.' : 'Power on top and bottom: ' + pw(q, n) + ' over ' + pw(p, n) + ' = ' + B(fq(ans)) + '.'],
-          steps: [st('Flip the fraction. What is the new top number before the power?', q), st('What is the answer?', ans, { type: 'frac' })],
+          steps: [st('Flip ' + frac(p, q) + ' over. What is the new top number?', q), st(n === 1 ? 'So what is ' + B(supP(frac(p, q), MINUS + n)) + '?' : 'What is ' + B(p === 1 ? pw(q, n) : supP(fr(q, p), n)) + '?', ans, { type: 'frac' })],
           traps: TR([tr(Q(P(p, n), P(q, n)), 'w_negexp', 'A negative power flips the fraction over.'), tr(Q(-P(q, n), P(p, n)), 'w_negexp', 'A negative power flips the number; it does not make it negative.')]) };
       }
       if (kind === 1) {
@@ -1146,7 +1146,7 @@ C.defs([
         if (x === y) return null;
         return { text: 'What is ' + B(pw(b, MINUS + x) + ' + ' + pw(b, MINUS + y)) + '?', ans, type: 'frac',
           how: [pw(b, MINUS + x) + ' = ' + frac(1, P(b, x)) + ' and ' + pw(b, MINUS + y) + ' = ' + frac(1, P(b, y)) + '.', frac(1, P(b, x)) + ' + ' + frac(1, P(b, y)) + ' = ' + B(fq(ans)) + '.'],
-          steps: [st('What is ' + B(pw(b, MINUS + x)) + '?', Q(1, P(b, x)), { type: 'frac' }), st('What is ' + B(pw(b, MINUS + y)) + '?', Q(1, P(b, y)), { type: 'frac' }), st('Add them.', ans, { type: 'frac' })],
+          steps: [st('What is ' + B(pw(b, MINUS + x)) + '?', Q(1, P(b, x)), { type: 'frac' }), st('What is ' + B(pw(b, MINUS + y)) + '?', Q(1, P(b, y)), { type: 'frac' }), st('Add them: ' + B(frac(1, P(b, x)) + ' + ' + frac(1, P(b, y))) + ' = ?', ans, { type: 'frac' })],
           traps: TR([tr(Q(1, P(b, x + y)), 'w_rules', 'You can only add the powers when multiplying. Here, add the two fractions.'), tr(Q(2, P(b, x) + P(b, y)), 'f_addunlike', 'Add fractions with a common bottom, not by adding the bottoms.')]) };
       }
       const b = R.pick([2, 3, 5, 10]), x = R.i(2, 5), y = R.i(1, 6), e = y - x, ans = e >= 0 ? Q(P(b, e), 1) : Q(1, P(b, -e));
@@ -1534,7 +1534,7 @@ C.defs([
       if (d === 0) { f = FAM[0]; k = R.i(1, 5); } else if (d === 1) { f = R.pick([FAM[1], FAM[2]]); k = R.i(1, f === FAM[1] ? 3 : 2); } else { f = R.pick(FAM); k = f[2] > 20 ? 1 : R.i(2, 6); }
       const sw = R.chance(.5), a = (sw ? f[1] : f[0]) * k, b = (sw ? f[0] : f[1]) * k, c = f[2] * k, d2 = c * c - a * a;
       const story = d === 2 && R.chance(.5);
-      const text = story ? 'A ' + B(c + ' ft') + ' ladder leans against a wall. Its foot is ' + B(a + ' ft') + ' from the wall. How high up the wall does it reach?' : 'A right triangle has hypotenuse ' + B(c) + ' and one short side ' + B(a) + '. How long is the other short side?';
+      const text = story ? 'A ' + B(c + ' ft') + ' ladder leans against a wall. The bottom of the ladder is ' + B(a + ' ft') + ' from the wall. How many feet up the wall does the ladder reach?' : 'The hypotenuse of a right triangle is ' + B(c) + '. One short side is ' + B(a) + '. How long is the other short side?';
       return { text, ans: b, unit: story ? 'ft' : '', vis: triSVG('?', String(a), String(c)),
         how: [why(sq('b') + ' = ' + sq(c) + M + sq(a), 'for a short side, take away'), '= ' + num(c * c) + M + num(a * a) + ' = ' + num(d2),
           'b = ' + rt(num(d2)) + ' = ' + B(b) + (k > 1 ? '   (shortcut: ' + k + ' × the ' + famS(f) + ' family)' : '   (the ' + famS(f) + ' family)')],
