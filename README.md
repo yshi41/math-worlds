@@ -23,12 +23,17 @@ Every problem is laid out the same way (`layout` in `src/core.js`), so a child t
 - A sentence that only says how to type the answer ("Type a mixed number or a fraction.") is small print under the
   question. It is not part of the math.
 - Long problems are set in a smaller size so the whole problem stays in view.
-- One problem, one screen: no scrolling to see the question, the picture, the keys and Check. On a wide screen (900 px
-  and up) the keys sit beside the problem; on a phone the header, mode strip and keys are compact. When a problem is
-  still taller than the window, `fitQ` in `src/game.js` shrinks the picture (to half size), then the text, then the keys
-  and gaps. `node test/fit-probe.js ../index.html` checks every concept at every level: all fit on a 390×750 phone, a
-  tablet, an iPad in landscape and a 1280×600 laptop; on a small 390×664 phone 27 of 4,032 (big 3D and line-plot
-  pictures) still scroll a little. `node test/fit-shot.js ../index.html <folder> id/level ...` takes screenshots.
+- One problem, one screen, in every state (Yan, 11/24/2026: "the entire question needs to be on the screen, phone or
+  computer, or tablet"): no scrolling while it is asked, after a hint, after a wrong answer, with the answer shown, after
+  a right answer, in part 2, and in every step of a help lesson or "I have no clue" tutorial. On a wide screen (900 px
+  and up) the keys sit beside the problem; below 900 px the character panel is hidden. `fitQ` in `src/game.js` runs on
+  every change in the card (a MutationObserver) and on resize: a long message gets a little smaller (75%), then the
+  picture (to half size); if worked steps still don't fit they fold under "Show the steps" (opening them fits again);
+  then the text, keys and gaps shrink, and last the whole card scales down until it fits. `fitHL` scales the lesson card.
+  `node test/fit-states.js ../index.html` checks every grade 2-8 concept at every level in all five states on seven
+  screens (360×600 and 390×664 and 430×740 phones, 820×1050 and 1180×740 tablets, 1366×657 and 1280×600 laptops): 0
+  scroll; it also lists cards scaled under 75% (12, all on the 360×600 phone, smallest 66%). `node test/fit-help.js
+  ../index.html` walks every lesson. `node test/fit-shot.js ../index.html <folder> id/level ...` takes screenshots.
 
 `test/concepts.test.js` holds every concept in grades 2 to 8 to reading limits, over 200 problems a level:
 

@@ -495,16 +495,44 @@ function nextQ(){const it=nextItem();if(!it){finishRound();return}
 /* one problem, one screen: if the page is taller than the window, shrink the picture (down to half size), then the
    text, then the keys and gaps, and last of all text, keys and picture a little more, until the question, the picture, the keys and Check are all in view without scrolling.
    It runs when a problem is shown and when the window changes size. */
-function fitQ(){if(screen!=='play')return;const qc=$('#play .qcard'),vis=$('#qVis'),de=document.documentElement;
-  qc.classList.remove('fit1','fit2','fit3');vis.style.setProperty('--vz','1');let zmin=.5;
-  const over=()=>de.scrollHeight-innerHeight;
+/* The whole problem stays on one screen in every state, not only when it is asked: after a hint, a wrong answer, the
+   answer shown, a right answer, part 2. After the steps above, a long message box shrinks a little; if it is still too
+   tall, its worked steps fold under "Show the steps" (opening them fits the screen again); last of all the whole card is
+   scaled down until it fits. fitQ runs again whenever anything in the card appears, disappears or changes. */
+let FITTING=false,fitObs=null;
+function fitQ(){if(screen!=='play')return;FITTING=true;try{fitRun()}finally{FITTING=false;if(fitObs)fitObs.takeRecords()}}
+function fitRun(){const qc=$('#play .qcard'),vis=$('#qVis'),fb=$('#feedback'),de=document.documentElement;
+  qc.classList.remove('fit1','fit2','fit3');vis.style.setProperty('--vz','1');qc.style.zoom='';fb.style.zoom='';let zmin=.5;
+  const over=()=>de.scrollHeight-innerHeight,fbOn=()=>!fb.hidden&&fb.innerHTML;
   const shrinkVis=()=>{const o=over();if(o<=0||!vis.innerHTML)return;const h=vis.getBoundingClientRect().height;if(h<40)return;
     const z0=parseFloat(vis.style.getPropertyValue('--vz'))||1,z=Math.max(zmin,z0*(h-o-2)/h);vis.style.setProperty('--vz',z.toFixed(3))};
+  const zoomTo=(el,min)=>{for(let k=0;k<4;k++){const o=over();if(o<=0)return;const h=el.getBoundingClientRect().height;if(h<20)return;
+    const z0=parseFloat(el.style.zoom)||1,z=Math.max(min,z0*(h-o-1)/h);if(z>=z0-.004){if(z0<=min)return;el.style.zoom=String(Math.max(min,z0-.02));continue}el.style.zoom=z.toFixed(3)}};
+  if(over()<=0)return;
+  /* a long message first gets a little smaller, then the picture up to half size; if the worked steps still don't fit
+     they fold away and everything starts over with the picture full size */
+  if(fbOn()){zoomTo(fb,.75);if(over()<=0)return;shrinkVis();if(over()<=0)return;
+    const long=[...fb.children].filter(c=>c.matches('ol.steps,.vis-wrap'));
+    if(long.length&&!fb.querySelector('.fb-more')){const d=document.createElement('details');d.className='fb-more';d.innerHTML='<summary>Show the steps</summary>';
+      long[0].before(d);long.forEach(c=>d.appendChild(c));d.addEventListener('toggle',()=>fitQ());fb.style.zoom='';vis.style.setProperty('--vz','1');if(over()<=0)return;zoomTo(fb,.75);if(over()<=0)return}}
   shrinkVis();if(over()<=0)return;
   qc.classList.add('fit1');shrinkVis();if(over()<=0)return;
   qc.classList.add('fit2');shrinkVis();if(over()<=0)return;
-  qc.classList.add('fit3');zmin=.4;shrinkVis()}
-let fitT=0;addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(()=>{if(RD&&RD.phase==='ask')fitQ()},120)});
+  qc.classList.add('fit3');zmin=.4;shrinkVis();if(over()<=0)return;
+  zoomTo(qc,.3)}
+/* the step-by-step lesson (help lessons and "I have no clue") is answered the same way, so its card fits the screen too */
+let hlObs=null;
+function fitHL(){if(screen!=='help')return;const c=$('#help .hl-card'),de=document.documentElement;FITTING=true;
+  try{c.style.zoom='';if($('#hlLesson').hidden)return;const over=()=>de.scrollHeight-innerHeight;
+    for(let k=0;k<5;k++){const o=over();if(o<=0)break;const h=c.getBoundingClientRect().height;if(h<20)break;const z0=parseFloat(c.style.zoom)||1,z=Math.max(.3,z0*(h-o-1)/h);
+      if(z>=z0-.004){if(z0<=.3)break;c.style.zoom=String(Math.max(.3,z0-.02));continue}c.style.zoom=z.toFixed(3)}}
+  finally{FITTING=false;if(hlObs)hlObs.takeRecords()}}
+{let raf=0;hlObs=new MutationObserver(()=>{if(FITTING||screen!=='help')return;cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>fitHL())});
+  hlObs.observe($('#help .hl-card'),{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']})}
+let fitT=0;addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(()=>{if(RD)fitQ();fitHL()},120)});
+/* anything shown, hidden or redrawn in the card (feedback, hint, keys folding away, part 2, Next) fits the screen again */
+{let raf=0;fitObs=new MutationObserver(()=>{if(FITTING||screen!=='play')return;cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>fitQ())});
+  fitObs.observe($('#play .qcard'),{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']})}
 function renderDots(pop){const d=$('#dots');if(RD.kind==='tut'){const n=P().tut?P().tut.items.length:0;d.innerHTML=`<span class="streak">Mistake ${Math.min((RD.cur&&RD.cur.ti|0)+1,n)} of ${n}</span>`;return}if(RD.kind==='audit'){d.innerHTML=`<span class="streak">${Math.min(RD.mainDone+1,RD.mainTotal)} of ${RD.mainTotal}</span>`;return}if(RD.kind==='pre'){const pr=CO.pretestProgress(P().pre);d.innerHTML=`<span class="streak">Part ${Math.min(pr.done+1,pr.total)} of ${pr.total}</span>`;return}
   let h='';const total=RD.mainTotal;for(let i=0;i<total;i++){const r=RD.results[i];h+=`<i class="${r===true?'ok':r===false?'no':i===RD.results.length&&RD.cur&&counted(RD.cur)?'now':''}${pop&&i===RD.results.length-1?' pop':''}"></i>`}d.innerHTML=h}
 function setMood(m){const s=$('#playHero svg');if(s)s.setAttribute('data-mood',m)}
@@ -1181,7 +1209,7 @@ function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,
     try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const v=(await r.json()).build;
       if(v&&v!==window.MW_BUILD&&new URLSearchParams(location.search).get('b')!==v&&free())location.replace(location.pathname+'?b='+encodeURIComponent(v))}catch(e){}}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});setInterval(check,6e5);setTimeout(check,5000)})();
-window.__mw={snd:Snd,startBlock,startAudit,get blk(){return blkLive(P())},get fx(){return FX.length},openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,arch:Arch,get RV(){return RV},openReview,get RVSRC(){return RVSRC},get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
+window.__mw={snd:Snd,startBlock,startAudit,get blk(){return blkLive(P())},get fx(){return FX.length},openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,startLesson,arch:Arch,get RV(){return RV},openReview,get RVSRC(){return RVSRC},get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
   answerRight(){if(!RD||!RD.cur)return;if(RD.part===1)submit(RD.cur.p.first.ans,null);submit(RD.cur.p.ans,null)},goBack,noClue,
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];if(RD.part===1){submit(wrongFor(p.first),null);if(RD.part!==2||RD.phase!=='ask')return}submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};
