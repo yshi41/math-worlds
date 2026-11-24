@@ -504,6 +504,29 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
       d.open = true; d.dispatchEvent(new Event('toggle')); const b = d.querySelector('.pv-qbody');
       return { n: ds.length, asm: ds.some(x => /block \d+ of \d+/.test(x.textContent)), q: b.querySelectorAll('.pv-q').length, bad: /NaN|undefined|\[object/.test(b.textContent), conf: /every block/.test(document.querySelector('#pvBody').textContent) }; });
     check(bv.n >= 1 && bv.q >= 9 && !bv.bad && bv.conf, 'the parent view lists every block and opens one to review its problems (' + JSON.stringify(bv) + ')'); }
+  /* the block archive keeps every block for good; the parent goes through a block one question at a time */
+  { await until(() => ev(p, () => window.__mw.arch.idle()));
+    const t0 = await ev(p, () => window.__mw.saves.riley.bhist[0].t0), AB = m14.blocks.riley || {};
+    check(!!AB['p' + t0] && AB['p' + t0].q.length >= 9, 'the finished block is saved in the block archive with its problems (' + Object.keys(AB).join(',') + ')');
+    const old = JSON.parse(JSON.stringify(AB['p' + t0])); old.key = 'p' + (t0 - 864e6); old.t0 -= 864e6; old.t = (old.t || t0) - 864e6; AB[old.key] = old;
+    await ev(p, () => { const pl = window.__mw.saves.riley; window.__qs = pl.bhist.map(b => b.q); pl.bhist.forEach(b => delete b.q); window.__mw.openParent('riley'); });
+    await until(() => ev(p, () => window.__mw.arch.idle() && /archive/.test(document.querySelector('#pvBlocks').textContent))); await wait(150);
+    const ar = await ev(p, () => { const ds = [...document.querySelectorAll('#pvBody details.pv-blk')], d = ds.find(x => /Practice block/.test(x.textContent) && !/· archive/.test(x.textContent)); d.open = true; d.dispatchEvent(new Event('toggle')); const b = d.querySelector('.pv-qbody');
+      return { q: b.querySelectorAll('.pv-q').length, btn: !!b.querySelector('[data-rv]'), old: ds.filter(x => /· archive/.test(x.textContent)).length, goto: !!document.querySelector('#pvBody [data-goto="pvBlocks"]') }; });
+    check(ar.q >= 9 && ar.btn && ar.old === 1 && ar.goto, 'a block the save let go of still opens with every problem from the archive, and older archived blocks are listed (' + JSON.stringify(ar) + ')');
+    const rv = await ev(p, async () => { const w = ms => new Promise(r => setTimeout(r, ms));
+      const s = () => ({ on: !document.querySelector('#review').hidden, count: document.querySelector('#rvCount').textContent, dots: document.querySelectorAll('#rvDots button').length, body: document.querySelector('#rvBody').textContent, title: document.querySelector('#rvTitle').textContent, wide: document.documentElement.scrollWidth > window.innerWidth + 1 });
+      document.querySelector('#pvBody .pv-qbody [data-rv][data-f="all"]').click(); await w(150); const a = s();
+      document.querySelector('#rvNext').click(); const b = s(); document.querySelector('#rvPrev').click(); const c = s();
+      document.querySelector('#rvDots button:last-child').click(); const last = s();
+      const mb = document.querySelector('#rvFilt [data-f="miss"]'); let m = null; if (!mb.hidden) { mb.click(); m = s(); }
+      document.querySelector('#rvBack').click(); await w(150);
+      return { a, b, c, last, m, back: !document.querySelector('#parent').hidden }; });
+    check(rv.a.on && /^Question 1 of \d+/.test(rv.a.count) && rv.a.dots >= 9 && /Answer/.test(rv.a.body) && /Riley · Practice block/.test(rv.a.title) && !/undefined|NaN|\[object/.test(rv.a.body) && !rv.a.wide, 'Go through one at a time opens the first question with her answer and the right one (' + JSON.stringify(rv.a).slice(0, 240) + ')');
+    check(/^Question 2 of/.test(rv.b.count) && /^Question 1 of/.test(rv.c.count) && new RegExp('^Question ' + rv.a.dots + ' of').test(rv.last.count), 'Next, Previous and the numbered dots move through the block');
+    check(rv.m === null || (/not right first try/.test(rv.m.count) && rv.m.dots < rv.a.dots), 'Not right first try shows only those (' + (rv.m && rv.m.count) + ')');
+    check(rv.back, 'Parent view goes back from the review');
+    await ev(p, () => { window.__mw.saves.riley.bhist.forEach((b, i) => { b.q = window.__qs[i]; }); }); }
   check(m14.store.riley.state.cs[ids14[2]].lx > 0, 'the slipped concept is saved online');
   await ev(p, () => document.querySelector('#hubBtn').click()); await wait(150);
   check(await ev(p, () => /done/.test(document.querySelector('#nextTitle').textContent) && document.querySelectorAll('#map .chip.lapsed').length >= 1), 'the map says today is done and marks what slipped');

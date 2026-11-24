@@ -7,7 +7,7 @@ let logic = null;
 async function load() { if (!logic) logic = await import('../worker/src/logic.mjs'); return logic; }
 
 function create() {
-  const store = {}, history = [], stats = { gets: 0, posts: 0, conflicts: 0, merges: 0, realHits: 0 }, ctl = { down: false };
+  const store = {}, blocks = {}, history = [], stats = { gets: 0, posts: 0, conflicts: 0, merges: 0, realHits: 0, bgets: 0, bposts: 0 }, ctl = { down: false };
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
   const json = (req, body, status = 200) => req.respond({ status, headers: cors, contentType: 'application/json', body: JSON.stringify(body) });
   async function handle(req) {
@@ -18,6 +18,11 @@ function create() {
     if (ctl.down) return req.abort('internetdisconnected');
     const { mergeState, lowersProgress, KIDS } = await load();
     const path = new URL(url).pathname;
+    if (path.startsWith('/blocks/')) { const id = decodeURIComponent(path.split('/')[2] || ''), B = blocks[id] || (blocks[id] = {});
+      if (req.method() === 'GET') { stats.bgets++; return json(req, { blocks: Object.values(B).map(clone).sort((a, b) => (b.t || b.t0) - (a.t || a.t0)) }); }
+      stats.bposts++; const L = (JSON.parse(req.postData() || '{}').blocks) || [];
+      L.forEach(b => { if (b && b.key && Array.isArray(b.q) && b.q.length && !(B[b.key] && B[b.key].q.length > b.q.length)) B[b.key] = clone(b); });
+      return json(req, { ok: true, n: L.length }); }
     if (path === '/saves') { stats.gets++; const players = {}; KIDS.forEach(id => { if (store[id]) players[id] = clone(store[id]); }); return json(req, { players }); }
     const id = decodeURIComponent(path.split('/')[2] || ''), cur = store[id] || { rev: 0, state: null };
     if (req.method() === 'GET') { stats.gets++; return json(req, clone(cur)); }
@@ -38,6 +43,6 @@ function create() {
     page.on('request', r => { handle(r).catch(() => { try { r.abort(); } catch (e) {} }); });
     await page.evaluateOnNewDocument(mock => { window.MW_CLOUD = mock; }, MOCK);
   }
-  return { store, history, stats, ctl, attach, MOCK };
+  return { store, blocks, history, stats, ctl, attach, MOCK };
 }
 module.exports = { create, MOCK };

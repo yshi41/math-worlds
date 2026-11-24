@@ -10,8 +10,13 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS mw_saves (player TEXT PRIMARY KEY, rev INTEGER NOT NULL, state TEXT NOT NULL, updated INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS mw_history (id INTEGER PRIMARY KEY AUTOINCREMENT, player TEXT NOT NULL, rev INTEGER NOT NULL, state TEXT NOT NULL, at INTEGER NOT NULL)',
-  'CREATE INDEX IF NOT EXISTS mw_history_player ON mw_history (player, id)'
+  'CREATE INDEX IF NOT EXISTS mw_history_player ON mw_history (player, id)',
+  /* the block archive: every finished block with its questions, kept for good so the parent can review it after the
+     save has let go of old blocks. A block only ever gains questions here, never loses them. */
+  'CREATE TABLE IF NOT EXISTS mw_blocks (player TEXT NOT NULL, bkey TEXT NOT NULL, t INTEGER NOT NULL, qn INTEGER NOT NULL, data TEXT NOT NULL, updated INTEGER NOT NULL, PRIMARY KEY (player, bkey))'
 ];
+const BKEY_RE = /^[ap][0-9-]{1,40}$/;
+const MAX_BLOCK = 80000;
 let ready = null;
 
 function json(body, status = 200) {
@@ -38,6 +43,29 @@ export default {
       const players = {};
       for (const r of results) players[r.player] = { rev: r.rev, state: JSON.parse(r.state) };
       return json({ players });
+    }
+    const bm = url.pathname.match(/^\/blocks\/([^/]+)$/);
+    if (bm) {
+      if (!ID_RE.test(bm[1])) return json({ error: 'not_found' }, 404);
+      if (req.method === 'GET') {
+        const { results } = await db.prepare('SELECT data FROM mw_blocks WHERE player = ? ORDER BY t DESC').bind(bm[1]).all();
+        return json({ blocks: results.map(r => JSON.parse(r.data)) });
+      }
+      if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+      const text = await req.text();
+      if (text.length > MAX_BYTES) return json({ error: 'too_big' }, 413);
+      let body; try { body = JSON.parse(text); } catch (e) { return json({ error: 'bad_json' }, 400); }
+      const L = body && Array.isArray(body.blocks) ? body.blocks : null;
+      if (!L || L.length > 60) return json({ error: 'bad_request' }, 400);
+      const now = Date.now(), writes = [];
+      for (const b of L) {
+        if (!b || typeof b !== 'object' || typeof b.key !== 'string' || !BKEY_RE.test(b.key) || !Array.isArray(b.q) || !b.q.length || b.q.length > 400) continue;
+        const d = JSON.stringify(b); if (d.length > MAX_BLOCK) continue;
+        const t = Number.isFinite(b.t) ? b.t : Number.isFinite(b.t0) ? b.t0 : now;
+        writes.push(db.prepare('INSERT INTO mw_blocks (player, bkey, t, qn, data, updated) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(player, bkey) DO UPDATE SET t = excluded.t, qn = excluded.qn, data = excluded.data, updated = excluded.updated WHERE excluded.qn >= mw_blocks.qn').bind(bm[1], b.key, t, b.q.length, d, now));
+      }
+      if (writes.length) await db.batch(writes);
+      return json({ ok: true, n: writes.length });
     }
     const m = url.pathname.match(/^\/saves\/([^/]+)$/);
     if (!m || !ID_RE.test(m[1])) return json({ error: 'not_found' }, 404);

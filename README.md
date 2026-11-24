@@ -281,6 +281,15 @@ blocks keep their problems in `q` (`[concept, level, seed, step, kind, right fir
 answer, skipped]`; the last 15 blocks keep them). Assessment block end times are kept in `pre.bend` (and `bl`, `bi`,
 `bms`, `bend` in each `asm` line); older blocks are dated from the daily log.
 
+**Block archive and review (11/23/2026).** Every block with its questions is also kept for good in the D1 table
+`mw_blocks` (`GET`/`POST /blocks/<kid>`; a block only ever gains questions there). Every device sends the blocks it
+sees that the archive lacks (`Arch` in game.js; the block in progress goes in once finished or left for another day), so
+blocks whose questions the save has let go of still open, and blocks the save no longer lists are shown marked
+"archive" (review only, not counted in the report). Each opened block has "Go through one at a time" and "Only the
+ones not right first try": the `#review` screen shows one question as she saw it, her answer, the right answer and
+the worked answer, with Previous/Next, numbered dots and arrow keys. `tools/archive-blocks.js` backfills from the
+current saves; `test/review-shot.js <saves.json> <dir> [kid]` takes phone and laptop screenshots against the mock.
+
 **History** charts grade level (with the average student in her grade), the estimated national percentile, concepts
 mastered, problems answered (right first try, other practice, assessment questions) and minutes, over 7 days, 30 days,
 3 months, 1 year or all time (`COACH.history`): day by day up to a month, week by week up to about 6 months, month by
@@ -346,7 +355,7 @@ Sentences are regular weight; headings, numbers and buttons are bold. The layout
   (grades 2-5 and 6-8 standards). `z_ccss_k8` and `z_ccss_hs` list the Common Core standards, map concepts to them
   and move a few concepts to their Common Core grade.
 - `src/engine.js`: the path, mastery, review, placement and diagnosis. `src/game.js`: the page.
-- `worker/`: the save service (Cloudflare Worker + D1, tables `mw_saves` and `mw_history` in the Spelling Worlds
+- `worker/`: the save service (Cloudflare Worker + D1, tables `mw_saves`, `mw_history` and `mw_blocks` in the Spelling Worlds
   database). Saves are online only; nothing is kept in the browser. Two devices' saves merge, and a mastered concept
   is never lost. Every open page checks for other devices' progress every 15 seconds, and a page left open in the
   middle of a round or an assessment picks up at the next unanswered question when the same kid has moved on elsewhere. Help lessons

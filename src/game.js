@@ -106,7 +106,7 @@ const Net=(()=>{
   const snap=o=>JSON.parse(JSON.stringify(o));
   async function call(method,path,body){const o={method,cache:'no-store'};if(body){o.body=JSON.stringify(body);o.headers={'Content-Type':'text/plain'};o.keepalive=o.body.length<60000}
     const r=await fetch(CLOUD+path,o);if(r.status!==200)throw new Error('HTTP '+r.status);return r.json()}
-  function adopt(id,rev,state){REV[id]=rev;if(state){saves[id]=normalize(state);BASE[id]=snap(saves[id])}else{delete saves[id];BASE[id]=null}
+  function adopt(id,rev,state){REV[id]=rev;if(state){saves[id]=normalize(state);BASE[id]=snap(saves[id]);setTimeout(()=>Arch.sync(id),0)}else{delete saves[id];BASE[id]=null}
     if(screen==='menu')renderMenu();else if(screen==='hub'&&player===id)renderHub();else if(screen==='parent'&&PV===id)renderParent()}
   function failed(){fails++;clearTimeout(retryT);retryT=setTimeout(retry,Math.min(30000,3000*fails));
     if(!LOADED)setReady('error');else if(!warned){warned=true;toast('Can’t reach the save server. Progress is not saved until it reconnects.')}}
@@ -123,7 +123,7 @@ const Net=(()=>{
     const st=snap(saves[id]);st.updated=Date.now();const body={rev:REV[id]||0,state:st,base:BASE[id]||blank()};SENDING[id]=true;DIRTY[id]=false;
     try{const r=await call('POST','/saves/'+encodeURIComponent(id),body);SENDING[id]=false;fails=0;warned=false;
       if(r.conflict)adopt(id,r.rev,r.state);
-      else{REV[id]=r.rev;if(r.state){const was=DIRTY[id];adopt(id,r.rev,r.state);DIRTY[id]=was}else BASE[id]=st}
+      else{REV[id]=r.rev;if(r.state){const was=DIRTY[id];adopt(id,r.rev,r.state);DIRTY[id]=was}else{BASE[id]=st;Arch.sync(id)}}
       if(DIRTY[id])push(id)}
     catch(e){SENDING[id]=false;DIRTY[id]=true;failed()}}
   function schedule(id){if(!id||!saves[id])return;DIRTY[id]=true;clearTimeout(TIMERS[id]);TIMERS[id]=setTimeout(()=>push(id),400)}
@@ -135,6 +135,28 @@ const Net=(()=>{
   window.addEventListener('online',()=>{if(CLOUD)retry()});
   return {refresh,schedule,retry,idle:()=>{for(const id in SENDING)if(SENDING[id])return false;for(const id in TIMERS)if(TIMERS[id])return false;return true},rev:id=>REV[id]||0}
 })();
+/* the block archive: every block with its questions is also kept for good on the save service (/blocks), so the parent
+   can go back over any block later, even after the save has let go of old ones (it keeps the questions of the last 15
+   practice blocks and 12 assessments). Every device sends the blocks it sees that the archive doesn't have yet; the
+   block in progress goes in once it is finished (or left for another day). */
+const Arch=(()=>{const A={},GOT={},LOADING={},BUSY={},AGAIN={};
+  const sig=b=>(b.q?b.q.length:0)+':'+(b.done?1:0)+':'+(b.n|0);
+  async function load(id){if(!CLOUD)return;if(LOADING[id])return LOADING[id];
+    return LOADING[id]=(async()=>{try{const r=await fetch(CLOUD+'/blocks/'+encodeURIComponent(id),{cache:'no-store'});if(r.status!==200)throw 0;const j=await r.json(),M={};
+      (j.blocks||[]).forEach(b=>{if(b&&b.key&&Array.isArray(b.q))M[b.key]=b});A[id]=M;GOT[id]=true;if(screen==='parent'&&PV===id)renderParent()}catch(e){}LOADING[id]=null})()}
+  async function sync(id){if(!CLOUD||!saves[id])return;if(BUSY[id]){AGAIN[id]=true;return}BUSY[id]=true;
+    try{if(!GOT[id])await load(id);if(!GOT[id])return;const M=A[id];
+      const L=CO.blockList(saves[id]).filter(b=>b.q&&b.q.length&&!b.open&&(!M[b.key]||sig(M[b.key])!==sig(b)&&b.q.length>=M[b.key].q.length)).slice(0,40);
+      if(!L.length)return;const r=await fetch(CLOUD+'/blocks/'+encodeURIComponent(id),{method:'POST',cache:'no-store',headers:{'Content-Type':'text/plain'},body:JSON.stringify({blocks:L})});
+      if(r.status===200){L.forEach(b=>{M[b.key]=JSON.parse(JSON.stringify(b))});if(L.length===40)AGAIN[id]=true}}
+    catch(e){}finally{BUSY[id]=false;if(AGAIN[id]){AGAIN[id]=false;setTimeout(()=>sync(id),500)}}}
+  /* the save's own blocks, with the questions it has let go of put back from the archive, plus the archived blocks it
+     no longer lists */
+  function merge(id,L){const M=A[id];if(!M)return L;const have=new Set(L.map(b=>b.key));
+    const out=L.map(b=>(!b.q||!b.q.length)&&M[b.key]?Object.assign({},b,{q:M[b.key].q}):b);
+    for(const k in M)if(!have.has(k))out.push(Object.assign({},M[k],{arch:1,open:false}));
+    return out.sort((x,y)=>((y.t||y.t0)-(x.t||x.t0))||((y.i|0)-(x.i|0)))}
+  return {load,sync,merge,has:id=>!!GOT[id],idle:()=>!Object.keys(BUSY).some(k=>BUSY[k])&&!Object.keys(LOADING).some(k=>LOADING[k]),get:id=>A[id]||null}})();
 function persist(){if(RD&&player&&RD.kind!=='pre')saveRound();if(CLOUD&&player)Net.schedule(player)}
 /* the round in progress lives in the online save too, as recipes (seeds) rather than whole problems, so it can be
    picked up on another device exactly where it stopped */
@@ -920,12 +942,12 @@ const accTxt=(r,n)=>n?Math.round(100*r/n)+'%':'—';
 const dShort=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'});
 const savedAt=t=>{const d=new Date(t),tm=d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});return new Date().toDateString()===d.toDateString()?'at '+tm:dShort(t)+' at '+tm};
 const dLong=t=>new Date(t).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-function openParent(id){PV=id||PV||(KIDS.find(k=>saves[k.id]&&CO.masteredCount(saves[k.id]))||KIDS[0]).id;show('parent');applyWorld(lookOf(PV),3);renderParent();if(CLOUD)Net.refresh()}
+function openParent(id){PV=id||PV||(KIDS.find(k=>saves[k.id]&&CO.masteredCount(saves[k.id]))||KIDS[0]).id;show('parent');applyWorld(lookOf(PV),3);renderParent();if(CLOUD){Net.refresh();KIDS.forEach(k=>Arch.load(k.id).then(()=>Arch.sync(k.id)))}}
 function renderParent(){const keep=pvKeep(),k=kid(PV),p=saves[PV]?saves[PV]:blank(),grade=gradeOf(k),R=CO.report(p,grade),O=R.overall;applyWorld(lookOf(PV),3);
   $('#pvTabs').innerHTML=KIDS.map(x=>`<button type="button" class="tog" data-kid="${x.id}" aria-pressed="${x.id===PV}">${x.name}</button>`).join('');
   $('#pvTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{Snd.click();PV=b.dataset.kid;renderParent()});
   const out=[];const card=(h,body,cls)=>out.push(`<div class="card pv-card${cls?' '+cls:''}"><h3>${h}</h3>${body}</div>`);
-  const head=`<div class="pv-head"><div><div class="pv-name">${esc(k.name)}</div><div class="pv-sub">${ord(grade)} grade · report for ${dLong(R.now)} · week ${Math.round(R.week)} of 36 in the school year${p.updated?` · progress saved ${savedAt(p.updated)}, updates on its own`:''}</div></div></div>`;
+  const head=`<div class="pv-head"><div><div class="pv-name">${esc(k.name)}</div><div class="pv-sub">${ord(grade)} grade · report for ${dLong(R.now)} · week ${Math.round(R.week)} of 36 in the school year${p.updated?` · progress saved ${savedAt(p.updated)}, updates on its own`:''}</div></div><button type="button" class="btn btn-ghost btn-sm pv-goto" data-goto="pvBlocks">Review past blocks</button></div>`;
   if(!R.placed&&!R.answered&&!R.mastered){out.push(`<div class="card pv-card">${head}${assessRow(k,p)}<p class="pv-p">${esc(k.name)} hasn't started yet. The report fills in once the placement check is done; it finds which concepts ${esc(k.name)} already knows.</p></div>`);$('#pvBody').innerHTML=out.join('');wireAssess(k);return}
   /* summary tiles */
   const dw=diffWords(O.diff),ceilO=O.ceil?'+':'';
@@ -983,7 +1005,7 @@ function renderParent(){const keep=pvKeep(),k=kid(PV),p=saves[PV]?saves[PV]:blan
     <li><b>Percentile</b> uses the NWEA MAP Growth 2025 national norms for math (student achievement, Technical Manual Table A.1: mean and standard deviation by grade in fall, winter and spring). The grade level becomes the average score for that point in school, compared with ${ord(grade)} graders today. It assumes ${esc(k.name)} is like a typical student at that grade level, so treat it as a rough guide.</li>
     <li><b>Right first try</b> counts every problem answered in practice, review and tricky-spot rounds; break-down steps and placement questions are left out. Time is capped at 5 minutes a problem.</li></ul>`);
   $('#pvBody').innerHTML=out.join('');$('#pvBody').dataset.kid=PV;wireAssess(k);wireReset(k);
-  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>{d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=d.dataset.bi!=null?blockBody(BSETS[+d.dataset.bi]):qsetBody(QSETS[+d.dataset.qi]||[],+d.dataset.t0||0)});if(keep.kid===PV&&keep.open.includes(d.dataset.t0))d.open=true});window.scrollTo(0,keep.kid===PV?keep.y:0);
+  $('#pvBody').querySelectorAll('details.pv-qs').forEach(d=>{d.addEventListener('toggle',()=>{const b=d.querySelector('.pv-qbody');if(d.open&&!b.innerHTML)b.innerHTML=d.dataset.bi!=null?blockBody(BSETS[+d.dataset.bi]):qsetOpen(+d.dataset.qi,+d.dataset.t0||0)});if(keep.kid===PV&&keep.open.includes(d.dataset.t0))d.open=true});window.scrollTo(0,keep.kid===PV?keep.y:0);
   $('#pvBody').querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{Snd.click();PVR=b.dataset.range;renderParent()})}
 /* ---------- every question of each assessment, for parents: the exact question when its seed was saved, otherwise
    one like it; what she typed when it was wrong ---------- */
@@ -994,7 +1016,7 @@ function pvKeep(){const b=$('#pvBody');return {kid:b.dataset.kid||null,y:window.
 function asmQs(p,a){if(Array.isArray(a.q))return a.q;const pre=p.pre;return pre&&pre.st&&(pre.started||pre.t)===a.t0?CO.asmQuestions(pre):[]}
 function qsetCard(p){const pre=p.pre,AL=(p.asm||[]).slice().reverse(),t0=pre&&(pre.started||pre.t);
   const list=(pre&&pre.st&&!AL.some(a=>a.t0===t0)&&pre.order.some(s=>pre.st[s].log.length)?[{t0,t:pre.t,by:pre.by,done:!!pre.done}]:[]).concat(AL);
-  QSETS=list.map(a=>asmQs(p,a));if(!list.length)return '';
+  QSETS=list.map(a=>asmQs(p,a));QLIST=list;if(!list.length)return '';
   return `<div class="card pv-card"><h3>Questions asked</h3><p class="pv-p pv-soft">Every question of each assessment and placement check, part by part, with the right answer and how she answered. Open one to see it.</p>${list.map((a,i)=>{const Q=QSETS[i],c=Q.filter(q=>!q[8]),ok=c.filter(q=>q[3]).length,sk=c.filter(q=>q[4]).length;
     return `<details class="pv-qs" data-qi="${i}" data-t0="${a.t0}"><summary><b>${dShort(a.t0)}${a.t-a.t0>864e5/2?'–'+dShort(a.t):''}</b> ${a.by==='parent'?'assessment':'placement check'}${a.done?'':' (in progress)'} · ${Q.length?`${ok} of ${c.length} right${sk?`, ${sk} skipped`:''}`:'questions not saved'}</summary><div class="pv-qbody"></div></details>`}).join('')}</div>`}
 const askOf=q=>(q.parts||[]).filter(x=>x.k==='ask').map(x=>MW.bare(x.h)).join(' ');
@@ -1014,26 +1036,28 @@ function qsetBody(Q,t0){let h='',last=null;
 /* ---------- every block, newest first: assessment blocks and practice blocks, each opened to review its questions ---------- */
 let BSETS=[];
 const BTAG={m:'practice',r:'review',a:'memory check',f:'tricky spot',t:'test-out',s:'break-down step'};
-function blocksCard(k,p){const L=CO.blockList(p),T=CO.blockTotals(L);BSETS=L;
+function blocksCard(k,p){const L0=CO.blockList(p),T=CO.blockTotals(L0),L=Arch.merge(PV,L0),xa=L.filter(b=>b.arch).length;BSETS=L;RVSRC=[];
   const pl_=(n,w)=>n+' '+w+(n===1?'':'s');
-  if(!L.length)return `<div class="card pv-card"><h3>Blocks</h3><p class="pv-p pv-soft">No blocks done yet. Each block is planned at about 20 minutes and sized to ${esc(k.name)}'s pace.</p></div>`;
+  if(!L.length)return `<div class="card pv-card" id="pvBlocks"><h3>Blocks</h3><p class="pv-p pv-soft">No blocks done yet. Each block is planned at about 20 minutes and sized to ${esc(k.name)}'s pace.</p></div>`;
   const row=(b,i)=>{const what=b.kind==='asm'?`${b.by==='parent'?'Assessment':'Placement check'}, block ${b.i+1} of ${b.of}`:'Practice block',
     st=b.kind==='asm'?(b.done?'':' (in progress)'):b.open?' (in progress)':!b.done?' (unfinished)':'',
     res=b.kind==='asm'?(b.n?`${b.ok} of ${b.n} right${b.sk?`, ${b.sk} skipped`:''}`:'no questions saved'):`${probs(b.n)}, ${b.n?Math.round(100*b.ok/b.n):0}% right first try`;
-    return `<details class="pv-qs pv-blk" data-bi="${i}" data-t0="${b.key}"><summary><b>${dShort(b.t||b.t0)}</b> ${what}${st} · ${res} · ${Math.max(1,Math.round((b.ms||0)/60000))} min</summary><div class="pv-qbody"></div></details>`};
-  return `<div class="card pv-card"><h3>Blocks</h3><p class="pv-p">${pl_(T.count,'block')} so far: ${pl_(T.asm,'assessment block')} (${T.asmOk} of ${T.asmQ} right) and ${pl_(T.prac,'practice block')} (${T.pracN?Math.round(100*T.pracOk/T.pracN):0}% of ${pl_(T.pracN,'problem')} right first try), ${mins(T.ms)} in all. The report above is worked out from all of them together.</p>
-    <p class="pv-p pv-soft">Open a block to see every question in it, the right answer and how ${esc(k.name)} answered.</p>${L.map(row).join('')}
+    return `<details class="pv-qs pv-blk" data-bi="${i}" data-t0="${b.key}"><summary><b>${dShort(b.t||b.t0)}</b> ${what}${st} · ${res} · ${Math.max(1,Math.round((b.ms||0)/60000))} min${b.arch?' · <span class="pv-soft">archive</span>':''}</summary><div class="pv-qbody"></div></details>`};
+  return `<div class="card pv-card" id="pvBlocks"><h3>Blocks</h3><p class="pv-p">${pl_(T.count,'block')} so far: ${pl_(T.asm,'assessment block')} (${T.asmOk} of ${T.asmQ} right) and ${pl_(T.prac,'practice block')} (${T.pracN?Math.round(100*T.pracOk/T.pracN):0}% of ${pl_(T.pracN,'problem')} right first try), ${mins(T.ms)} in all. The report above is worked out from all of them together.</p>
+    <p class="pv-p pv-soft">Open a block to see every question in it, the right answer and how ${esc(k.name)} answered, or go through them one at a time. Every block is saved for good in the block archive${xa?`; ${pl_(xa,'older block')} the report no longer counts ${xa===1?'is':'are'} listed from there, for review only`:''}.${CLOUD&&!Arch.has(PV)?' Loading the archive…':''}</p>${L.map(row).join('')}
     <p class="pv-p pv-soft">Next practice block: about ${probs(CO.blockGoal(p))}. ${esc(k.name)} works at about ${(p.ppace||1).toFixed(1)}× the time an average kid takes; the next block is sized from that and the concept she is on.</p></div>`}
+function rvButtons(src){const I=rvItems(src);if(!I.length)return '';const miss=I.filter(x=>x.cls!=='ok').length,ix=RVSRC.push(src)-1;
+  return `<div class="pv-rvrow"><button type="button" class="btn btn-sm" data-rv="${ix}" data-f="all">Go through one at a time (${I.length})</button>${miss?`<button type="button" class="btn btn-ghost btn-sm" data-rv="${ix}" data-f="miss">Only the ones not right first try (${miss})</button>`:''}</div>`}
 function blockBody(b){if(!b)return '';
   if(b.kind==='asm'){const parts=(b.parts||[]).map(sid=>{const st=CO.STR.find(x=>x.id===sid);return st?st.name:sid});
-    return `<p class="pv-p pv-soft">${parts.length?'Parts: '+esc(parts.join(', '))+'. ':''}${b.est?'Date worked out from the daily log. ':''}${mins(b.ms||0)}.</p>`+(b.q&&b.q.length?qsetBody(b.q,b.t||b.t0):'<p class="pv-p pv-soft">No questions were saved for this block.</p>')}
+    return `<p class="pv-p pv-soft">${parts.length?'Parts: '+esc(parts.join(', '))+'. ':''}${b.est?'Date worked out from the daily log. ':''}${mins(b.ms||0)}.</p>`+(b.q&&b.q.length?rvButtons(b)+qsetBody(b.q,b.t||b.t0):'<p class="pv-p pv-soft">No questions were saved for this block.</p>')}
   const nm=a=>a.filter(id=>S[id]).map(id=>esc(conceptName(id))).join(', '),L=[];
   if(b.mastered.length)L.push(`<b>Mastered:</b> ${nm(b.mastered)}`);
   if(b.refreshed.length)L.push(`<b>Mastered again:</b> ${nm(b.refreshed)}`);
   if(b.seen)L.push(`<b>Memory check:</b> ${b.held} of ${b.seen} still strong${b.lapsed.length?`; to refresh: ${nm(b.lapsed)}`:''}`);
   let h=L.length?`<p class="pv-p">${L.join('<br>')}</p>`:'';
   if(!b.q)return h+'<p class="pv-p pv-soft">The problems of this block were not saved (blocks before Nov 21 kept only the totals). From now on every problem is.</p>';
-  let last=null;
+  h+=rvButtons(b);let last=null;
   b.q.forEach(q=>{const [id,d,seed,step,tag,ok1,ok,ms,typed,sk]=q;if(!S[id])return;
     let pr=null;try{pr=seed!=null?fromRef(step!=null?{id,d:d|0,seed,step}:{id,d:d|0,seed}):MW.gen(id,d|0,MW.makeR(hashStr(id+':'+d)))}catch(e){pr=null}if(!pr)return;
     if(id!==last){last=id;h+=`<h4 class="pv-h4">${esc(conceptName(id))} <small class="pv-soft">${ord(S[id].g)} grade</small></h4>`}
@@ -1103,6 +1127,43 @@ function wireAssess(k){const b=$('#pvAssess');if(!b)return;b.onclick=()=>{Snd.cl
   document.addEventListener('pointermove',showTip);document.addEventListener('pointerdown',showTip);window.addEventListener('scroll',()=>{tip.hidden=true},{passive:true})})();
 $('#parentBtn').onclick=()=>{Snd.init();Snd.click();openParent()};
 $('#hubParent').onclick=()=>{Snd.click();openParent(player)};
+/* ---------- review: a block's questions one at a time, as she saw them, with her answer, the right answer and the
+   worked answer. Opened from any block or assessment in the parent view, all of them or only the ones not right first try ---------- */
+let RVSRC=[],QLIST=[],RV=null;
+function qsetOpen(i,t0){const Q=QSETS[i]||[],a=QLIST[i]||{};return Q.length?rvButtons({kind:'asm',key:'s'+t0,q:Q,t0,t:a.t,by:a.by,whole:1})+qsetBody(Q,t0):qsetBody([],0)}
+function rvItems(src){const out=[],t=src.t||src.t0;
+  (src.q||[]).forEach(q=>{try{
+    if(src.kind==='asm'){const [sid,id,d,ok,sk,ms,seed,typed,nc]=q;if(!S[id])return;const exact=seed!=null,pr=MW.gen(id,d,MW.makeR(exact?seed:hashStr(id+':'+d)));
+      let her;if(sk)her=typed==='no clue'?'Said “I have no clue” after 3 minutes, then did the step-by-step lesson':'Skipped: “I haven’t learned this yet”';else if(ok)her='Right';else if(typed!=null&&exact){const v=MW.parse(pr,typed);her='Wrong. She answered '+(v!=null?MW.ansText(pr,v):esc(typed))}else her='Wrong';
+      const st=CO.STR.find(s=>s.id===sid);
+      out.push({id,pr,t,exact,cls:sk?'sk':ok?'ok':'no',icon:sk?'–':ok?'✓':'✗',her,label:(st?st.name:sid)+(nc?' · asked again later (went by too fast)':''),level:d>=2?'hard':'medium',secs:ms<0?`about ${Math.max(1,Math.round(-ms/1000))} s`:Math.max(1,Math.round(ms/1000))+' s'})}
+    else{const [id,d,seed,step,tag,ok1,ok,ms,typed,sk]=q;if(!S[id])return;
+      const pr=seed!=null?fromRef(step!=null?{id,d:d|0,seed,step}:{id,d:d|0,seed}):MW.gen(id,d|0,MW.makeR(hashStr(id+':'+d)));if(!pr)return;
+      const good=ok1||(tag==='a'&&ok),clue=typed==='no clue',fa=clue?' (after “I have no clue” and the step-by-step lesson)':typed!=null?`. First answer: ${esc(typed)}`:'';
+      const her=sk?(clue?'Said “I have no clue”, then did the step-by-step lesson':'Skipped'):tag==='a'?(ok?'Right':'Wrong'+(typed!=null?'. She answered '+esc(typed):'')):ok1?'Right first try':ok?'Right on the second try'+fa:'Missed twice, then shown the answer'+fa;
+      out.push({id,pr,t,exact:seed!=null,cls:sk?'sk':good?'ok':ok?'mid':'no',icon:sk?'–':good?'✓':ok?'~':'✗',her,label:BTAG[tag]||'practice',level:['easy','medium','hard'][d|0]||'',secs:Math.max(1,Math.round(ms/1000))+' s'})}
+  }catch(e){}});return out}
+function rvName(src){if(src.kind!=='asm')return 'Practice block';const w=src.by==='parent'?'Assessment':'Placement check';return src.whole||src.of==null?w:`${w}, block ${src.i+1} of ${src.of}`}
+function openReview(src,f){const all=rvItems(src);if(!all.length)return;RV={src,all,f:f==='miss'&&all.some(x=>x.cls!=='ok')?'miss':'all',i:0,y:window.scrollY,kid:PV};
+  show('review');$('#rvTitle').textContent=`${kid(PV).name} · ${rvName(src)} · ${dShort(src.t||src.t0)}`;drawReview()}
+const rvList=()=>RV.f==='miss'?RV.all.filter(x=>x.cls!=='ok'):RV.all;
+function drawReview(){if(!RV)return;const L=rvList(),i=RV.i=clamp(RV.i,0,L.length-1),x=L[i],pr=x.pr,ok=RV.all.filter(y=>y.cls==='ok').length;
+  $('#rvCount').textContent=`Question ${i+1} of ${L.length}`+(RV.f==='miss'?` not right first try (${RV.all.length} in the block)`:` · ${ok} right first try`);
+  $('#rvFilt').querySelectorAll('button').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.f===RV.f));b.hidden=b.dataset.f==='miss'&&ok===RV.all.length});
+  $('#rvDots').innerHTML=L.map((y,j)=>`<button type="button" class="${y.cls}" data-j="${j}" aria-label="Question ${j+1}"${j===i?' aria-current="true"':''}>${j+1}</button>`).join('');
+  const how=Array.isArray(pr.how)&&pr.how.length?`<details class="rv-how"><summary>How to work it out</summary><ol class="steps">${pr.how.map(h=>`<li>${h}</li>`).join('')}</ol></details>`:'';
+  $('#rvBody').innerHTML=`<div class="rv-tags"><span class="pv-chip">${esc(x.label)}</span><b>${esc(conceptName(x.id))}</b><small class="pv-soft">${ord(S[x.id].g)} grade${x.level?' · '+x.level:''} · ${x.secs}</small></div>
+    ${x.exact?'':'<small class="pv-soft">A question like hers (the exact one was not saved before 11/19):</small>'}${twoPart(pr,x.t)}<div class="q-text rv-qt">${pr.html||pr.text}</div>${pr.vis?`<div class="q-vis rv-vis">${pr.vis}</div>`:''}
+    <div class="rv-ans ${x.cls}"><span class="pv-qi">${x.icon}</span><div><b>${esc(kid(PV).name)}:</b> ${x.her}</div></div><div class="rv-right">${ansLine(pr,x.t)}</div>${how}`;
+  $('#rvPrev').disabled=i===0;$('#rvNext').textContent=i===L.length-1?'Done':'Next →'}
+function rvGo(d){if(!RV)return;const L=rvList();if(RV.i+d>=L.length){closeReview();return}RV.i=clamp(RV.i+d,0,L.length-1);drawReview();window.scrollTo(0,0)}
+function closeReview(){const y=RV?RV.y:0;RV=null;show('parent');renderParent();window.scrollTo(0,y)}
+$('#rvPrev').onclick=()=>{Snd.click();rvGo(-1)};$('#rvNext').onclick=()=>{Snd.click();rvGo(1)};$('#rvBack').onclick=()=>{Snd.click();closeReview()};
+$('#rvDots').onclick=e=>{const b=e.target.closest('[data-j]');if(!b||!RV)return;Snd.click();RV.i=+b.dataset.j;drawReview()};
+$('#rvFilt').onclick=e=>{const b=e.target.closest('[data-f]');if(!b||!RV||b.dataset.f===RV.f)return;Snd.click();RV.f=b.dataset.f;RV.i=0;drawReview()};
+document.addEventListener('keydown',e=>{if(screen!=='review'||!RV||e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==='ArrowRight'){e.preventDefault();rvGo(1)}else if(e.key==='ArrowLeft'){e.preventDefault();rvGo(-1)}else if(e.key==='Escape')closeReview()});
+$('#pvBody').addEventListener('click',e=>{const r=e.target.closest('[data-rv]');if(r){Snd.click();openReview(RVSRC[+r.dataset.rv],r.dataset.f);return}
+  const g=e.target.closest('[data-goto]');if(g){const el=document.getElementById(g.dataset.goto);if(el){Snd.click();el.scrollIntoView({behavior:'smooth',block:'start'})}}});
 $('#pvBack').onclick=()=>{Snd.click();show('menu');renderMenu()};
 $('#pvPrint').onclick=()=>{Snd.click();window.print()};
 
@@ -1115,7 +1176,7 @@ function wrongFor(p){const a=p.ans;switch(p.type){case 'frac':return {n:a.n+a.d,
     try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const v=(await r.json()).build;
       if(v&&v!==window.MW_BUILD&&new URLSearchParams(location.search).get('b')!==v&&free())location.replace(location.pathname+'?b='+encodeURIComponent(v))}catch(e){}}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});setInterval(check,6e5);setTimeout(check,5000)})();
-window.__mw={snd:Snd,startBlock,startAudit,get blk(){return blkLive(P())},get fx(){return FX.length},openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
+window.__mw={snd:Snd,startBlock,startAudit,get blk(){return blkLive(P())},get fx(){return FX.length},openParent,openHelp,get HL(){return HL},get PV(){return PV},get RD(){return RD},resumeRound,arch:Arch,get RV(){return RV},openReview,get RVSRC(){return RVSRC},get saves(){return saves},get player(){return player},MW,CO,submit,currentValue,startLearn,startTest,startFix,startPre,startReview,openLesson,playConcept,net:Net,cloud:CLOUD,
   answerRight(){if(!RD||!RD.cur)return;if(RD.part===1)submit(RD.cur.p.first.ans,null);submit(RD.cur.p.ans,null)},goBack,noClue,
   answerWrong(){if(!RD||!RD.cur)return;const p=RD.cur.p,t=p.traps&&p.traps[0];if(RD.part===1){submit(wrongFor(p.first),null);if(RD.part!==2||RD.phase!=='ask')return}submit(t?t.v:wrongFor(p),null)},
   type(raw){if(!KP)return false;KP.raw='';for(const ch of raw)kpPress(ch);return true}};

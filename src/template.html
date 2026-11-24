@@ -605,6 +605,25 @@ g[data-tip]:hover .pv-bar{opacity:.8}
 .pv-qi{font-weight:800;min-width:1.1em;text-align:center}
 .pv-q.ok .pv-qi{color:var(--good)}.pv-q.no .pv-qi{color:var(--bad)}.pv-q.sk .pv-qi{color:var(--ink-soft)}
 .pv-qt{margin:8px 0;font-weight:400;overflow-wrap:anywhere}
+.pv-goto{margin-left:auto;flex:none}
+.pv-rvrow{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.rv-card{display:grid;gap:12px;max-width:860px;width:100%;margin:0 auto;box-sizing:border-box;min-width:0}
+.rv-top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.rv-count{font-weight:700}
+.rv-dots{display:flex;flex-wrap:wrap;gap:5px}
+.rv-dots button{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:.75rem;cursor:pointer;padding:0}
+.rv-dots button.ok{border-color:var(--good)}.rv-dots button.no{border-color:var(--bad)}.rv-dots button.mid{border-color:var(--ink-soft);border-style:dashed}.rv-dots button.sk{opacity:.6}
+.rv-dots button[aria-current="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.rv-body{display:grid;gap:12px;min-width:0}
+.rv-tags{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.rv-qt{overflow-wrap:anywhere}
+.rv-vis svg{max-width:100%;height:auto}
+.rv-ans{display:flex;gap:10px;align-items:flex-start;border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface-2)}
+.rv-ans.ok{border-color:var(--good);background:var(--good-soft)}.rv-ans.no{border-color:var(--bad);background:var(--bad-soft)}
+.rv-ans.ok .pv-qi{color:var(--good)}.rv-ans.no .pv-qi{color:var(--bad)}
+.rv-right{font-size:1.05rem}
+.rv-how summary{cursor:pointer;font-weight:700;min-height:30px}
+.rv-nav{justify-content:space-between}
 .pv-qvis{max-width:100%;overflow:hidden}.pv-qvis svg{max-width:min(100%,320px);height:auto}
 .pv-qa{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.88rem;color:var(--ink-soft)}
 .pv-table.tight{font-size:.82rem}.pv-table.tight th,.pv-table.tight td{padding:4px 3px}.pv-table.tight th{font-size:.68rem;letter-spacing:0}
@@ -700,6 +719,16 @@ g[data-tip]:hover .pv-bar{opacity:.8}
     <div class="topbar2"><button id="pvBack" class="btn btn-ghost btn-sm" type="button">Players</button><div class="brand">Parent view</div><button id="pvPrint" class="btn btn-ghost btn-sm" type="button">Print</button></div>
     <div id="pvTabs" class="toggles pv-tabs" role="group" aria-label="Choose a child"></div>
     <div id="pvBody" class="pv-body"></div>
+  </section>
+
+  <section id="review" class="screen" hidden>
+    <div class="topbar2"><button id="rvBack" class="btn btn-ghost btn-sm" type="button">Parent view</button><div class="brand" id="rvTitle"></div></div>
+    <div class="card rv-card">
+      <div class="rv-top"><div id="rvCount" class="rv-count"></div><div id="rvFilt" class="toggles" role="group" aria-label="Which questions"><button type="button" class="tog" data-f="all">All</button><button type="button" class="tog" data-f="miss">Not right first try</button></div></div>
+      <div id="rvDots" class="rv-dots"></div>
+      <div id="rvBody" class="rv-body"></div>
+      <div class="action-row rv-nav"><button id="rvPrev" class="btn btn-ghost" type="button">← Previous</button><button id="rvNext" class="btn btn-big" type="button">Next →</button></div>
+    </div>
   </section>
 
   <section id="help" class="screen" hidden>
