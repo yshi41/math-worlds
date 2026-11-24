@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-24 02:09';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-24 16:27';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -18665,14 +18665,55 @@ function auditResult(p, id, oks, now) {
    problems, so harder concepts (written methods, word problems), break-down steps, hints and help lessons all make the
    next block smaller, and a kid who works fast gets a bigger one. A block opens with a memory check when concepts are
    due, then works along the path; after each concept is mastered, another short memory check runs if more are due;
-   when she is struggling with a concept, its foundations are checked. blockNext says what comes next. */
-const SESSION_MS = 20 * 60000, AUDIT_CAP = 6, GOAL_MIN = 6, GOAL_MAX = 40;
+   when she is struggling with a concept, its foundations are checked. blockNext says what comes next.
+   Calibration is constant (Yan, 11/24/2026: blocks were ending in 7 minutes). A block's time (blk.el) is the time
+   she really spent from the start of the block to her last answer, lessons and feedback included, with any gap over
+   3 minutes counted as 3 (a walk-away is not her pace). Her pace comes from her last 5 blocks, the newest counting
+   most (calPace), so one slow or fast block moves it without throwing it. Inside a block, at the end of every round,
+   blockStretch re-plans from how this block is going: when she is working faster than planned it adds problems so
+   the block still fills about 20 minutes. It never takes problems away (a block is never cut short), so a block
+   that runs long shows up in her pace and the next block is planned smaller. */
+const SESSION_MS = 20 * 60000, AUDIT_CAP = 6, GOAL_MIN = 6, GOAL_MAX = 80, GAP_MS = 3 * 60000, PACE_N = 5;
 /* about how long an average kid takes on one practice problem, reading the feedback included */
 const pracSec = id => Math.round(avgSec(id) * 1.3);
-const clampPace = r => Math.min(3, Math.max(0.4, r));
-function blockGoal(p) { const id = current(p) || ORDER[0], pace = clampPace(p.ppace || 1); return Math.max(GOAL_MIN, Math.min(GOAL_MAX, Math.round(SESSION_MS / (pracSec(id) * 1000 * pace)))); }
-/* at the end of a block: fold its pace into hers (half the old, half the new) */
-function blockPace(p, blk) { if (!blk || !blk.exp || !blk.ms) return p.ppace || 1; const r = clampPace(blk.ms / blk.exp); p.ppace = Math.round((p.ppace ? (p.ppace + r) / 2 : r) * 100) / 100; return p.ppace; }
+const clampPace = r => Math.min(3, Math.max(0.25, r));
+/* what one block says about her pace: its time over an average kid's time on the same problems, and how much it counts.
+   Blocks from before 11/24/2026 have no el: their time is rebuilt from their problems (answering time, a walk-away
+   counted as 3 minutes) plus a quarter for reading the feedback, which is what Riley's blocks showed. */
+function blockRate(b) {
+  if (!b) return null;
+  if (b.el > 0 && b.exp > 0) return { r: b.el / b.exp, n: b.n | 0 };
+  if (Array.isArray(b.q) && b.q.length) { let t = 0, e = 0, n = 0;
+    for (const q of b.q) { if (!q || !S[q[0]]) continue; t += Math.min(+q[7] || 0, GAP_MS); if (q[3] == null) { e += pracSec(q[0]) * 1000; n++; } }
+    if (t > 0 && e > 0) return { r: t * 1.25 / e, n }; }
+  if (b.ms > 0 && b.exp > 0) return { r: b.ms * 1.25 / b.exp, n: b.n | 0 };
+  return null;
+}
+/* her pace from her recent blocks (finished or left part-way), newest first, each worth half the one after it; a block
+   with few problems counts for less. With no blocks yet, the pace she had (or an average kid's). */
+function calPace(p, extra) {
+  let L = (Array.isArray(p.bhist) ? p.bhist : []).filter(b => b && b.t0);
+  if (extra) L = L.filter(b => !extra.t0 || b.t0 !== extra.t0).concat([extra]);
+  L = L.slice().sort((a, b) => (a.t0 || Infinity) - (b.t0 || Infinity)).slice(-PACE_N);
+  let sw = 0, sr = 0, k = 0;
+  for (let i = L.length - 1; i >= 0; i--, k++) { const x = blockRate(L[i]); if (!x) continue; const w = Math.pow(0.5, k) * Math.min(1, Math.max(x.n, 1) / 10); sw += w; sr += w * clampPace(x.r); }
+  return sw ? clampPace(sr / sw) : clampPace(p.ppace || 1);
+}
+function blockGoal(p) { const id = current(p) || ORDER[0], pace = calPace(p); return Math.max(GOAL_MIN, Math.min(GOAL_MAX, Math.round(SESSION_MS / (pracSec(id) * 1000 * pace)))); }
+/* at the end of a block: her pace is worked out again with this block in */
+function blockPace(p, blk) { if (!blockRate(blk)) return p.ppace || 1; p.ppace = Math.round(calPace(p, blk) * 100) / 100; return p.ppace; }
+/* at the end of each round of a block: when she is going faster than planned, add problems so the block still runs
+   about 20 minutes. This block's own pace counts more as it goes on; problems are never taken away. */
+function blockStretch(p, blk) {
+  if (!blk || !blk.goal || (blk.n | 0) < 4 || !(blk.el > 0) || !(blk.exp > 0)) return 0;
+  const left = SESSION_MS - blk.el; if (left < 90000) return 0;
+  const w = Math.min(1, blk.n / 12), pace = clampPace(w * (blk.el / blk.exp) + (1 - w) * calPace(p));
+  const want = Math.min(GOAL_MAX, blk.n + Math.round(left / (pracSec(current(p) || ORDER[0]) * 1000 * pace)));
+  if (want <= blk.goal) return 0; const add = want - blk.goal; blk.goal = want; blk.grew = (blk.grew | 0) + add; return add;
+}
+/* about how many minutes a block took (for the parent view) */
+function blockMin(b) { if (!b) return 0; if (b.el > 0) return b.el / 60000; const x = blockRate(b); if (x && b.exp > 0) return x.r * b.exp / 60000;
+  if (Array.isArray(b.q) && b.q.length) return b.q.reduce((s, q) => s + Math.min(+q[7] || 0, GAP_MS), 0) * 1.25 / 60000; return (b.ms || 0) * 1.25 / 60000; }
 const blockLeft = blk => Math.max(0, (blk.goal || 0) - (blk.n || 0));
 function blockNext(p, blk, now) {
   now = now || Date.now(); blk = blk || {};
@@ -18935,7 +18976,7 @@ function blockList(p) {
   A.forEach(a => asmBlocks(p, a).forEach(b => out.push(b)));
   const H = (Array.isArray(p.bhist) ? p.bhist : []).filter(b => b && b.t0).slice();
   if (p.blk && p.blk.t0 && (p.blk.n | 0) > 0 && !H.some(b => b.t0 === p.blk.t0)) H.push(Object.assign({}, p.blk, { open: !p.blk.done && p.blk.day === dayKey(Date.now()), partial: !p.blk.done }));
-  H.forEach(b => out.push({ kind: 'practice', key: 'p' + b.t0, t0: b.t0, t: b.t || b.t0, done: !b.partial && !b.open, open: !!b.open, n: b.n | 0, ok: b.ok | 0, ms: b.ms || 0, goal: b.goal || null,
+  H.forEach(b => out.push({ kind: 'practice', key: 'p' + b.t0, t0: b.t0, t: b.t || b.t0, done: !b.partial && !b.open, open: !!b.open, n: b.n | 0, ok: b.ok | 0, ms: Math.round(blockMin(b) * 60000), goal: b.goal || null,
     q: Array.isArray(b.q) ? b.q : null, mastered: b.mastered || [], refreshed: b.refreshed || [], seen: Array.isArray(b.seen) ? b.seen.length : b.seen | 0, held: b.held | 0, lapsed: b.lapsed || [] }));
   return out.sort((x, y) => ((y.t || y.t0) - (x.t || x.t0)) || ((y.i | 0) - (x.i | 0)));
 }
@@ -19073,7 +19114,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, asmQuestions, blockList, blockTotals, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, asmQuestions, blockList, blockTotals, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, blockStretch, blockRate, blockMin, calPace, GAP_MS, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;
@@ -19478,7 +19519,7 @@ const BLK_CAP=4*60000;
 function blkLive(p){const b=p&&p.blk;return b&&!b.done&&b.day===CO.dayKey(Date.now())?b:null}
 function ensureBlock(){const p=P();let b=blkLive(p);if(b)return b;const day=CO.dayKey(Date.now()),n=p.blk&&p.blk.day===day?(p.blk.num|0):0;
   if(p.blk&&!p.blk.done&&(p.blk.n|0)>0)blkArchive(p,p.blk,true);
-  return p.blk={num:n+1,day,t0:Date.now(),t:Date.now(),goal:CO.blockGoal(p),ms:0,exp:0,n:0,ok:0,rounds:0,seen:[],fc:[],mastered:[],refreshed:[],held:0,lapsed:[],justMastered:false,done:false}}
+  const nb={num:n+1,day,t0:Date.now(),t:Date.now(),goal:CO.blockGoal(p),goal0:0,el:0,ms:0,exp:0,n:0,ok:0,rounds:0,seen:[],fc:[],mastered:[],refreshed:[],held:0,lapsed:[],justMastered:false,done:false};nb.goal0=nb.goal;return p.blk=nb}
 /* every problem of a practice block is kept for the parent view: [concept, level, seed, break-down step, kind (m practice,
    r review, a memory check, f tricky spot, t test-out, s break-down step), right first try, right in the end, ms, what she
    typed first when it was wrong, skipped]; the seed rebuilds the exact problem */
@@ -19487,10 +19528,10 @@ function blkQ(first,right){const b=blkLive(P()),it=RD&&RD.cur;if(!b||!it||!it.p)
   Q.push([r.id||p.skill||null,r.d!=null?r.d:null,r.seed!=null?r.seed:null,r.step!=null?r.step:null,tag,first&&right?1:0,right?1:0,Math.round(clamp(Date.now()-(RD.t0||Date.now()),0,300000)),it.typed!=null?String(it.typed).slice(0,24):null,it.skip?1:0])}
 /* a finished block (or one left unfinished on an earlier day) goes into the history the parent view lists; the last 15
    keep their problems */
-function blkArchive(p,bk,partial){if(!bk||!bk.t0||!(bk.n|0))return;const e={t0:bk.t0,t:bk.t||Date.now(),n:bk.n|0,ok:bk.ok|0,ms:Math.round(bk.ms||0),goal:bk.goal,next:bk.next||null,pace:p.ppace,rounds:bk.rounds|0,
+function blkArchive(p,bk,partial){if(!bk||!bk.t0||!(bk.n|0))return;const e={t0:bk.t0,t:bk.t||Date.now(),n:bk.n|0,ok:bk.ok|0,ms:Math.round(bk.ms||0),el:Math.round(bk.el||0),exp:Math.round(bk.exp||0),goal:bk.goal,goal0:bk.goal0||null,next:bk.next||null,pace:p.ppace,rounds:bk.rounds|0,
   mastered:(bk.mastered||[]).slice(),refreshed:(bk.refreshed||[]).slice(),seen:(bk.seen||[]).length,held:bk.held|0,lapsed:(bk.lapsed||[]).slice(),q:(bk.q||[]).slice()};if(partial)e.partial=1;
   const L=(p.bhist||[]).filter(x=>x&&x.t0!==bk.t0).concat([e]).sort((a,b)=>a.t0-b.t0).slice(-30);L.forEach((x,i)=>{if(i<L.length-15)delete x.q});p.bhist=L}
-function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;b.ms+=clamp(ms,0,capMs||BLK_CAP);b.exp=(b.exp||0)+(exp||0);b.n+=n|0;b.ok+=ok|0;b.t=Date.now()}
+function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;const now=Date.now();b.el=(b.el||0)+clamp(now-(b.t||now),0,capMs||CO.GAP_MS);b.ms+=clamp(ms,0,capMs||BLK_CAP);b.exp=(b.exp||0)+(exp||0);b.n+=n|0;b.ok+=ok|0;b.t=Date.now()}
 const probs=n=>n+' problem'+(n===1?'':'s');
 const doneToday=p=>!!(p.blk&&p.blk.done&&p.blk.day===CO.dayKey(Date.now()));
 function startBlock(){Snd.init();if(tutPending(P())){startTut();return}const p=P(),b=ensureBlock(),nx=CO.blockNext(p,b);b.justMastered=false;
@@ -19982,7 +20023,9 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;
     /* kept for the results at the end of the block: the best streak, the treats earned and the tricky spots found */
     bk.bs=Math.max(bk.bs|0,R0.bestStreak|0);bk.earn=(bk.earn|0)+(R0.earned|0);Object.keys(R0.missed||{}).forEach(id=>{const L=bk.spots||(bk.spots=[]);if(!L.includes(id))L.push(id)});
-    if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
+    if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);
+    /* constant calibration: going faster than planned adds problems so the block still runs about 20 minutes */
+    if(!window.__mwNoStretch)CO.blockStretch(p,bk);bk.t=Date.now();
     if(bk.goal&&bk.n>=bk.goal){bk.done=true;bEnd=true;CO.blockPace(p,bk);bk.next=CO.blockGoal(p);tutFromBlock(p,bk);
       blkArchive(p,bk)}}
   RD=null;LAST=R0;endRound();persist();
@@ -20025,13 +20068,13 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   if(!early)setTimeout(()=>fxConfetti(R0.masteredNow||(R0.kind==='pre'&&preDone(p))?160:70),250);Snd.win()}
 let LAST=null;const AUD={};
 /* the end of a block: what it did, in plain words */
-function blockSummary(b){const mins=Math.max(1,Math.round(b.ms/60000)),L=[];
+function blockSummary(b){const mins=Math.max(1,Math.round(CO.blockMin(b))),g0=b.goal0||b.goal,L=[];
   L.push(`<div class="rb-h">Today’s block is done! ✓</div>`);
   L.push(`<div>${mins} minutes · ${b.n} problems · ${b.ok} right on the first try</div>`);
   if(b.mastered.length)L.push(`<div>Mastered: ${b.mastered.map(id=>esc(conceptName(id))).join(', ')}</div>`);
   if(b.refreshed.length)L.push(`<div>Mastered again: ${b.refreshed.map(id=>esc(conceptName(id))).join(', ')}</div>`);
   if(b.seen.length)L.push(`<div>Memory check: ${b.held|0} of ${b.seen.length} still strong${b.lapsed.length?', '+b.lapsed.length+' to refresh next time':''}</div>`);
-  if(b.next)L.push(`<div>Next block: about ${probs(b.next)}${b.next<b.goal?' (a bit fewer: this one took longer than planned)':b.next>b.goal?' (a few more: you worked fast)':''}.</div>`);
+  if(b.next)L.push(`<div>Next block: about ${probs(b.next)}${b.next<g0?' (a bit fewer: this one took longer than planned)':b.next>g0?' (a few more: you worked fast)':''}.</div>`);
   L.push('<div class="pv-soft">Take a break! Start another block from the map any time.</div>');return L.join('')}
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 $('#againBtn').onclick=()=>{const L0=LAST;if(!L0)return openHub();if(L0.kind==='audit')return startBlock();if(L0.kind==='learn')startLearn(L0.skill);else if(L0.kind==='test')startTest(L0.skill);else if(L0.kind==='review')startReview();else if(L0.kind==='fix')startFix(L0.concept);else startPre()};
@@ -20299,7 +20342,10 @@ function blocksCard(k,p){const L0=CO.blockList(p),T=CO.blockTotals(L0),L=Arch.me
     return `<details class="pv-qs pv-blk" data-bi="${i}" data-t0="${b.key}"><summary><b>${dShort(b.t||b.t0)}</b> ${what}${st} · ${res} · ${Math.max(1,Math.round((b.ms||0)/60000))} min${b.arch?' · <span class="pv-soft">archive</span>':''}</summary><div class="pv-qbody"></div></details>`};
   return `<div class="card pv-card" id="pvBlocks"><h3>Blocks</h3><p class="pv-p">${pl_(T.count,'block')} so far: ${pl_(T.asm,'assessment block')} (${T.asmOk} of ${T.asmQ} right) and ${pl_(T.prac,'practice block')} (${T.pracN?Math.round(100*T.pracOk/T.pracN):0}% of ${pl_(T.pracN,'problem')} right first try), ${mins(T.ms)} in all. The report above is worked out from all of them together.</p>
     <p class="pv-p pv-soft">Open a block to see every question in it, the right answer and how ${esc(k.name)} answered, or go through them one at a time. Every block is saved for good in the block archive${xa?`; ${pl_(xa,'older block')} the report no longer counts ${xa===1?'is':'are'} listed from there, for review only`:''}.${CLOUD&&!Arch.has(PV)?' Loading the archive…':''}</p>${L.map(row).join('')}
-    <p class="pv-p pv-soft">Next practice block: about ${probs(CO.blockGoal(p))}. ${esc(k.name)} works at about ${(p.ppace||1).toFixed(1)}× the time an average kid takes; the next block is sized from that and the concept she is on.</p></div>`}
+    ${paceNote(p,k)}</div>`}
+/* how the next block is planned: her last practice blocks in minutes, her pace from them, and the plan */
+function paceNote(p,k){const H=(p.bhist||[]).filter(b=>b&&b.t0).slice(-5).reverse(),m=H.map(b=>Math.max(1,Math.round(CO.blockMin(b)))),pc=CO.calPace(p);
+  return `<p class="pv-p pv-soft">Next practice block: about ${probs(CO.blockGoal(p))}, planned at 20 minutes. ${m.length?`${esc(k.name)}'s last ${m.length===1?'block':m.length+' practice blocks'} took ${m.join(', ')} minutes (newest first). `:''}She works at about ${pc.toFixed(1)}× the time an average kid takes, worked out from her last 5 blocks with the newest counting most. During a block, when she is going faster than planned, problems are added at the end of each round so it still runs about 20 minutes. A block that runs long is never cut short; the next one is planned smaller.</p>`}
 function rvButtons(src){const I=rvItems(src);if(!I.length)return '';const miss=I.filter(x=>x.cls!=='ok').length,ix=RVSRC.push(src)-1;
   return `<div class="pv-rvrow"><button type="button" class="btn btn-sm" data-rv="${ix}" data-f="all">Go through one at a time (${I.length})</button>${miss?`<button type="button" class="btn btn-ghost btn-sm" data-rv="${ix}" data-f="miss">Only the ones not right first try (${miss})</button>`:''}</div>`}
 function blockBody(b){if(!b)return '';

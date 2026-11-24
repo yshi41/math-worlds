@@ -166,9 +166,18 @@ const rb = E.report(blank(), 4); ok(rb.confidence === 'none' && rb.trend.length 
   const g0 = E.blockGoal(h); ok(g0 >= 20 && g0 <= 32, 'a first block on a mental-math concept is about ' + g0 + ' problems');
   const paperId = ORDER.find(id => S[id].paper && S[id].s !== 'story'); const hp = blank(); C.LIST.forEach(c => { if (ORDER.indexOf(c.id) < ORDER.indexOf(paperId)) E.master(hp, c.id, 1); }); hp.now = paperId;
   ok(E.current(hp) === paperId && E.blockGoal(hp) < g0 / 1.8, 'a pencil-and-paper concept gets fewer problems (' + E.blockGoal(hp) + ')');
-  const slowB = { goal: g0, n: g0, ms: 2 * g0 * E.pracSec(head) * 1000, exp: g0 * E.pracSec(head) * 1000 };
-  E.blockPace(h, slowB); ok(h.ppace === 2 && E.blockGoal(h) < g0 * 0.6, 'a block that took twice as long makes the next one smaller (' + E.blockGoal(h) + ')');
-  E.blockPace(h, { ms: 1, exp: 4 }); ok(h.ppace < 1.5 && E.blockGoal(h) > g0 * 0.6, 'a fast block makes the next one bigger again (' + E.blockGoal(h) + ')');
+  const ex = g0 * E.pracSec(head) * 1000, slowB = { t0: 10, goal: g0, n: g0, el: 2 * ex, exp: ex };
+  E.blockPace(h, slowB); h.bhist = [slowB]; ok(h.ppace === 2 && E.blockGoal(h) < g0 * 0.6, 'a block that took twice as long makes the next one smaller (' + E.blockGoal(h) + ')');
+  const fastB = { t0: 20, goal: 10, n: 10, el: 0.5 * ex * 10 / g0, exp: ex * 10 / g0 }; E.blockPace(h, fastB); h.bhist.push(fastB);
+  ok(h.ppace < 1.5 && h.ppace > 0.5 && E.blockGoal(h) > g0 * 0.6, 'a fast block makes the next one bigger again, the newest block counting most (' + h.ppace + ', ' + E.blockGoal(h) + ')');
+  /* Riley, 11/23/2026: 15 problems in under 8 minutes. Planned from her history, then stretched inside the block */
+  const rq = (id, ms) => [id, 1, 1, null, 'm', 1, 1, ms, null, 0], rb = { t0: 30, n: 15, q: Array.from({ length: 15 }, () => rq(head, 20000)) };
+  const hr = blank(); hr.now = head; hr.bhist = [rb]; ok(Math.abs(E.blockRate(rb).r - 20000 * 1.25 / (E.pracSec(head) * 1000)) < 1e-9 && E.blockGoal(hr) > g0 * 1.4, 'older blocks are read from their problems; a fast kid gets a bigger block (' + E.blockGoal(hr) + ')');
+  const walk = { t0: 31, n: 2, q: [rq(head, 300000), rq(head, 300000)] }; ok(E.blockRate(walk).r * E.pracSec(head) * 1000 <= E.GAP_MS * 1.25 + 1, 'a walk-away counts as 3 minutes at most');
+  const bk = { goal: 20, goal0: 20, n: 8, el: 8 * 15000, exp: 8 * E.pracSec(head) * 1000 }, add = E.blockStretch(hr, bk);
+  ok(add > 0 && bk.goal > 50 && bk.goal <= 80, 'going fast inside a block adds problems to fill about 20 minutes (' + bk.goal + ')');
+  const bs = { goal: 20, n: 8, el: 8 * 200000, exp: 8 * E.pracSec(head) * 1000 }; ok(E.blockStretch(hr, bs) === 0 && bs.goal === 20, 'going slow never takes problems away');
+  const b19 = { goal: 20, n: 20, el: 19 * 60000, exp: 20 * E.pracSec(head) * 1000 }; ok(E.blockStretch(hr, b19) === 0, 'a block at 19 minutes ends when its problems are done');
 }
 /* 10. an assessment block is never cut off by the clock: it ends when its parts are done */
 {

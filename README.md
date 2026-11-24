@@ -151,11 +151,16 @@ best streak, treats earned, the tricky spots found and how each idea of its memo
 `finishRound`). Still a stop: a round she ends herself with Stop, a tricky-spot or test-out round, and a memory check
 that went by too fast to count, whose note she needs to read.
 
-Her pace is the time a finished block really took (answering, at most 4 minutes a problem, plus help lessons) over an
-average kid's time for the same problems, folded half-and-half into her running pace (`COACH.blockPace`). So a block
-that ran long, because the concept was hard or she needed break-downs, hints or a help lesson, makes the next block
-smaller, a fast one makes it bigger, and a harder concept (written methods, word problems) gets fewer problems. Finished
-blocks are kept in `bhist` for the parent view.
+Calibration is constant (Yan, 11/24/2026, after Riley's blocks ended in about 7 minutes). A block's time (`blk.el`)
+is the real time from its start to her last answer, lesson screens, feedback and help lessons included, with any gap
+over 3 minutes counted as 3 (a walk-away is not her pace). Her pace is that time over an average kid's time for the
+same problems, taken from her last 5 blocks with the newest counting most (`COACH.calPace`; blocks from before 11/24
+are read from their saved problems). At the end of every round, `COACH.blockStretch` re-plans the block from how it is
+going: when she is working faster than planned it adds problems so the block still fills about 20 minutes (`grew`,
+`goal0` keeps the plan). It never takes problems away, so a block that ran long, because the concept was hard or she
+needed break-downs, hints or a help lesson, makes the next block smaller, and a harder concept (written methods, word
+problems) gets fewer problems. The parent view lists her last blocks in minutes. Finished blocks are kept in `bhist`.
+Browser tests set `window.__mwNoStretch` (instant test answers would always stretch) except in the stretch check.
 
 What the block does next depends on how the kid is doing:
 

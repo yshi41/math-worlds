@@ -129,14 +129,55 @@ function auditResult(p, id, oks, now) {
    problems, so harder concepts (written methods, word problems), break-down steps, hints and help lessons all make the
    next block smaller, and a kid who works fast gets a bigger one. A block opens with a memory check when concepts are
    due, then works along the path; after each concept is mastered, another short memory check runs if more are due;
-   when she is struggling with a concept, its foundations are checked. blockNext says what comes next. */
-const SESSION_MS = 20 * 60000, AUDIT_CAP = 6, GOAL_MIN = 6, GOAL_MAX = 40;
+   when she is struggling with a concept, its foundations are checked. blockNext says what comes next.
+   Calibration is constant (Yan, 11/24/2026: blocks were ending in 7 minutes). A block's time (blk.el) is the time
+   she really spent from the start of the block to her last answer, lessons and feedback included, with any gap over
+   3 minutes counted as 3 (a walk-away is not her pace). Her pace comes from her last 5 blocks, the newest counting
+   most (calPace), so one slow or fast block moves it without throwing it. Inside a block, at the end of every round,
+   blockStretch re-plans from how this block is going: when she is working faster than planned it adds problems so
+   the block still fills about 20 minutes. It never takes problems away (a block is never cut short), so a block
+   that runs long shows up in her pace and the next block is planned smaller. */
+const SESSION_MS = 20 * 60000, AUDIT_CAP = 6, GOAL_MIN = 6, GOAL_MAX = 80, GAP_MS = 3 * 60000, PACE_N = 5;
 /* about how long an average kid takes on one practice problem, reading the feedback included */
 const pracSec = id => Math.round(avgSec(id) * 1.3);
-const clampPace = r => Math.min(3, Math.max(0.4, r));
-function blockGoal(p) { const id = current(p) || ORDER[0], pace = clampPace(p.ppace || 1); return Math.max(GOAL_MIN, Math.min(GOAL_MAX, Math.round(SESSION_MS / (pracSec(id) * 1000 * pace)))); }
-/* at the end of a block: fold its pace into hers (half the old, half the new) */
-function blockPace(p, blk) { if (!blk || !blk.exp || !blk.ms) return p.ppace || 1; const r = clampPace(blk.ms / blk.exp); p.ppace = Math.round((p.ppace ? (p.ppace + r) / 2 : r) * 100) / 100; return p.ppace; }
+const clampPace = r => Math.min(3, Math.max(0.25, r));
+/* what one block says about her pace: its time over an average kid's time on the same problems, and how much it counts.
+   Blocks from before 11/24/2026 have no el: their time is rebuilt from their problems (answering time, a walk-away
+   counted as 3 minutes) plus a quarter for reading the feedback, which is what Riley's blocks showed. */
+function blockRate(b) {
+  if (!b) return null;
+  if (b.el > 0 && b.exp > 0) return { r: b.el / b.exp, n: b.n | 0 };
+  if (Array.isArray(b.q) && b.q.length) { let t = 0, e = 0, n = 0;
+    for (const q of b.q) { if (!q || !S[q[0]]) continue; t += Math.min(+q[7] || 0, GAP_MS); if (q[3] == null) { e += pracSec(q[0]) * 1000; n++; } }
+    if (t > 0 && e > 0) return { r: t * 1.25 / e, n }; }
+  if (b.ms > 0 && b.exp > 0) return { r: b.ms * 1.25 / b.exp, n: b.n | 0 };
+  return null;
+}
+/* her pace from her recent blocks (finished or left part-way), newest first, each worth half the one after it; a block
+   with few problems counts for less. With no blocks yet, the pace she had (or an average kid's). */
+function calPace(p, extra) {
+  let L = (Array.isArray(p.bhist) ? p.bhist : []).filter(b => b && b.t0);
+  if (extra) L = L.filter(b => !extra.t0 || b.t0 !== extra.t0).concat([extra]);
+  L = L.slice().sort((a, b) => (a.t0 || Infinity) - (b.t0 || Infinity)).slice(-PACE_N);
+  let sw = 0, sr = 0, k = 0;
+  for (let i = L.length - 1; i >= 0; i--, k++) { const x = blockRate(L[i]); if (!x) continue; const w = Math.pow(0.5, k) * Math.min(1, Math.max(x.n, 1) / 10); sw += w; sr += w * clampPace(x.r); }
+  return sw ? clampPace(sr / sw) : clampPace(p.ppace || 1);
+}
+function blockGoal(p) { const id = current(p) || ORDER[0], pace = calPace(p); return Math.max(GOAL_MIN, Math.min(GOAL_MAX, Math.round(SESSION_MS / (pracSec(id) * 1000 * pace)))); }
+/* at the end of a block: her pace is worked out again with this block in */
+function blockPace(p, blk) { if (!blockRate(blk)) return p.ppace || 1; p.ppace = Math.round(calPace(p, blk) * 100) / 100; return p.ppace; }
+/* at the end of each round of a block: when she is going faster than planned, add problems so the block still runs
+   about 20 minutes. This block's own pace counts more as it goes on; problems are never taken away. */
+function blockStretch(p, blk) {
+  if (!blk || !blk.goal || (blk.n | 0) < 4 || !(blk.el > 0) || !(blk.exp > 0)) return 0;
+  const left = SESSION_MS - blk.el; if (left < 90000) return 0;
+  const w = Math.min(1, blk.n / 12), pace = clampPace(w * (blk.el / blk.exp) + (1 - w) * calPace(p));
+  const want = Math.min(GOAL_MAX, blk.n + Math.round(left / (pracSec(current(p) || ORDER[0]) * 1000 * pace)));
+  if (want <= blk.goal) return 0; const add = want - blk.goal; blk.goal = want; blk.grew = (blk.grew | 0) + add; return add;
+}
+/* about how many minutes a block took (for the parent view) */
+function blockMin(b) { if (!b) return 0; if (b.el > 0) return b.el / 60000; const x = blockRate(b); if (x && b.exp > 0) return x.r * b.exp / 60000;
+  if (Array.isArray(b.q) && b.q.length) return b.q.reduce((s, q) => s + Math.min(+q[7] || 0, GAP_MS), 0) * 1.25 / 60000; return (b.ms || 0) * 1.25 / 60000; }
 const blockLeft = blk => Math.max(0, (blk.goal || 0) - (blk.n || 0));
 function blockNext(p, blk, now) {
   now = now || Date.now(); blk = blk || {};
@@ -399,7 +440,7 @@ function blockList(p) {
   A.forEach(a => asmBlocks(p, a).forEach(b => out.push(b)));
   const H = (Array.isArray(p.bhist) ? p.bhist : []).filter(b => b && b.t0).slice();
   if (p.blk && p.blk.t0 && (p.blk.n | 0) > 0 && !H.some(b => b.t0 === p.blk.t0)) H.push(Object.assign({}, p.blk, { open: !p.blk.done && p.blk.day === dayKey(Date.now()), partial: !p.blk.done }));
-  H.forEach(b => out.push({ kind: 'practice', key: 'p' + b.t0, t0: b.t0, t: b.t || b.t0, done: !b.partial && !b.open, open: !!b.open, n: b.n | 0, ok: b.ok | 0, ms: b.ms || 0, goal: b.goal || null,
+  H.forEach(b => out.push({ kind: 'practice', key: 'p' + b.t0, t0: b.t0, t: b.t || b.t0, done: !b.partial && !b.open, open: !!b.open, n: b.n | 0, ok: b.ok | 0, ms: Math.round(blockMin(b) * 60000), goal: b.goal || null,
     q: Array.isArray(b.q) ? b.q : null, mastered: b.mastered || [], refreshed: b.refreshed || [], seen: Array.isArray(b.seen) ? b.seen.length : b.seen | 0, held: b.held | 0, lapsed: b.lapsed || [] }));
   return out.sort((x, y) => ((y.t || y.t0) - (x.t || x.t0)) || ((y.i | 0) - (x.i | 0)));
 }
@@ -537,7 +578,7 @@ function history(p, grade, range, now) {
   return { range, unit, n, start: start.getTime(), buckets, tot, asm: (Array.isArray(p.asm) ? p.asm : []).filter(x => x && x.t >= start.getTime()) };
 }
 
-const API = { init, asmQuestions, blockList, blockTotals, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
+const API = { init, asmQuestions, blockList, blockTotals, assumedList, earlyPick, EARLY_CAP, applyFloor, pretestFloor, rushed, strandReopen, resetToAssessment, asmNote, history, floorIdx, RUSH_MS, isExtra, strandOf, prereqs, cs, live, isMastered, isLapsed, struggling, auditPick, auditResult, blockNext, blockGoal, blockPace, blockLeft, blockStretch, blockRate, blockMin, calPace, GAP_MS, pracSec, SESSION_MS, AUDIT_CAP, isOpen, started, levelsDone, whyLocked, current, record, master, due, reviewResult,
   masteredCount, diagnose, generic, spotFor, fixSet, deeper, pretestStart, pretestNext, pretestRecord, pretestSkip, pretestProgress, pretestApply, pretestAdvance, pretestFix, planBlocks, BLOCK_MS,
   capLen, DAY, STR, ORDER, DOMAINS, NORMS, gradeLevel, normAt, phi, percentileFor, schoolTime, dayKey, report };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.COACH = API;

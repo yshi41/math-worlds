@@ -23,7 +23,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
     await p.setViewport(viewport || { width: 1100, height: 860 });
     await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
     await mock.attach(p);
-    await p.evaluateOnNewDocument(() => { window.__mwNoTut = !window.name.includes('tut'); window.__mwRushMs = 0; /* test answers are instant: memory checks still count */ window.__storageWrites = 0; for (const k of ['localStorage', 'sessionStorage']) { try { const s = window[k], set = s.setItem.bind(s); s.setItem = (...a) => { window.__storageWrites++; return set(...a); }; } catch (e) {} } });
+    await p.evaluateOnNewDocument(() => { window.__mwNoTut = !window.name.includes('tut'); window.__mwRushMs = 0; /* test answers are instant: memory checks still count */ window.__mwNoStretch = true; /* test answers are instant: a forced block size stays put (the stretch has its own check) */ window.__storageWrites = 0; for (const k of ['localStorage', 'sessionStorage']) { try { const s = window[k], set = s.setItem.bind(s); s.setItem = (...a) => { window.__storageWrites++; return set(...a); }; } catch (e) {} } });
     await p.goto(F); return p;
   };
   const ev = (p, f, ...a) => p.evaluate(f, ...a);
@@ -485,7 +485,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   const r14 = await ev(p, id => ({ res: !document.querySelector('#results').hidden, lesson: !document.querySelector('#lesson').hidden && document.querySelector('#lsTitle').textContent === window.MWC.S[id].title && /slipped/.test(document.querySelector('#lsStatus').textContent), toast: (document.querySelector('.toast2') || {}).textContent || '' }), st14.cur);
   check(!r14.res && r14.lesson && /Memory check: 1 of 4 still strong/.test(r14.toast), 'the block runs straight on after the check: no results screen, a short word on how it went, and the slipped concept’s lesson opens (' + JSON.stringify(r14) + ')');
   /* the clock never ends a block; the last round is sized to the problems left, and the block ends with it */
-  const g14 = await ev(p, () => { const b = window.__mw.blk; b.ms = 3 * window.COACH.SESSION_MS; b.goal = b.n + 4; document.querySelector('#startBtn').click(); return window.__mw.RD.mainTotal; }); await wait(150);
+  const g14 = await ev(p, () => { const b = window.__mw.blk; b.ms = 3 * window.COACH.SESSION_MS; b.el = 3 * window.COACH.SESSION_MS; b.goal = b.n + 4; document.querySelector('#startBtn').click(); return window.__mw.RD.mainTotal; }); await wait(150);
   check(g14 === 4, 'the round fits the 4 problems left in the block (' + g14 + ')');
   for (let i = 0; i < 3; i++) { await answer(p, true); await next(p); }
   check(await ev(p, () => document.querySelector('#results').hidden && window.__mw.RD && window.__mw.RD.phase === 'ask'), 'an hour on the clock does not stop the block');
@@ -530,6 +530,14 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
   check(m14.store.riley.state.cs[ids14[2]].lx > 0, 'the slipped concept is saved online');
   await ev(p, () => document.querySelector('#hubBtn').click()); await wait(150);
   check(await ev(p, () => /done/.test(document.querySelector('#nextTitle').textContent) && document.querySelectorAll('#map .chip.lapsed').length >= 1), 'the map says today is done and marks what slipped');
+  /* constant calibration: a block going faster than planned grows at the end of a round so it still runs about 20 minutes */
+  { await ev(p, () => { window.__mwNoStretch = false; window.__mw.saves.riley.blk = null; }); await ev(p, () => window.__mw.startBlock()); await wait(200);
+    await ev(p, () => { const b = window.__mw.blk; b.goal = b.n + 4; b.goal0 = b.goal; });
+    let g = null;
+    for (let i = 0; i < 60; i++) { g = await ev(p, () => { const b = window.__mw.blk; return b && b.grew ? { goal: b.goal, g0: b.goal0, n: b.n, el: b.el } : null; }); if (g || await resultsShown(p)) break;
+      const c = await cur(p); if (!c) { await wait(100); continue; } if (c.phase === 'ask') await answer(p, true); await next(p); await wait(c.kind === 'aud' ? 800 : 60); }
+    check(g && g.goal > g.g0 + 10 && g.el > 0 && !(await resultsShown(p)), 'a block going faster than planned gets more problems at the end of a round, so it still runs about 20 minutes (' + JSON.stringify(g) + ')');
+    await ev(p, () => { window.__mwNoStretch = true; }); }
   /* at the end of a block she goes over every problem she got wrong, step by step, before anything else */
   { await ev(p, () => { window.__mwNoTut = false; const pl = window.__mw.saves.riley; pl.blk = null; });
     await ev(p, () => window.__mw.startBlock()); await wait(200);

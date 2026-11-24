@@ -224,7 +224,7 @@ const BLK_CAP=4*60000;
 function blkLive(p){const b=p&&p.blk;return b&&!b.done&&b.day===CO.dayKey(Date.now())?b:null}
 function ensureBlock(){const p=P();let b=blkLive(p);if(b)return b;const day=CO.dayKey(Date.now()),n=p.blk&&p.blk.day===day?(p.blk.num|0):0;
   if(p.blk&&!p.blk.done&&(p.blk.n|0)>0)blkArchive(p,p.blk,true);
-  return p.blk={num:n+1,day,t0:Date.now(),t:Date.now(),goal:CO.blockGoal(p),ms:0,exp:0,n:0,ok:0,rounds:0,seen:[],fc:[],mastered:[],refreshed:[],held:0,lapsed:[],justMastered:false,done:false}}
+  const nb={num:n+1,day,t0:Date.now(),t:Date.now(),goal:CO.blockGoal(p),goal0:0,el:0,ms:0,exp:0,n:0,ok:0,rounds:0,seen:[],fc:[],mastered:[],refreshed:[],held:0,lapsed:[],justMastered:false,done:false};nb.goal0=nb.goal;return p.blk=nb}
 /* every problem of a practice block is kept for the parent view: [concept, level, seed, break-down step, kind (m practice,
    r review, a memory check, f tricky spot, t test-out, s break-down step), right first try, right in the end, ms, what she
    typed first when it was wrong, skipped]; the seed rebuilds the exact problem */
@@ -233,10 +233,10 @@ function blkQ(first,right){const b=blkLive(P()),it=RD&&RD.cur;if(!b||!it||!it.p)
   Q.push([r.id||p.skill||null,r.d!=null?r.d:null,r.seed!=null?r.seed:null,r.step!=null?r.step:null,tag,first&&right?1:0,right?1:0,Math.round(clamp(Date.now()-(RD.t0||Date.now()),0,300000)),it.typed!=null?String(it.typed).slice(0,24):null,it.skip?1:0])}
 /* a finished block (or one left unfinished on an earlier day) goes into the history the parent view lists; the last 15
    keep their problems */
-function blkArchive(p,bk,partial){if(!bk||!bk.t0||!(bk.n|0))return;const e={t0:bk.t0,t:bk.t||Date.now(),n:bk.n|0,ok:bk.ok|0,ms:Math.round(bk.ms||0),goal:bk.goal,next:bk.next||null,pace:p.ppace,rounds:bk.rounds|0,
+function blkArchive(p,bk,partial){if(!bk||!bk.t0||!(bk.n|0))return;const e={t0:bk.t0,t:bk.t||Date.now(),n:bk.n|0,ok:bk.ok|0,ms:Math.round(bk.ms||0),el:Math.round(bk.el||0),exp:Math.round(bk.exp||0),goal:bk.goal,goal0:bk.goal0||null,next:bk.next||null,pace:p.ppace,rounds:bk.rounds|0,
   mastered:(bk.mastered||[]).slice(),refreshed:(bk.refreshed||[]).slice(),seen:(bk.seen||[]).length,held:bk.held|0,lapsed:(bk.lapsed||[]).slice(),q:(bk.q||[]).slice()};if(partial)e.partial=1;
   const L=(p.bhist||[]).filter(x=>x&&x.t0!==bk.t0).concat([e]).sort((a,b)=>a.t0-b.t0).slice(-30);L.forEach((x,i)=>{if(i<L.length-15)delete x.q});p.bhist=L}
-function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;b.ms+=clamp(ms,0,capMs||BLK_CAP);b.exp=(b.exp||0)+(exp||0);b.n+=n|0;b.ok+=ok|0;b.t=Date.now()}
+function blkAdd(ms,n,ok,capMs,exp){const b=blkLive(P());if(!b)return;const now=Date.now();b.el=(b.el||0)+clamp(now-(b.t||now),0,capMs||CO.GAP_MS);b.ms+=clamp(ms,0,capMs||BLK_CAP);b.exp=(b.exp||0)+(exp||0);b.n+=n|0;b.ok+=ok|0;b.t=Date.now()}
 const probs=n=>n+' problem'+(n===1?'':'s');
 const doneToday=p=>!!(p.blk&&p.blk.done&&p.blk.day===CO.dayKey(Date.now()));
 function startBlock(){Snd.init();if(tutPending(P())){startTut();return}const p=P(),b=ensureBlock(),nx=CO.blockNext(p,b);b.justMastered=false;
@@ -728,7 +728,9 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   if(bk){bk.rounds=(bk.rounds|0)+1;bk.justMastered=!!R0.masteredNow;
     /* kept for the results at the end of the block: the best streak, the treats earned and the tricky spots found */
     bk.bs=Math.max(bk.bs|0,R0.bestStreak|0);bk.earn=(bk.earn|0)+(R0.earned|0);Object.keys(R0.missed||{}).forEach(id=>{const L=bk.spots||(bk.spots=[]);if(!L.includes(id))L.push(id)});
-    if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);bk.t=Date.now();
+    if(R0.masteredNow)(R0.refresh?bk.refreshed:bk.mastered).push(R0.masteredNow);
+    /* constant calibration: going faster than planned adds problems so the block still runs about 20 minutes */
+    if(!window.__mwNoStretch)CO.blockStretch(p,bk);bk.t=Date.now();
     if(bk.goal&&bk.n>=bk.goal){bk.done=true;bEnd=true;CO.blockPace(p,bk);bk.next=CO.blockGoal(p);tutFromBlock(p,bk);
       blkArchive(p,bk)}}
   RD=null;LAST=R0;endRound();persist();
@@ -771,13 +773,13 @@ function finishRound(early){const p=P(),k=lookOf(player);if(!RD)return;clearTime
   if(!early)setTimeout(()=>fxConfetti(R0.masteredNow||(R0.kind==='pre'&&preDone(p))?160:70),250);Snd.win()}
 let LAST=null;const AUD={};
 /* the end of a block: what it did, in plain words */
-function blockSummary(b){const mins=Math.max(1,Math.round(b.ms/60000)),L=[];
+function blockSummary(b){const mins=Math.max(1,Math.round(CO.blockMin(b))),g0=b.goal0||b.goal,L=[];
   L.push(`<div class="rb-h">Today’s block is done! ✓</div>`);
   L.push(`<div>${mins} minutes · ${b.n} problems · ${b.ok} right on the first try</div>`);
   if(b.mastered.length)L.push(`<div>Mastered: ${b.mastered.map(id=>esc(conceptName(id))).join(', ')}</div>`);
   if(b.refreshed.length)L.push(`<div>Mastered again: ${b.refreshed.map(id=>esc(conceptName(id))).join(', ')}</div>`);
   if(b.seen.length)L.push(`<div>Memory check: ${b.held|0} of ${b.seen.length} still strong${b.lapsed.length?', '+b.lapsed.length+' to refresh next time':''}</div>`);
-  if(b.next)L.push(`<div>Next block: about ${probs(b.next)}${b.next<b.goal?' (a bit fewer: this one took longer than planned)':b.next>b.goal?' (a few more: you worked fast)':''}.</div>`);
+  if(b.next)L.push(`<div>Next block: about ${probs(b.next)}${b.next<g0?' (a bit fewer: this one took longer than planned)':b.next>g0?' (a few more: you worked fast)':''}.</div>`);
   L.push('<div class="pv-soft">Take a break! Start another block from the map any time.</div>');return L.join('')}
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 $('#againBtn').onclick=()=>{const L0=LAST;if(!L0)return openHub();if(L0.kind==='audit')return startBlock();if(L0.kind==='learn')startLearn(L0.skill);else if(L0.kind==='test')startTest(L0.skill);else if(L0.kind==='review')startReview();else if(L0.kind==='fix')startFix(L0.concept);else startPre()};
@@ -1045,7 +1047,10 @@ function blocksCard(k,p){const L0=CO.blockList(p),T=CO.blockTotals(L0),L=Arch.me
     return `<details class="pv-qs pv-blk" data-bi="${i}" data-t0="${b.key}"><summary><b>${dShort(b.t||b.t0)}</b> ${what}${st} · ${res} · ${Math.max(1,Math.round((b.ms||0)/60000))} min${b.arch?' · <span class="pv-soft">archive</span>':''}</summary><div class="pv-qbody"></div></details>`};
   return `<div class="card pv-card" id="pvBlocks"><h3>Blocks</h3><p class="pv-p">${pl_(T.count,'block')} so far: ${pl_(T.asm,'assessment block')} (${T.asmOk} of ${T.asmQ} right) and ${pl_(T.prac,'practice block')} (${T.pracN?Math.round(100*T.pracOk/T.pracN):0}% of ${pl_(T.pracN,'problem')} right first try), ${mins(T.ms)} in all. The report above is worked out from all of them together.</p>
     <p class="pv-p pv-soft">Open a block to see every question in it, the right answer and how ${esc(k.name)} answered, or go through them one at a time. Every block is saved for good in the block archive${xa?`; ${pl_(xa,'older block')} the report no longer counts ${xa===1?'is':'are'} listed from there, for review only`:''}.${CLOUD&&!Arch.has(PV)?' Loading the archive…':''}</p>${L.map(row).join('')}
-    <p class="pv-p pv-soft">Next practice block: about ${probs(CO.blockGoal(p))}. ${esc(k.name)} works at about ${(p.ppace||1).toFixed(1)}× the time an average kid takes; the next block is sized from that and the concept she is on.</p></div>`}
+    ${paceNote(p,k)}</div>`}
+/* how the next block is planned: her last practice blocks in minutes, her pace from them, and the plan */
+function paceNote(p,k){const H=(p.bhist||[]).filter(b=>b&&b.t0).slice(-5).reverse(),m=H.map(b=>Math.max(1,Math.round(CO.blockMin(b)))),pc=CO.calPace(p);
+  return `<p class="pv-p pv-soft">Next practice block: about ${probs(CO.blockGoal(p))}, planned at 20 minutes. ${m.length?`${esc(k.name)}'s last ${m.length===1?'block':m.length+' practice blocks'} took ${m.join(', ')} minutes (newest first). `:''}She works at about ${pc.toFixed(1)}× the time an average kid takes, worked out from her last 5 blocks with the newest counting most. During a block, when she is going faster than planned, problems are added at the end of each round so it still runs about 20 minutes. A block that runs long is never cut short; the next one is planned smaller.</p>`}
 function rvButtons(src){const I=rvItems(src);if(!I.length)return '';const miss=I.filter(x=>x.cls!=='ok').length,ix=RVSRC.push(src)-1;
   return `<div class="pv-rvrow"><button type="button" class="btn btn-sm" data-rv="${ix}" data-f="all">Go through one at a time (${I.length})</button>${miss?`<button type="button" class="btn btn-ghost btn-sm" data-rv="${ix}" data-f="miss">Only the ones not right first try (${miss})</button>`:''}</div>`}
 function blockBody(b){if(!b)return '';
