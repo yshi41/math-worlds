@@ -86,14 +86,15 @@ function skipProblem(step, d, R, cid) {
 }
 /* growing dot shapes: step n has b fixed dots (a column on the left) and a rows of n dots */
 function shapeSVG(a, b, steps) {
-  const g = 16, H = Math.max(a, b) * g + 30; let x = 8, s = '';
+  /* each step is labelled with its dot count: kids work out the pattern, they never count the dots (Yan, 11/24/2026) */
+  const g = 16, H = Math.max(a, b) * g + 50; let x = 8, s = '';
   steps.forEach(n => {
-    const x0 = x, w = (b ? g + 4 : 0) + n * g;
+    const dw = (b ? g + 4 : 0) + n * g, w = Math.max(dw, 60), x0 = x; x += (w - dw) / 2;
     for (let i = 0; i < b; i++) s += '<circle cx="' + (x + g / 2) + '" cy="' + (8 + i * g + g / 2) + '" r="5.5" class="dt left"/>';
     const xs = x + (b ? g + 4 : 0);
     for (let r = 0; r < a; r++) for (let c = 0; c < n; c++) s += '<circle cx="' + (xs + c * g + g / 2) + '" cy="' + (8 + r * g + g / 2) + '" r="5.5" class="dt"/>';
-    s += '<text x="' + (x0 + w / 2) + '" y="' + (H - 6) + '" class="fig-small">Step ' + n + '</text>';
-    x += w + 30;
+    s += '<text x="' + (x0 + w / 2) + '" y="' + (H - 26) + '" class="fig-small">Step ' + n + '</text><text x="' + (x0 + w / 2) + '" y="' + (H - 6) + '" class="fig-small"><tspan font-weight="700">' + (a * n + b) + '</tspan> dots</text>';
+    x = x0 + w + 24;
   });
   return '<svg class="fig" viewBox="0 0 ' + x + ' ' + H + '" style="max-width:' + Math.min(400, x * 1.3) + 'px" aria-hidden="true">' + s + '</svg>';
 }

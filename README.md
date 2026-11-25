@@ -23,6 +23,12 @@ Every problem is laid out the same way (`layout` in `src/core.js`), so a child t
 - A sentence that only says how to type the answer ("Type a mixed number or a fraction.") is small print under the
   question. It is not part of the math.
 - Long problems are set in a smaller size so the whole problem stays in view.
+- No counting chores (Yan, 11/24/2026: "there is no utility in making kids count items on the screen"). A picture never
+  makes a kid count a big pile one by one: the numbers are in the text or on the picture (growing-shape steps show their
+  dot count, rectangles and rulers are labelled, cube boxes give their size and the top layer's count), a row of
+  pictures has at most 10 in groups of 5, tallies come in bundles of 5, a dot plot has at most 4 dots a column and 12 in
+  all, a coin problem has at most 8 coins, and a fraction number line is read from the whole number just before the
+  dot. `node test/count-scan.js` lists every grade 2-8 picture with more than 10 objects so new ones can be checked.
 - One problem, one screen, in every state (Yan, 11/24/2026: "the entire question needs to be on the screen, phone or
   computer, or tablet"): no scrolling while it is asked, after a hint, after a wrong answer, with the answer shown, after
   a right answer, in part 2, and in every step of a help lesson or "I have no clue" tutorial. On a wide screen (900 px

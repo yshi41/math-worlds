@@ -1151,10 +1151,14 @@ defs([
       const vis = numLineSVG(0, hi, 1 / dn, [{ v: n / dn, t: '?' }], 1);   /* the steps read the picture, so they show it too */
       return { text: 'The number line is cut into equal parts. What fraction is at the dot?' + (n > dn ? ' Type a mixed number or a fraction.' : ''), ans: F(n, dn), type: 'frac',
         vis,
-        how: ['From 0 to 1 there are ' + dn + ' equal jumps, so each jump is ' + fr(1, dn) + '.', 'The dot is ' + plural(n, '1 jump', n + ' jumps') + ' from 0, so it is at ' + B(fr(n, dn)) + (n > dn ? ' (that is ' + mixed(Math.floor(n / dn), n % dn, dn) + ')' : '') + '.'],
-        steps: [st('How many equal jumps are there from 0 to 1?', dn, { vis }), st('How many jumps are there from 0 to the dot?', n, { vis })],
+        /* past 1, count on from the whole number just before the dot (never more than 5 jumps), not all the way from 0 */
+        how: n > dn ? ['From 0 to 1 there are ' + dn + ' equal jumps, so each jump is ' + fr(1, dn) + '.', 'The dot is ' + plural(n % dn, '1 jump', (n % dn) + ' jumps') + ' past ' + Math.floor(n / dn) + ', so it is at ' + B(mixed(Math.floor(n / dn), n % dn, dn)) + ' (that is ' + fr(n, dn) + ').']
+          : ['From 0 to 1 there are ' + dn + ' equal jumps, so each jump is ' + fr(1, dn) + '.', 'The dot is ' + plural(n, '1 jump', n + ' jumps') + ' from 0, so it is at ' + B(fr(n, dn)) + '.'],
+        steps: n > dn ? [st('How many equal jumps are there from 0 to 1?', dn, { vis }), st('The dot is just past ' + B(Math.floor(n / dn)) + '. How many jumps past ' + Math.floor(n / dn) + ' is it?', n % dn, { vis }), st('The dot is ' + Math.floor(n / dn) + ' and ' + (n % dn) + ' more ' + plural(n % dn, 'jump') + ' of ' + fr(1, dn) + '. What number is that?', F(n, dn), { vis, type: 'frac' })]
+          : [st('How many equal jumps are there from 0 to 1?', dn, { vis }), st('How many jumps are there from 0 to the dot?', n, { vis })],
         traps: [tr(F(n, dn + 1), 'f_numline', 'Count the jumps (the spaces), not the tick marks.'), tr(F(n + 1, dn), 'f_numline', 'The first jump ends at the first mark after 0. Count jumps, starting at 0.'), d ? tr(F(n, max), 'f_numline', 'The bottom number is the jumps from 0 to 1, not to ' + hi + '.') : tr(F(dn, n), 'f_unit', 'The bottom number is how many equal parts make 1 whole.')] };
     }
+    if (max > 10) return null; /* only one label: keep it to 10 jumps or fewer, so no long counts */
     let k; do k = R.i(1, max - 1); while (Math.abs(k - n) < 2 || k === dn);
     const vis = numLineSVG(0, hi, 1 / dn, [{ v: k / dn, t: k + '/' + dn }, { v: n / dn, t: '?' }], 100);
     return { text: 'Only one mark on this number line has a label. What fraction is at the dot?', ans: F(n, dn), type: 'frac',
@@ -1359,9 +1363,11 @@ defs([
   tip: 'In a tally chart, each bundle (4 lines and 1 across) is 5: count by 5s, then count on. In a picture graph, check the key: one picture may stand for 2.',
   gen(d, R) {
     const set = R.pick(PSETS), n = d === 0 ? 3 : R.pick([3, 4]), cats = R.shuffle(set.rows).slice(0, n), key = d === 2 ? 2 : 1, tally = d < 2 && R.chance(0.5);
-    const vals = cats.map(() => key === 2 ? 2 * R.i(2, 9) : R.i(d === 0 ? 2 : 3, d === 0 ? 12 : 16));
+    /* no long counts: a row of pictures has at most 10, shown in groups of 5 (tally marks are already bundled in 5s) */
+    const vals = cats.map(() => key === 2 ? 2 * R.i(2, 5) : R.i(d === 0 ? 2 : 3, tally ? (d === 0 ? 12 : 16) : 10));
     if (new Set(vals).size < n) return null;
-    const vis = table(cats.map((c, i) => [c[0] + ' ' + c[1], tally ? tallySVG(vals[i]) : '<span style="letter-spacing:3px;white-space:nowrap">' + c[0].repeat(vals[i] / key) + '</span>']));
+    const pics = (ic, k) => Array.from({ length: Math.ceil(k / 5) }, (_, g) => '<span style="margin-right:10px">' + ic.repeat(Math.min(5, k - 5 * g)) + '</span>').join('');
+    const vis = table(cats.map((c, i) => [c[0] + ' ' + c[1], tally ? tallySVG(vals[i]) : '<span style="letter-spacing:3px;white-space:nowrap">' + pics(c[0], vals[i] / key) + '</span>']));
     const keyTxt = key === 2 ? ' Each picture stands for ' + B(2) + ' ' + set.u + '.' : '';
     const cnt = i => { const v = vals[i], nmC = cats[i][1];
       if (tally) { const g = Math.floor(v / 5), r = v % 5; return cap(nmC) + ': ' + (g ? plural(g, '1 bundle', g + ' bundles') + ' of 5 is ' + 5 * g : '') + (r ? (g ? ', and ' : '') + r + (g ? ' more' : ' marks') : '') + (g && r ? ' → ' + v : '') + '.'; }

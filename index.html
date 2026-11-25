@@ -6,7 +6,7 @@
 <title>Math Worlds</title>
 <meta name="theme-color" content="#9BDCE0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%239BDCE0%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2245%22%20font-family%3D%22Arial%20Rounded%20MT%20Bold%2CArial%2Csans-serif%22%20font-weight%3D%22700%22%20font-size%3D%2234%22%20text-anchor%3D%22middle%22%20fill%3D%22%23E8809B%22%3E%2B%E2%88%92%3C%2Ftext%3E%3C%2Fsvg%3E">
-<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-24 22:12';</script>
+<script>window.MW_CLOUD=window.MW_CLOUD||'https://math-worlds-saves.yshi41.workers.dev';window.MW_BUILD='2026-11-25 00:23';</script>
 <style>:root{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#CFF0F1;color:#173A42}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -2342,14 +2342,15 @@ function skipProblem(step, d, R, cid) {
 }
 /* growing dot shapes: step n has b fixed dots (a column on the left) and a rows of n dots */
 function shapeSVG(a, b, steps) {
-  const g = 16, H = Math.max(a, b) * g + 30; let x = 8, s = '';
+  /* each step is labelled with its dot count: kids work out the pattern, they never count the dots (Yan, 11/24/2026) */
+  const g = 16, H = Math.max(a, b) * g + 50; let x = 8, s = '';
   steps.forEach(n => {
-    const x0 = x, w = (b ? g + 4 : 0) + n * g;
+    const dw = (b ? g + 4 : 0) + n * g, w = Math.max(dw, 60), x0 = x; x += (w - dw) / 2;
     for (let i = 0; i < b; i++) s += '<circle cx="' + (x + g / 2) + '" cy="' + (8 + i * g + g / 2) + '" r="5.5" class="dt left"/>';
     const xs = x + (b ? g + 4 : 0);
     for (let r = 0; r < a; r++) for (let c = 0; c < n; c++) s += '<circle cx="' + (xs + c * g + g / 2) + '" cy="' + (8 + r * g + g / 2) + '" r="5.5" class="dt"/>';
-    s += '<text x="' + (x0 + w / 2) + '" y="' + (H - 6) + '" class="fig-small">Step ' + n + '</text>';
-    x += w + 30;
+    s += '<text x="' + (x0 + w / 2) + '" y="' + (H - 26) + '" class="fig-small">Step ' + n + '</text><text x="' + (x0 + w / 2) + '" y="' + (H - 6) + '" class="fig-small"><tspan font-weight="700">' + (a * n + b) + '</tspan> dots</text>';
+    x = x0 + w + 24;
   });
   return '<svg class="fig" viewBox="0 0 ' + x + ' ' + H + '" style="max-width:' + Math.min(400, x * 1.3) + 'px" aria-hidden="true">' + s + '</svg>';
 }
@@ -3548,7 +3549,7 @@ const coinsOf = list => sum(list.map(id => COIN[id].v));
 function randomCoins(R, d) {
   if (d === 0) { const id = R.pick(['d', 'n', 'd', 'q', 'p', 'n']), k = id === 'q' ? R.i(2, 4) : R.i(3, 8); return Array(k).fill(id); }
   if (d === 1) { const pr = R.pick([['d', 'p'], ['d', 'n'], ['q', 'd'], ['q', 'p'], ['n', 'p'], ['q', 'n']]); let l; do { l = Array(R.i(1, 3)).fill(pr[0]).concat(Array(R.i(1, 4)).fill(pr[1])); } while (coinsOf(l) >= 100); return R.shuffle(l); }
-  let l; do { l = Array(R.i(1, 4)).fill('q').concat(Array(R.i(1, 3)).fill('d'), Array(R.i(0, 2)).fill('n'), Array(R.i(1, 4)).fill('p')); } while (coinsOf(l) > 160); return R.shuffle(l);
+  let l; do { l = Array(R.i(1, 4)).fill('q').concat(Array(R.i(1, 3)).fill('d'), Array(R.i(0, 2)).fill('n'), Array(R.i(1, 4)).fill('p')); } while (coinsOf(l) > 160 || l.length > 8); return R.shuffle(l); /* never more than 8 coins to count */
 }
 /* the value if the nickels and dimes were mixed up (the old coach's favourite money mistake) */
 const swapND = list => sum(list.map(id => id === 'n' ? 10 : id === 'd' ? 5 : COIN[id].v));
@@ -8309,7 +8310,7 @@ C.defs([
       const line = (pts) => numLineSVG(-10, 10, 1, pts.map(v => ({ v, t: num(v) })), 5);
       if (d === 0) {
         const a = -R.i(1, 9), b = R.i(1, 9), rev = R.chance(.4), from = rev ? b : a, to = rev ? a : b, ans = b - a;
-        return { text: 'How many steps is it from ' + B(num(from)) + ' to ' + B(num(to)) + ' on the number line?', ans, vis: line([a, b]),
+        return { text: 'How far is it from ' + B(num(from)) + ' to ' + B(num(to)) + ' on the number line?', ans, vis: line([a, b]),
           how: ['Count to zero, then on. From ' + num(a) + ' to 0 is ' + (-a) + (a === -1 ? ' step.' : ' steps.'), 'From 0 to ' + b + ' is ' + b + (b === 1 ? ' step.' : ' steps.'), (-a) + ' + ' + b + ' = ' + B(ans) + '.'],
           steps: [st('How many steps is it from ' + B(num(a)) + ' to 0?', -a), st('How many steps is it from 0 to ' + B(b) + '?', b), st('Add them: ' + B((-a) + ' + ' + b) + ' = ?', ans)],
           traps: TR([tr(Math.abs(b + a), 'n_neg', 'The numbers are on opposite sides of zero, so the two parts add.'), tr(ans + 1, 'n_neg', 'Count the jumps, not the marks.')]) };
@@ -11333,10 +11334,14 @@ defs([
       const vis = numLineSVG(0, hi, 1 / dn, [{ v: n / dn, t: '?' }], 1);   /* the steps read the picture, so they show it too */
       return { text: 'The number line is cut into equal parts. What fraction is at the dot?' + (n > dn ? ' Type a mixed number or a fraction.' : ''), ans: F(n, dn), type: 'frac',
         vis,
-        how: ['From 0 to 1 there are ' + dn + ' equal jumps, so each jump is ' + fr(1, dn) + '.', 'The dot is ' + plural(n, '1 jump', n + ' jumps') + ' from 0, so it is at ' + B(fr(n, dn)) + (n > dn ? ' (that is ' + mixed(Math.floor(n / dn), n % dn, dn) + ')' : '') + '.'],
-        steps: [st('How many equal jumps are there from 0 to 1?', dn, { vis }), st('How many jumps are there from 0 to the dot?', n, { vis })],
+        /* past 1, count on from the whole number just before the dot (never more than 5 jumps), not all the way from 0 */
+        how: n > dn ? ['From 0 to 1 there are ' + dn + ' equal jumps, so each jump is ' + fr(1, dn) + '.', 'The dot is ' + plural(n % dn, '1 jump', (n % dn) + ' jumps') + ' past ' + Math.floor(n / dn) + ', so it is at ' + B(mixed(Math.floor(n / dn), n % dn, dn)) + ' (that is ' + fr(n, dn) + ').']
+          : ['From 0 to 1 there are ' + dn + ' equal jumps, so each jump is ' + fr(1, dn) + '.', 'The dot is ' + plural(n, '1 jump', n + ' jumps') + ' from 0, so it is at ' + B(fr(n, dn)) + '.'],
+        steps: n > dn ? [st('How many equal jumps are there from 0 to 1?', dn, { vis }), st('The dot is just past ' + B(Math.floor(n / dn)) + '. How many jumps past ' + Math.floor(n / dn) + ' is it?', n % dn, { vis }), st('The dot is ' + Math.floor(n / dn) + ' and ' + (n % dn) + ' more ' + plural(n % dn, 'jump') + ' of ' + fr(1, dn) + '. What number is that?', F(n, dn), { vis, type: 'frac' })]
+          : [st('How many equal jumps are there from 0 to 1?', dn, { vis }), st('How many jumps are there from 0 to the dot?', n, { vis })],
         traps: [tr(F(n, dn + 1), 'f_numline', 'Count the jumps (the spaces), not the tick marks.'), tr(F(n + 1, dn), 'f_numline', 'The first jump ends at the first mark after 0. Count jumps, starting at 0.'), d ? tr(F(n, max), 'f_numline', 'The bottom number is the jumps from 0 to 1, not to ' + hi + '.') : tr(F(dn, n), 'f_unit', 'The bottom number is how many equal parts make 1 whole.')] };
     }
+    if (max > 10) return null; /* only one label: keep it to 10 jumps or fewer, so no long counts */
     let k; do k = R.i(1, max - 1); while (Math.abs(k - n) < 2 || k === dn);
     const vis = numLineSVG(0, hi, 1 / dn, [{ v: k / dn, t: k + '/' + dn }, { v: n / dn, t: '?' }], 100);
     return { text: 'Only one mark on this number line has a label. What fraction is at the dot?', ans: F(n, dn), type: 'frac',
@@ -11541,9 +11546,11 @@ defs([
   tip: 'In a tally chart, each bundle (4 lines and 1 across) is 5: count by 5s, then count on. In a picture graph, check the key: one picture may stand for 2.',
   gen(d, R) {
     const set = R.pick(PSETS), n = d === 0 ? 3 : R.pick([3, 4]), cats = R.shuffle(set.rows).slice(0, n), key = d === 2 ? 2 : 1, tally = d < 2 && R.chance(0.5);
-    const vals = cats.map(() => key === 2 ? 2 * R.i(2, 9) : R.i(d === 0 ? 2 : 3, d === 0 ? 12 : 16));
+    /* no long counts: a row of pictures has at most 10, shown in groups of 5 (tally marks are already bundled in 5s) */
+    const vals = cats.map(() => key === 2 ? 2 * R.i(2, 5) : R.i(d === 0 ? 2 : 3, tally ? (d === 0 ? 12 : 16) : 10));
     if (new Set(vals).size < n) return null;
-    const vis = table(cats.map((c, i) => [c[0] + ' ' + c[1], tally ? tallySVG(vals[i]) : '<span style="letter-spacing:3px;white-space:nowrap">' + c[0].repeat(vals[i] / key) + '</span>']));
+    const pics = (ic, k) => Array.from({ length: Math.ceil(k / 5) }, (_, g) => '<span style="margin-right:10px">' + ic.repeat(Math.min(5, k - 5 * g)) + '</span>').join('');
+    const vis = table(cats.map((c, i) => [c[0] + ' ' + c[1], tally ? tallySVG(vals[i]) : '<span style="letter-spacing:3px;white-space:nowrap">' + pics(c[0], vals[i] / key) + '</span>']));
     const keyTxt = key === 2 ? ' Each picture stands for ' + B(2) + ' ' + set.u + '.' : '';
     const cnt = i => { const v = vals[i], nmC = cats[i][1];
       if (tally) { const g = Math.floor(v / 5), r = v % 5; return cap(nmC) + ': ' + (g ? plural(g, '1 bundle', g + ' bundles') + ' of 5 is ' + 5 * g : '') + (r ? (g ? ', and ' : '') + r + (g ? ' more' : ' marks') : '') + (g && r ? ' → ' + v : '') + '.'; }
@@ -16135,11 +16142,11 @@ defs([
     }
     const l = R.i(3, 5), w = R.i(2, 4), h = R.i(2, 4), L = l * w, k = R.i(2, L - 2), full = L * (h - 1), V = full + k, more = R.chance(0.4);
     const cells = box(l, w, h - 1); let left = k; for (let j = 0; j < w && left; j++) for (let i = 0; i < l && left; i++) { cells.push([i, j, h - 1]); left--; }
-    if (more) return { text: 'A box is ' + B(l + ' cubes') + ' long, ' + B(w + ' cubes') + ' wide and ' + B(h + ' cubes') + ' tall. Every layer is full except the top layer. How many more cubes are needed to fill the box?', ans: L - k, unit: 'cubes', vis: cubesSVG(cells),
+    if (more) return { text: 'A box is ' + B(l + ' cubes') + ' long, ' + B(w + ' cubes') + ' wide and ' + B(h + ' cubes') + ' tall. Every layer is full except the top layer, which has ' + B(k + ' ' + plural(k, 'cube')) + '. How many more cubes are needed to fill the box?', ans: L - k, unit: 'cubes', vis: cubesSVG(cells),
       how: ['A full layer has ' + l + ' × ' + w + ' = ' + L + ' cubes.', 'The top layer has ' + k + ' cubes, so it needs ' + mi(L, k) + ' = ' + B(L - k) + ' more.'],
-      steps: [st('Cubes in a full layer: ' + B(l + ' × ' + w) + ' = ?', L), st('The top layer has ' + (k >= l ? Math.floor(k / l) + ' full ' + plural(Math.floor(k / l), 'row') + ' of ' + l + ' cubes' + (k % l ? ' and ' + k % l + ' more ' + plural(k % l, 'cube') : '') : 'only ' + k + ' cubes') + '. How many cubes are in the top layer?', k), st(B(mi(L, k)) + ' = ?', L - k)],
+      steps: [st('Cubes in a full layer: ' + B(l + ' × ' + w) + ' = ?', L), st('A full layer has ' + L + ' cubes. The top layer has ' + k + '. ' + B(mi(L, k)) + ' = ?', L - k)],
       traps: [tr(L * h - V + L, 'g_cubes', 'Only the top layer has gaps. The layers below are full.'), tr(V, 'g_cubes', 'That is how many cubes are in the box now. How many more fill it?'), tr(L * h, 'g_cubes', 'That is a full box. Take away the cubes already there.')] };
-    return { text: 'The top layer is not full. Every layer under the top layer is full. How many cubes are there in all?', ans: V, unit: 'cubes', vis: cubesSVG(cells),
+    return { text: 'A box is ' + B(l + ' cubes') + ' long, ' + B(w + ' cubes') + ' wide and ' + B(h + ' cubes') + ' tall. Every layer under the top layer is full. The top layer has only ' + B(k + ' ' + plural(k, 'cube')) + '. How many cubes are there in all?', ans: V, unit: 'cubes', vis: cubesSVG(cells),
       how: ['A full layer has ' + l + ' × ' + w + ' = ' + L + ' cubes.', 'There ' + (h - 1 === 1 ? 'is 1 full layer' : 'are ' + (h - 1) + ' full layers') + ' under the top: ' + (h - 1) + ' × ' + L + ' = ' + full + '.', 'Top layer: ' + k + ' cubes. In all: ' + pl(full, k) + ' = ' + B(V) + ' cubes.'],
       steps: [st('Cubes in a full layer: ' + B(l + ' × ' + w) + ' = ?', L), st('Full layers: ' + B((h - 1) + ' × ' + L) + ' = ?', full), st('Add the top layer: ' + B(pl(full, k)) + ' = ?', V)],
       traps: [tr(L * h, 'g_cubes', 'The top layer is not full. Count only its ' + k + ' cubes.'), tr(full, 'g_cubes', 'Add the cubes in the top layer too.'), tr(V - (l - 1) * (w - 1) * (h - 2 > 0 ? h - 2 : 0), 'g_cubes', 'Hidden cubes in the full layers count too.')] };
@@ -16628,8 +16635,9 @@ const DEFS = [
     const C0 = R.pick([['the goals scored in each game', 'goals', 0, 'goals in all the games', 'number of goals', 'games had', 'goal', 'goals'], ['how many pets each student owns', 'pets', 0, 'pets owned by all the students', 'number of pets', 'students own', 'pet', 'pets'], ['how many minutes each student takes to walk to school', 'minutes', 3, 'minutes walked by all the students', 'number of minutes', 'students take', 'minute', 'minutes'],
       ['how many books each student read this month', 'books', 0, 'books read by all the students', 'number of books', 'students read', 'book', 'books'], ['how many siblings each student has', 'siblings', 0, null, 'number of siblings', 'students have', 'sibling', 'siblings'], ['the shoe size of each student in a class', 'shoe size', 3, null, 'shoe size', 'students have a shoe size of', '', '']]);
     const lo = C0[2] + R.i(0, 2), n = R.i(5, d === 0 ? 6 : 8), hi = lo + n - 1;
-    const counts = Array.from({ length: n }, () => R.i(0, d === 0 ? 4 : 6)), total = sum(counts);
-    if (total < 6) return null;
+    /* no long counts: a column has at most 4 dots (seen at a glance) and the whole plot at most 12 */
+    const counts = Array.from({ length: n }, () => R.i(0, d === 0 ? 3 : 4)), total = sum(counts);
+    if (total < 6 || total > (d === 0 ? 10 : 12)) return null;
     const vis = dotPlotSVG(lo, hi, counts, C0[1]), at = v => counts[v - lo], intro = 'The dot plot shows ' + C0[0] + '. ', dots = (cs => 'The plot has ' + cs[0][1] + (cs[0][1] === 1 ? ' dot' : ' dots') + ' over the number ' + num(cs[0][0]) + (cs.length > 1 ? ', then ' + cs.slice(1).map(q => q[1] + ' over ' + num(q[0])).join(', ') : '') + '. ')(counts.map((c, i) => [lo + i, c]).filter(q => q[1]));
     const kind = R.pick(d === 0 ? ['count', 'mode'] : d === 1 ? ['more', 'least', 'mode'] : ['total', 'fracmore']);
     const mx = Math.max(...counts), cols = counts.filter(c => c).length;

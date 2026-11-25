@@ -457,8 +457,9 @@ const DEFS = [
     const C0 = R.pick([['the goals scored in each game', 'goals', 0, 'goals in all the games', 'number of goals', 'games had', 'goal', 'goals'], ['how many pets each student owns', 'pets', 0, 'pets owned by all the students', 'number of pets', 'students own', 'pet', 'pets'], ['how many minutes each student takes to walk to school', 'minutes', 3, 'minutes walked by all the students', 'number of minutes', 'students take', 'minute', 'minutes'],
       ['how many books each student read this month', 'books', 0, 'books read by all the students', 'number of books', 'students read', 'book', 'books'], ['how many siblings each student has', 'siblings', 0, null, 'number of siblings', 'students have', 'sibling', 'siblings'], ['the shoe size of each student in a class', 'shoe size', 3, null, 'shoe size', 'students have a shoe size of', '', '']]);
     const lo = C0[2] + R.i(0, 2), n = R.i(5, d === 0 ? 6 : 8), hi = lo + n - 1;
-    const counts = Array.from({ length: n }, () => R.i(0, d === 0 ? 4 : 6)), total = sum(counts);
-    if (total < 6) return null;
+    /* no long counts: a column has at most 4 dots (seen at a glance) and the whole plot at most 12 */
+    const counts = Array.from({ length: n }, () => R.i(0, d === 0 ? 3 : 4)), total = sum(counts);
+    if (total < 6 || total > (d === 0 ? 10 : 12)) return null;
     const vis = dotPlotSVG(lo, hi, counts, C0[1]), at = v => counts[v - lo], intro = 'The dot plot shows ' + C0[0] + '. ', dots = (cs => 'The plot has ' + cs[0][1] + (cs[0][1] === 1 ? ' dot' : ' dots') + ' over the number ' + num(cs[0][0]) + (cs.length > 1 ? ', then ' + cs.slice(1).map(q => q[1] + ' over ' + num(q[0])).join(', ') : '') + '. ')(counts.map((c, i) => [lo + i, c]).filter(q => q[1]));
     const kind = R.pick(d === 0 ? ['count', 'mode'] : d === 1 ? ['more', 'least', 'mode'] : ['total', 'fracmore']);
     const mx = Math.max(...counts), cols = counts.filter(c => c).length;

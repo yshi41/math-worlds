@@ -153,7 +153,7 @@ const coinsOf = list => sum(list.map(id => COIN[id].v));
 function randomCoins(R, d) {
   if (d === 0) { const id = R.pick(['d', 'n', 'd', 'q', 'p', 'n']), k = id === 'q' ? R.i(2, 4) : R.i(3, 8); return Array(k).fill(id); }
   if (d === 1) { const pr = R.pick([['d', 'p'], ['d', 'n'], ['q', 'd'], ['q', 'p'], ['n', 'p'], ['q', 'n']]); let l; do { l = Array(R.i(1, 3)).fill(pr[0]).concat(Array(R.i(1, 4)).fill(pr[1])); } while (coinsOf(l) >= 100); return R.shuffle(l); }
-  let l; do { l = Array(R.i(1, 4)).fill('q').concat(Array(R.i(1, 3)).fill('d'), Array(R.i(0, 2)).fill('n'), Array(R.i(1, 4)).fill('p')); } while (coinsOf(l) > 160); return R.shuffle(l);
+  let l; do { l = Array(R.i(1, 4)).fill('q').concat(Array(R.i(1, 3)).fill('d'), Array(R.i(0, 2)).fill('n'), Array(R.i(1, 4)).fill('p')); } while (coinsOf(l) > 160 || l.length > 8); return R.shuffle(l); /* never more than 8 coins to count */
 }
 /* the value if the nickels and dimes were mixed up (the old coach's favourite money mistake) */
 const swapND = list => sum(list.map(id => id === 'n' ? 10 : id === 'd' ? 5 : COIN[id].v));

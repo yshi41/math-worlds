@@ -358,7 +358,7 @@ C.defs([
       const line = (pts) => numLineSVG(-10, 10, 1, pts.map(v => ({ v, t: num(v) })), 5);
       if (d === 0) {
         const a = -R.i(1, 9), b = R.i(1, 9), rev = R.chance(.4), from = rev ? b : a, to = rev ? a : b, ans = b - a;
-        return { text: 'How many steps is it from ' + B(num(from)) + ' to ' + B(num(to)) + ' on the number line?', ans, vis: line([a, b]),
+        return { text: 'How far is it from ' + B(num(from)) + ' to ' + B(num(to)) + ' on the number line?', ans, vis: line([a, b]),
           how: ['Count to zero, then on. From ' + num(a) + ' to 0 is ' + (-a) + (a === -1 ? ' step.' : ' steps.'), 'From 0 to ' + b + ' is ' + b + (b === 1 ? ' step.' : ' steps.'), (-a) + ' + ' + b + ' = ' + B(ans) + '.'],
           steps: [st('How many steps is it from ' + B(num(a)) + ' to 0?', -a), st('How many steps is it from 0 to ' + B(b) + '?', b), st('Add them: ' + B((-a) + ' + ' + b) + ' = ?', ans)],
           traps: TR([tr(Math.abs(b + a), 'n_neg', 'The numbers are on opposite sides of zero, so the two parts add.'), tr(ans + 1, 'n_neg', 'Count the jumps, not the marks.')]) };
