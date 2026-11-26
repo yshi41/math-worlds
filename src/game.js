@@ -555,14 +555,21 @@ function partOne(v){const it=RD.cur,ok=MW.eqAns(it.p.first,v),still=it.kind==='p
 const trapWhy=(q,v)=>{const t=(q.traps||[]).find(t=>t&&t.v!=null&&MW.eqAns({type:q.type,ans:t.v},v));return t?t.why:null};
 const typedOf=(it,v)=>{const raw=KP&&KP.raw?KP.raw:MW.rawFor(partQ(),v);return RD.part===1?'part 1: '+raw:it.t1!=null?it.t1+', then '+raw:raw};
 /* the keypad: digits plus only the extra keys this problem's grade calls for (. / − r) */
-function buildKeypad(area,p){const kind=p.type==='money'?(p.fmt==='d'?'dollars':'cents'):p.type;KP={p,kind,raw:''};ANS={kind:'keypad'};
+/* There is one keypad in the page at a time, and it writes to its own answer box (KP.box), never to one looked up by
+   id. The practice screen and the help lesson each have a place for a keypad; a lesson used to leave its last keypad
+   behind, hidden, and it came first in the page, so after any help lesson or "I have no clue" tutorial everything typed
+   in practice went into that hidden box and the box on screen stayed empty until the page was reloaded (fixed
+   11/26/2026; test/keypad.js types with real taps and reads the box on screen). */
+const kpBox=()=>KP&&KP.box&&KP.box.isConnected?KP.box:null;
+function buildKeypad(area,p){document.querySelectorAll('.kp').forEach(k=>k.remove());
+  const kind=p.type==='money'?(p.fmt==='d'?'dollars':'cents'):p.type;KP={p,kind,raw:'',box:null};ANS={kind:'keypad'};
   const extra=MW.keysFor(p),one=extra.length===1?extra[0]:'',top=extra.length>1?extra:[];
   const key=k=>`<button type="button" class="key${k?'':' blank'}${k===' '?' key-sm':''}" data-k="${k}" ${k?'':'tabindex="-1" aria-hidden="true"'}${k===' '?' aria-label="space, for mixed numbers"':''}>${k===' '?'space':k}</button>`;
   const hint=kind==='time'?(p.dur?'Type hours, then minutes: 1 4 5 for 1 hour 45 minutes':'Type the time: 3 1 5 for 3:15'):kind==='rem'?'Tap r between the answer and the leftovers: 3 r 2':kind==='frac'?'Fractions: 3/4'+(p.low?', in lowest terms':extra.includes(' ')?' · mixed numbers: 1 space 2/3':''):'';
   const wrap=document.createElement('div');wrap.className='kp';
   wrap.innerHTML=`<div class="kp-display" id="kpDisp" aria-live="polite"></div>${hint?`<div class="kp-hint">${hint}</div>`:''}${top.length?`<div class="kp-keys" style="grid-template-columns:repeat(${top.length},1fr)">${top.map(key).join('')}</div>`:''}<div class="kp-keys">${['1','2','3','4','5','6','7','8','9',one,'0','⌫'].map(key).join('')}</div>`;
-  area.append(wrap);wrap.querySelectorAll('.key').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();kpPress(b.dataset.k)}));kpRender()}
-function kpRender(){if(!KP)return;const r=KP.raw,el=$('#kpDisp');if(!el)return;let h;
+  area.append(wrap);KP.box=wrap.querySelector('.kp-display');wrap.querySelectorAll('.key').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();kpPress(b.dataset.k)}));kpRender()}
+function kpRender(){if(!KP)return;const r=KP.raw,el=kpBox();if(!el)return;let h;
   if(KP.kind==='time')h=!r?'<span class="ph">_:__</span>':r.length<=2&&!KP.p.dur?`${r}<span class="ph">:__</span>`:r.length<=2?`<span class="ph">0:</span>${r.padStart(2,'0')}`:`${r.slice(0,-2)}:${r.slice(-2)}`;
   else if(KP.kind==='dollars')h='$'+(r||'<span class="ph">0.00</span>');
   else if(KP.kind==='cents')h=(r||'<span class="ph">?</span>')+'<span class="unit">¢</span>';
@@ -578,7 +585,7 @@ function kpPress(k){if(!KP||!k)return;if(screen==='help'){if(!HL||!HL.ask)return
   else if(k==='r'){if(KP.kind!=='rem'||r.includes('r')||!r)return;r+='r'}
   else if(/^\d$/.test(k)){const max=KP.kind==='time'?4:12;if(r.replace(/\D/g,'').length>=max)return;if(KP.kind==='dollars'&&r.includes('.')&&r.split('.')[1].length>=2)return;if(KP.kind==='time'&&!r&&k==='0'&&!KP.p.dur)return;r+=k}
   else return;
-  KP.raw=r;Snd.key();kpRender();$('#kpDisp').classList.remove('bad')}
+  KP.raw=r;Snd.key();kpRender();const box=kpBox();if(box)box.classList.remove('bad')}
 function currentValue(){if(!ANS||!KP)return null;return MW.parse(KP.p,KP.raw)}
 /* Check and "I haven't learned this yet" take two presses: the first lights the button up and says "Tap again";
    a second press within 4 seconds goes ahead. Enter works the same way. */
@@ -587,7 +594,7 @@ function disarm(){if(!ARM)return;clearTimeout(ARM.timer);const b=$('#'+ARM.id);i
 function armed(id,again){const b=$('#'+id);if(ARM&&ARM.id===id&&RD&&ARM.it===RD.cur&&Date.now()-ARM.t<4000){disarm();return true}
   disarm();ARM={id,it:RD&&RD.cur,t:Date.now(),label:b.textContent,timer:setTimeout(disarm,4000)};b.textContent=again;b.classList.add('armed');Snd.click();return false}
 $('#checkBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.init();const v=currentValue();
-  if(v==null){disarm();const d=$('#kpDisp');if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
+  if(v==null){disarm();const d=kpBox();if(d){d.classList.remove('bad');void d.offsetWidth;d.classList.add('bad')}toast(KP&&KP.raw?'That isn’t a whole answer yet.':'Type your answer first.');return}
   if(!armed('checkBtn','Tap again to check'))return;
   submit(v,null)};
 $('#hintBtn').onclick=()=>{if(!RD||RD.phase!=='ask')return;Snd.click();RD.usedHint=true;const p=RD.cur.p;showFb('try',`<div class="fb-h">Hint</div><div>${partQ().hint||p.hint||p.how[0]}</div>`);$('#hintBtn').disabled=true};
@@ -618,11 +625,11 @@ function award(n){if(n<=0)return;const p=P();p.cur+=n;RD.earned+=n;$('#playCur')
    sits right under it, with the streak and the treats earned; stars burst from the box; the counter bumps; the character
    jumps; two bell notes ring, higher as the streak grows. (An assessment shows and plays none of this.) */
 const CHECK_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg>';
-function markAnswer(ok,fold){const d=$('#kpDisp');if(!d)return;d.classList.remove('bad','ok');void d.offsetWidth;d.classList.add(ok?'ok':'bad');
+function markAnswer(ok,fold){const d=kpBox();if(!d)return;d.classList.remove('bad','ok');void d.offsetWidth;d.classList.add(ok?'ok':'bad');
   if(ok){d.insertAdjacentHTML('beforeend',`<span class="kp-ok">${CHECK_SVG}</span>`);if(fold&&d.parentNode)d.parentNode.classList.add('done')}}
 function bumpCur(){const c=$('#playCur');c.classList.remove('bump');void c.offsetWidth;c.classList.add('bump')}
 function heroDo(cls){const h=$('#playHero');h.classList.remove('jump','shake');void h.offsetWidth;h.classList.add(cls)}
-function cheer(first,gain,fold){markAnswer(true,fold);const from=$('#kpDisp')||$('#answerArea');fxStars(from,first?26:12);if(gain>0&&screen==='play')bumpCur();if(screen==='play')heroDo('jump')}
+function cheer(first,gain,fold){markAnswer(true,fold);const from=kpBox()||$('#answerArea');fxStars(from,first?26:12);if(gain>0&&screen==='play')bumpCur();if(screen==='play')heroDo('jump')}
 const fbTop=(word,streak,gain)=>`<div class="fb-top"><span class="fb-hero axo-box" aria-hidden="true">${charSVG(charOf(P(),lookOf(player)),'happy')}</span><div class="fb-h"><span class="fb-ck">${CHECK_SVG}</span><span>${word}</span></div>${streak>=2||gain>0?`<div class="fb-chips">${streak>=2?`<span class="fb-streak">${streak} in a row!</span>`:''}${gain>0?`<span class="fb-gain">+${gain} ${CUR_ICON[lookOf(player)]}</span>`:''}</div>`:''}</div>`;
 /* going back: in an assessment or a memory check (which say nothing about right or wrong as they go), Back undoes the
    last answer and asks that question again, as many questions back as this round has gone */

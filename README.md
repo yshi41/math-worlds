@@ -13,6 +13,14 @@ The plan, with every concept's grade and strand, is in [docs/CONCEPTS.md](docs/C
 Every answer is typed on an on-screen keypad or a keyboard. The keypad only shows the extra keys a grade needs:
 `.`, `/` and `−` come in from 4th to 6th grade, and `r` for remainders.
 
+What is typed always shows in the answer box (Yan, 11/26/2026: "sometimes stops allowing inputs in the middle of
+question blocks"). The practice screen and the help lesson each have a place for a keypad. A lesson used to leave its
+last keypad behind, hidden, and the game found the answer box by its id, which gave it the hidden one. So after any
+help lesson or "I have no clue" tutorial, everything typed in practice went into the hidden box: the keys clicked and
+Check still worked, but the box on screen stayed empty, on every problem and for whoever played next on that device,
+until the page was reloaded. Now there is only ever one keypad in the page (`buildKeypad` in `src/game.js` removes any
+other) and it writes to its own box (`KP.box`, read through `kpBox`), never to one looked up by id.
+
 ## How a problem reads
 
 Every problem is laid out the same way (`layout` in `src/core.js`), so a child takes it in one line at a time:
@@ -382,7 +390,17 @@ Sentences are regular weight; headings, numbers and buttons are bold. The layout
   - `node standards.test.js`: Common Core coverage.
   - `node logic.test.js`: the merge rules.
   - `node phone-shots.js <folder> .`: phone-size screenshots of each screen, for a look by eye.
-  - `node test.js ../index.html`: headless Chrome, against an in-memory stand-in for the save service.
+  - `node test.js ../index.html`: headless Chrome, against an in-memory stand-in for the save service. It calls the
+    game's own functions to answer, so it passes even when the keys or the answer box on screen are broken.
+  - `node keypad.js ../index.html`: types with real taps and key presses and reads the answer box that is on screen,
+    in a fresh round and after each way through a help lesson ("I have no clue", a lesson inside a round, a lesson
+    left part way, a lesson from a concept's page, a round picked up from the map).
+  - `node soak.js ../index.html --saves <saves.json> --kid riley --view phone --n 90 --seed 2`: plays that kid's next
+    blocks from a copy of the saves (a file of `GET /saves`; mock service only) the way a kid does, with every press
+    made where the button is on screen: right and wrong answers, hints, "I have no clue", help lessons, leaving a
+    lesson part way, going over mistakes. It fails when something typed does not show, a key or button is covered or
+    off the screen, nothing can be pressed for 8 seconds, or the page throws an error. Views: `laptop`, `tablet`,
+    `phone`. Without `--saves` it plays practice rounds on a spread of concepts.
 
 ## The parent report email, after every block
 
